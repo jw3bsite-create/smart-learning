@@ -221,3 +221,55 @@ export function richtungName(richtung, stapel) {
     ? (stapel?.defLabel || "Rückseite") + " → " + (stapel?.termLabel || "Vorderseite")
     : (stapel?.termLabel || "Vorderseite") + " → " + (stapel?.defLabel || "Rückseite");
 }
+
+/* ===================================================================== */
+/*  Fassung 3 — Entwürfe und Herkunft                                    */
+/* ===================================================================== */
+
+/**
+ * Woher eine Karte stammt. Das ist keine Buchhaltung, sondern ein Warnzeiger:
+ * Ein Deck, das überwiegend aus `ki_uebernommen` besteht, ist voll und das
+ * Gedächtnis leer. Der Anteil steht darum in der Statistik.
+ */
+export const HERKUNFT = {
+  selbst: "selbst geschrieben",
+  ki_vorderseite: "Vorderseite von der KI, Rückseite selbst",
+  ki_uebernommen: "Vorschlag der KI übernommen",
+  einfuhr: "aus einer Liste übernommen",
+};
+
+export function herkunftVon(karte) {
+  return karte?.created_by && HERKUNFT[karte.created_by] ? karte.created_by : "selbst";
+}
+
+/**
+ * Ein Kartenentwurf.
+ *
+ * Der Kern der Sache steht in `vorschlag` und `gesehen`: Die vorgeschlagene
+ * Rückseite bleibt verborgen, bis der Nutzer seine eigene geschrieben hat.
+ * Wer sie sich vorher zeigen lässt, kann das tun — es wird nur vermerkt.
+ * Ohne diesen Umweg wäre der Generator eine Maschine, die Decks füllt und
+ * nichts lernt.
+ */
+export function neuerEntwurf({
+  setId, term = "", quelle = "", vorschlag = "", termImage = null,
+  herkunft = "ki_vorderseite",
+}) {
+  return {
+    id: id("e"), setId, term, quelle, vorschlag, termImage,
+    eigene: "",           // was der Nutzer selbst schreibt
+    gesehen: false,       // wurde der Vorschlag schon eingeblendet?
+    herkunft,
+    createdAt: jetzt(), updatedAt: jetzt(), deleted: false,
+  };
+}
+
+/** Aus einem fertig bearbeiteten Entwurf wird eine Karte. */
+export function karteAusEntwurf(entwurf, rueckseite, herkunft) {
+  return {
+    ...neueKarte(entwurf.setId, entwurf.term, rueckseite, 0),
+    termImage: entwurf.termImage || null,
+    quelle: entwurf.quelle || "",
+    created_by: herkunft,
+  };
+}

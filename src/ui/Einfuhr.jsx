@@ -8,7 +8,9 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
-import { zerlege, rateTrenner, SPALTEN_TRENNER, ZEILEN_TRENNER } from "../core/importer.js";
+import {
+  zerlege, rateTrenner, ankiLesen, SPALTEN_TRENNER, ZEILEN_TRENNER,
+} from "../core/importer.js";
 import { erkenne, zuKarten, ausText, OCR_SPRACHEN } from "../core/ocr.js";
 import { anzahl } from "../core/util.js";
 import { Dialog, Knopf, Symbol, SymbolKnopf } from "./basis.jsx";
@@ -47,9 +49,19 @@ export function TextEinfuhr({ setId, aufSchliessen }) {
   const [tauschen, setTauschen] = useState(false);
   const [bearbeitet, setBearbeitet] = useState(null);
 
-  const ergebnis = useMemo(
-    () => zerlege(text, { spalte, spalteEigen, zeile, zeileEigen, tauschen }),
-    [text, spalte, spalteEigen, zeile, zeileEigen, tauschen]);
+  /* Eine Anki-Ausfuhr erkennt man an ihren Kopfzeilen — dann brauchen die
+     Trennzeichen unten niemanden mehr zu kümmern. */
+  const istAnki = /^#\s*separator/im.test(text);
+
+  const ergebnis = useMemo(() => {
+    if (istAnki) {
+      const paare = ankiLesen(text).map((k) => (tauschen
+        ? { term: k.definition, definition: k.term, hint: k.hint }
+        : { term: k.term, definition: k.definition, hint: k.hint }));
+      return { paare, uebrig: [] };
+    }
+    return zerlege(text, { spalte, spalteEigen, zeile, zeileEigen, tauschen });
+  }, [text, istAnki, spalte, spalteEigen, zeile, zeileEigen, tauschen]);
 
   const paare = bearbeitet ?? ergebnis.paare;
 
@@ -81,7 +93,16 @@ export function TextEinfuhr({ setId, aufSchliessen }) {
           if (!text && neu.length > 20) setSpalte(rateTrenner(neu));
         }} />
 
-      <div className="antwort-gitter" style={{ marginTop: 14 }}>
+      {istAnki && (
+        <div className="rueckmeldung gut klein" style={{ marginTop: 12 }}>
+          <Symbol name="haken" groesse={15} /> Anki-Ausfuhr erkannt — die
+          Kopfzeilen und die Auszeichnung werden entfernt, die Trennzeichen
+          unten sind hier ohne Belang.
+        </div>
+      )}
+
+      <div className="antwort-gitter" style={{ marginTop: 14,
+        opacity: istAnki ? 0.4 : 1, pointerEvents: istAnki ? "none" : "auto" }}>
         <div>
           <label className="beschriftung">Zwischen Vorder- und Rückseite</label>
           <select className="feld" value={spalte}

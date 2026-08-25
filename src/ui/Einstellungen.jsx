@@ -6,6 +6,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import * as wolke from "../core/cloud.js";
+import * as ki from "../core/ki.js";
 import { stimmen, beiStimmen, sprich } from "../core/speech.js";
 import { datumKurz } from "../core/util.js";
 import { Symbol, Knopf, SymbolKnopf, Dialog } from "./basis.jsx";
@@ -170,6 +171,158 @@ function Wolkenteil({ aufAbgleich }) {
   );
 }
 
+/* ---------------------------- Sprachmodell ----------------------------- */
+
+function Sprachmodellteil() {
+  const [zugang, setZugang] = useState(null);
+  const [stand, setStand] = useState(null);
+  const [prueft, setPrueft] = useState(false);
+  const [verbraucht, setVerbraucht] = useState(0);
+  const [protokoll, setProtokoll] = useState([]);
+
+  useEffect(() => {
+    (async () => {
+      setZugang(await ki.zugangLesen());
+      setVerbraucht(await ki.verbrauchHeute());
+      setProtokoll(await ki.protokoll(20));
+    })();
+  }, []);
+
+  if (!zugang) return null;
+
+  const anbieter = ki.ANBIETER[zugang.anbieter] || ki.ANBIETER.lmstudio;
+
+  const aendern = async (aenderung) => {
+    const neu = { ...zugang, ...aenderung };
+    setZugang(neu);
+    await ki.zugangSchreiben(neu);
+    setStand(null);
+  };
+
+  const pruefen = async () => {
+    setPrueft(true);
+    setStand(await ki.erreichbar(zugang));
+    setPrueft(false);
+  };
+
+  return (
+    <Abschnitt titel="Sprachmodell"
+      hinweis="Freiwillig. Wird nur beim Erzeugen von Karten und später beim Erklären gebraucht — gelernt wird ohne.">
+      <label className="schalter">
+        <input type="checkbox" checked={Boolean(zugang.angeschaltet)}
+          onChange={(e) => aendern({ angeschaltet: e.target.checked })} />
+        <span>Sprachmodell benutzen</span>
+      </label>
+
+      {zugang.angeschaltet && (
+        <>
+          <div className="antwort-gitter" style={{ marginTop: 12 }}>
+            <div>
+              <label className="beschriftung">Woher</label>
+              <select className="feld" value={zugang.anbieter}
+                onChange={(e) => aendern({
+                  anbieter: e.target.value,
+                  adresse: ki.ANBIETER[e.target.value].adresse,
+                })}>
+                {Object.entries(ki.ANBIETER).map(([k, a]) => (
+                  <option key={k} value={k}>{a.name}</option>
+                ))}
+              </select>
+              <p className="klein matt" style={{ marginTop: 6 }}>{anbieter.hinweis}</p>
+            </div>
+            <div>
+              <label className="beschriftung">Adresse</label>
+              <input className="feld" value={zugang.adresse}
+                onChange={(e) => aendern({ adresse: e.target.value })} />
+              <label className="beschriftung" style={{ marginTop: 10 }}>
+                Modell {stand?.modelle?.length ? "(gefunden)" : "(freiwillig)"}
+              </label>
+              {stand?.modelle?.length ? (
+                <select className="feld" value={zugang.modell}
+                  onChange={(e) => aendern({ modell: e.target.value })}>
+                  <option value="">— erstes verfügbares —</option>
+                  {stand.modelle.map((m) => <option key={m} value={m}>{m}</option>)}
+                </select>
+              ) : (
+                <input className="feld" value={zugang.modell} placeholder="z. B. llama-3.1-8b"
+                  onChange={(e) => aendern({ modell: e.target.value })} />
+              )}
+            </div>
+          </div>
+
+          {anbieter.schluesselNoetig && (
+            <>
+              <label className="beschriftung" style={{ marginTop: 12 }}>
+                Dein Schlüssel — bleibt auf diesem Gerät
+              </label>
+              <input className="feld" type="password" value={zugang.schluessel}
+                autoComplete="off" placeholder="sk-…"
+                onChange={(e) => aendern({ schluessel: e.target.value })} />
+              <p className="klein matt">
+                Der Schlüssel wird lokal abgelegt und nie mit der Wolke abgeglichen.
+                Wer Zugriff auf diesen Browser hat, kann ihn auslesen.
+              </p>
+            </>
+          )}
+
+          <div className="reihe umbruch" style={{ marginTop: 14, gap: 10 }}>
+            <Knopf art="klein" onClick={pruefen} disabled={prueft}>
+              {prueft ? "Prüft …" : "Verbindung prüfen"}
+            </Knopf>
+            {stand && (
+              <span className={"marke " + (stand.gut ? "gruen" : "rot")}>
+                <span className={"wolke-punkt " + (stand.gut ? "gut" : "fehler")} />
+                {stand.text}
+              </span>
+            )}
+            <div className="dehnen" />
+            <label className="reihe klein matt" style={{ gap: 6 }}>
+              Höchstens
+              <input className="feld" type="number" min="1" max="1000" style={{ width: 80 }}
+                value={zugang.tagesbudget}
+                onChange={(e) => aendern({ tagesbudget: Number(e.target.value) || 1 })} />
+              Aufrufe je Tag
+            </label>
+          </div>
+
+          <div className="klein blass" style={{ marginTop: 8 }}>
+            Heute verbraucht: {verbraucht} von {zugang.tagesbudget}.
+          </div>
+
+          {protokoll.length > 0 && (
+            <details style={{ marginTop: 12 }}>
+              <summary className="klein matt" style={{ cursor: "pointer" }}>
+                Protokoll der letzten Aufrufe
+              </summary>
+              <div className="klein blass" style={{ marginTop: 8, display: "grid", gap: 4 }}>
+                {protokoll.map((p) => (
+                  <div key={p.id} className="reihe" style={{ gap: 8 }}>
+                    <span className="mono">
+                      {new Date(p.zeit).toLocaleString("de-DE", {
+                        day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                    </span>
+                    <span className={"marke " + (p.gelungen ? "gruen" : "rot")}>{p.prompt}</span>
+                    <span>{p.zweck}</span>
+                    <div className="dehnen" />
+                    <span>{p.zeichenHin} Zeichen hin{p.gelungen
+                      ? ", " + p.zeichenZurueck + " zurück" : " — " + p.fehler}</span>
+                  </div>
+                ))}
+              </div>
+            </details>
+          )}
+
+          <p className="klein matt" style={{ marginTop: 12 }}>
+            Die Anweisungen, mit denen das Modell arbeitet, liegen als lesbare
+            Dateien im Verzeichnis <code>prompts/</code>. Es gibt kein freies
+            Chatfenster: Jeder Aufruf folgt einer dieser Anweisungen.
+          </p>
+        </>
+      )}
+    </Abschnitt>
+  );
+}
+
 /* ------------------------------ Die Ansicht ---------------------------- */
 
 export default function Einstellungen({ aufAbgleich }) {
@@ -273,6 +426,8 @@ export default function Einstellungen({ aufAbgleich }) {
           </Knopf>
         </div>
       </Abschnitt>
+
+      <Sprachmodellteil />
 
       <Wolkenteil aufAbgleich={aufAbgleich} />
 

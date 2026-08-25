@@ -16,6 +16,7 @@ import Statistik from "./ui/Statistik.jsx";
 import Papierkorb from "./ui/Papierkorb.jsx";
 import Faecher from "./ui/Faecher.jsx";
 import Kalibrierung from "./ui/Kalibrierung.jsx";
+import EntwuerfeAnsicht from "./ui/Entwuerfe.jsx";
 import Abrufen from "./modes/Abrufen.jsx";
 import Karteikarten from "./modes/Karteikarten.jsx";
 import Lernen from "./modes/Lernen.jsx";
@@ -145,7 +146,8 @@ export default function App() {
   }
 
   /* Lernmodi bekommen die ganze Fläche. */
-  if (teile[0] === "stapel" && teile[2] && teile[2] !== "bearbeiten") {
+  if (teile[0] === "stapel" && teile[2] && teile[2] !== "bearbeiten"
+    && teile[2] !== "entwuerfe") {
     const setId = teile[1];
     const modus = teile[2];
     const zurueck = () => gehe("/stapel/" + setId);
@@ -163,6 +165,7 @@ export default function App() {
   if (teile[0] === "ordner") inhalt = <Bibliothek ordnerId={teile[1]} />;
   else if (teile[0] === "suche") inhalt = <Bibliothek suchbegriff={decodeURIComponent(teile[1] || "")} />;
   else if (teile[0] === "stapel" && teile[2] === "bearbeiten") inhalt = <Bearbeiten setId={teile[1]} />;
+  else if (teile[0] === "stapel" && teile[2] === "entwuerfe") inhalt = <EntwuerfeAnsicht setId={teile[1]} />;
   else if (teile[0] === "stapel") inhalt = <Stapelansicht setId={teile[1]} />;
   else if (teile[0] === "einstellungen") inhalt = <Einstellungen aufAbgleich={() => abgleichen(false)} />;
   else if (teile[0] === "statistik") inhalt = <Statistik />;

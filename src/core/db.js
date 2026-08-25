@@ -13,7 +13,7 @@
 
 const DB_NAME = "karteikasten";
 const SICHERUNG_DB = "karteikasten-sicherung";
-const VERSION = 2;
+const VERSION = 3;
 
 /**
  * Alle Ablagen und ihre Verzeichnisse.
@@ -21,6 +21,8 @@ const VERSION = 2;
  * Fassung 1: folders, sets, cards, progress, media, settings, sessions
  * Fassung 2: subjects (Fächer), cardstates (FSRS je Karte und Richtung),
  *            reviews (jede einzelne Antwort — die Historie)
+ * Fassung 3: drafts (Kartenentwürfe, die noch auf ihre Rückseite warten),
+ *            kilog (Protokoll der Aufrufe an ein Sprachmodell)
  *
  * `progress` bleibt bestehen und unangetastet: davon leben die sieben
  * Übungsmodi weiter. Über Wiederholungstermine entscheidet ab Fassung 2
@@ -37,14 +39,18 @@ const SCHEMA = {
   subjects: { keyPath: "id", indexes: {} },
   cardstates: { keyPath: "id", indexes: { karte: "cardId", fach: "subjectId", stapel: "setId" } },
   reviews: { keyPath: "id", indexes: { karte: "cardId", fach: "subjectId", zeit: "zeit" } },
+  drafts: { keyPath: "id", indexes: { stapel: "setId" } },
+  kilog: { keyPath: "id", indexes: { zeit: "zeit" } },
 };
 
 export const STORES = Object.keys(SCHEMA);
 /**
  * Ablagen, die mit der Wolke abgeglichen werden.
  * `reviews` ist nur-anhängend — dort kann es keinen Streit zweier Geräte geben.
+ * `kilog` bleibt bewusst auf dem Gerät: Es ist ein Protokoll, kein Bestand.
  */
-export const SYNCED = ["folders", "sets", "cards", "progress", "subjects", "cardstates", "reviews"];
+export const SYNCED = ["folders", "sets", "cards", "progress", "subjects",
+  "cardstates", "reviews", "drafts"];
 
 let dbPromise = null;
 
