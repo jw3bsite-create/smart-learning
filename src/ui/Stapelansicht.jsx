@@ -89,6 +89,8 @@ export default function Stapelansicht({ setId }) {
             Reihenfolge mischen</MenuePunkt>
           <MenuePunkt symbol="tauschen" onClick={() => seitenTauschen(setId)}>
             Vorder- und Rückseite tauschen</MenuePunkt>
+          <MenuePunkt symbol="auge" onClick={() => gehe("/vorab/" + setId)}>
+            Vorab abfragen …</MenuePunkt>
           <MenuePunkt symbol="zahnrad" onClick={() => setAngaben(true)}>
             Titel und Sprachen …</MenuePunkt>
           <hr />

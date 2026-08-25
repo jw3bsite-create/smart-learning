@@ -18,7 +18,10 @@ import {
 import {
   alsAnkiText, ankiLesen, alsCsvMitPlan, csvLesen,
 } from "../src/core/importer.js";
-import { neuerEntwurf, karteAusEntwurf, herkunftVon, HERKUNFT } from "../src/core/model.js";
+import {
+  neuerEntwurf, karteAusEntwurf, herkunftVon, HERKUNFT,
+  neueErklaerung, mitFassung, umfangDerErklaerung,
+} from "../src/core/model.js";
 import { zerlege, fuelle } from "../prompts/zerlege.js";
 
 const HIER = dirname(fileURLToPath(import.meta.url));
@@ -243,4 +246,45 @@ test("Text ohne Kopf wird trotzdem gelesen", () => {
   const { kopf, text } = zerlege("Nur Text, kein Kopf.");
   assert.deepEqual(kopf, {});
   assert.equal(text, "Nur Text, kein Kopf.");
+});
+
+/* ========================= Phase 3 — Erklärungen ======================== */
+
+test("eine Erklärung beginnt leer und ohne Runden", () => {
+  const x = neueErklaerung({ thema: "Kettenregel", subjectId: "f1" });
+  assert.equal(x.thema, "Kettenregel");
+  assert.deepEqual(x.fassungen, []);
+  assert.equal(x.runden, 0);
+  assert.equal(x.erledigt, false);
+  assert.equal(umfangDerErklaerung(x), 0);
+});
+
+test("jede Überarbeitung wird angehängt, nichts überschrieben", () => {
+  let x = neueErklaerung({ thema: "Kettenregel" });
+  x = mitFassung(x, "Erste, kurze Fassung.", [{ stelle: "kurz", art: "luecke", frage: "Und dann?" }]);
+  x = mitFassung(x, "Zweite, deutlich ausführlichere Fassung mit mehr Text.", []);
+  assert.equal(x.fassungen.length, 2, "beide Fassungen bleiben erhalten");
+  assert.equal(x.fassungen[0].text, "Erste, kurze Fassung.");
+  assert.equal(x.fassungen[0].lueckenZahl, 1);
+  assert.equal(x.runden, 2);
+  assert.equal(x.erledigt, true, "leere Lückenliste heißt fertig");
+  assert.equal(umfangDerErklaerung(x), 7);
+});
+
+test("ohne Rückmeldung gilt die Erklärung nicht als fertig", () => {
+  let x = neueErklaerung({ thema: "Redoxreaktion" });
+  x = mitFassung(x, "Nur aufgehoben, nicht geprüft.", null);
+  assert.equal(x.erledigt, false);
+  assert.deepEqual(x.offeneLuecken, []);
+  assert.equal(x.fassungen.length, 1);
+});
+
+test("die Anweisung für das Erklären verbietet das Füllen der Lücken", () => {
+  const roh = readFileSync(join(HIER, "..", "prompts", "feynman.md"), "utf8");
+  const { kopf, text } = zerlege(roh);
+  assert.equal(kopf.name, "feynman");
+  assert.match(text, /korrigierst\s+nichts/);
+  assert.match(text, /Fülle keine Lücke/);
+  assert.match(text, /[Hh]öchstens\s+fünf/);
+  assert.match(text, /JSON/);
 });

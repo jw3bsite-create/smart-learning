@@ -13,7 +13,7 @@
 
 const DB_NAME = "karteikasten";
 const SICHERUNG_DB = "karteikasten-sicherung";
-const VERSION = 3;
+const VERSION = 4;
 
 /**
  * Alle Ablagen und ihre Verzeichnisse.
@@ -23,6 +23,7 @@ const VERSION = 3;
  *            reviews (jede einzelne Antwort — die Historie)
  * Fassung 3: drafts (Kartenentwürfe, die noch auf ihre Rückseite warten),
  *            kilog (Protokoll der Aufrufe an ein Sprachmodell)
+ * Fassung 4: explanations (Erklärungen im Feynman-Modus, versioniert)
  *
  * `progress` bleibt bestehen und unangetastet: davon leben die sieben
  * Übungsmodi weiter. Über Wiederholungstermine entscheidet ab Fassung 2
@@ -41,6 +42,7 @@ const SCHEMA = {
   reviews: { keyPath: "id", indexes: { karte: "cardId", fach: "subjectId", zeit: "zeit" } },
   drafts: { keyPath: "id", indexes: { stapel: "setId" } },
   kilog: { keyPath: "id", indexes: { zeit: "zeit" } },
+  explanations: { keyPath: "id", indexes: { thema: "themaId", fach: "subjectId" } },
 };
 
 export const STORES = Object.keys(SCHEMA);
@@ -50,7 +52,7 @@ export const STORES = Object.keys(SCHEMA);
  * `kilog` bleibt bewusst auf dem Gerät: Es ist ein Protokoll, kein Bestand.
  */
 export const SYNCED = ["folders", "sets", "cards", "progress", "subjects",
-  "cardstates", "reviews", "drafts"];
+  "cardstates", "reviews", "drafts", "explanations"];
 
 let dbPromise = null;
 

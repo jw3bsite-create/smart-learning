@@ -273,3 +273,46 @@ export function karteAusEntwurf(entwurf, rueckseite, herkunft) {
     created_by: herkunft,
   };
 }
+
+/* ===================================================================== */
+/*  Fassung 4 — Erklärungen (Feynman)                                    */
+/* ===================================================================== */
+
+/**
+ * Eine Erklärung zu einem Thema, in Fassungen.
+ *
+ * Aufgehoben wird jede Überarbeitung, nicht nur die letzte. Wie sich eine
+ * Erklärung über Wochen verändert, sagt mehr über den Lernfortschritt als
+ * jede Prozentzahl: Wer im Oktober vier Sätze schrieb und im Januar zwölf,
+ * mit den richtigen Begriffen darin, hat etwas gelernt.
+ */
+export function neueErklaerung({ thema, subjectId = null, setId = null }) {
+  return {
+    id: id("x"), themaId: id("t"), thema, subjectId, setId,
+    fassungen: [],          // [{ text, zeit, lueckenZahl }]
+    offeneLuecken: [],      // die letzte Rückmeldung
+    runden: 0,
+    erledigt: false,
+    createdAt: jetzt(), updatedAt: jetzt(), deleted: false,
+  };
+}
+
+/** Hängt eine überarbeitete Fassung an. */
+export function mitFassung(erklaerung, text, luecken) {
+  return {
+    ...erklaerung,
+    fassungen: [...erklaerung.fassungen,
+      { text, zeit: jetzt(), lueckenZahl: (luecken || []).length }],
+    offeneLuecken: luecken || [],
+    runden: erklaerung.runden + 1,
+    erledigt: Array.isArray(luecken) && luecken.length === 0,
+    updatedAt: jetzt(),
+  };
+}
+
+/** Wie viele Wörter die jüngste Fassung hat — ein grober Wachstumsmesser. */
+export function umfangDerErklaerung(erklaerung) {
+  const letzte = erklaerung?.fassungen?.[erklaerung.fassungen.length - 1];
+  if (!letzte) return 0;
+  return letzte.text.trim().split(/\s+/).filter(Boolean).length;
+}

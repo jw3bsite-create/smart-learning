@@ -14,9 +14,11 @@
 
 import { zerlege, fuelle } from "./zerlege.js";
 import kartengenerator from "./kartengenerator.md?raw";
+import feynman from "./feynman.md?raw";
 
 export const PROMPTS = {
   kartengenerator,
+  feynman,
 };
 
 export { zerlege, fuelle };
