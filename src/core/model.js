@@ -410,7 +410,12 @@ export function neueMehrschrittKarte(setId, aufgabe, schritte = [], order = 0) {
 /** Die Schritte einer Karte, immer als brauchbare Liste. */
 export function schritteVon(karte) {
   if (kartenArt(karte) !== "mehrschritt") return [];
-  return (karte.schritte || []).filter((s) => (s.antwort || "").trim());
+  // Beschädigte Daten — aus einer misslungenen Einfuhr oder einem Abgleich —
+  // dürfen die App nicht umwerfen. Was keine Liste ist, gilt als leer.
+  if (!Array.isArray(karte.schritte)) return [];
+  return karte.schritte
+    .filter((s) => s && typeof s === "object" && (s.antwort || "").trim())
+    .map((s) => ({ frage: String(s.frage || ""), antwort: String(s.antwort) }));
 }
 
 /**

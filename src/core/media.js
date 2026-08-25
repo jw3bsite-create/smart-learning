@@ -85,3 +85,37 @@ export function dateiAusEreignis(ev) {
   for (const f of dt.files || []) if (/^image\//.test(f.type)) return f;
   return null;
 }
+
+/**
+ * Räumt Bilder weg, auf die keine Karte und kein Entwurf mehr zeigt.
+ *
+ * Nötig, weil beim Löschen einer Karte nur ein Grabstein bleibt: Das Bild
+ * selbst wüsste sonst niemand mehr zu finden und läge doch weiter im
+ * Speicher. Bei abfotografierten Buchseiten summiert sich das schnell auf
+ * Megabyte, die kein Mensch je wiedersieht.
+ *
+ * Vorsichtig gefasst: Bilder gelöschter Karten bleiben, solange der Grabstein
+ * lebt (sechzig Tage) — sonst käme eine aus dem Papierkorb geholte Karte ohne
+ * ihr Bild zurück.
+ */
+export async function verwaisteBilderAufraeumen({ trocken = false } = {}) {
+  const [karten, entwuerfe, bilder] = await Promise.all([
+    db.all("cards", { mitGeloeschten: true }),
+    db.all("drafts", { mitGeloeschten: true }),
+    db.all("media", { mitGeloeschten: true }),
+  ]);
+
+  const gebraucht = new Set();
+  for (const k of karten) {
+    if (k.termImage) gebraucht.add(k.termImage);
+    if (k.defImage) gebraucht.add(k.defImage);
+  }
+  for (const e of entwuerfe) if (e.termImage) gebraucht.add(e.termImage);
+
+  const verwaist = bilder.filter((b) => !gebraucht.has(b.id));
+  const bytes = verwaist.reduce((n, b) => n + (b.blob?.size || 0), 0);
+
+  if (!trocken) for (const b of verwaist) await bildLoeschen(b.id);
+
+  return { anzahl: verwaist.length, bytes, geprueft: bilder.length };
+}

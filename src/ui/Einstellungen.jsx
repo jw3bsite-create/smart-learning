@@ -9,6 +9,7 @@ import * as wolke from "../core/cloud.js";
 import * as ki from "../core/ki.js";
 import * as erinnerung from "../core/erinnerung.js";
 import { stimmen, beiStimmen, sprich } from "../core/speech.js";
+import { verwaisteBilderAufraeumen } from "../core/media.js";
 import { datumKurz } from "../core/util.js";
 import { Symbol, Knopf, SymbolKnopf, Dialog } from "./basis.jsx";
 import Gestaltung from "./Gestaltung.jsx";
@@ -491,6 +492,17 @@ export default function Einstellungen({ aufAbgleich }) {
           <input ref={datei} type="file" accept="application/json,.json" style={{ display: "none" }}
             onChange={(e) => dateiGewaehlt(e.target.files[0])} />
           <Knopf symbol="hinauf" onClick={() => datei.current?.click()}>Sicherung einlesen</Knopf>
+          <Knopf symbol="muell" onClick={async () => {
+            const vorab = await verwaisteBilderAufraeumen({ trocken: true });
+            if (!vorab.anzahl) { setMeldung("Es liegt nichts Verwaistes herum."); return; }
+            const mb = Math.max(0.1, Math.round(vorab.bytes / 104857.6) / 10);
+            if (!window.confirm(
+              `${vorab.anzahl} Bilder gehören zu keiner Karte mehr (rund ${mb} MB). Löschen?`))
+              return;
+            const weg = await verwaisteBilderAufraeumen();
+            setMeldung(`${weg.anzahl} Bilder weggeräumt.`);
+            navigator.storage?.estimate?.().then(setPlatz).catch(() => {});
+          }}>Verwaiste Bilder wegräumen</Knopf>
         </div>
         <p className="klein matt">
           Die Sicherung enthält Ordner, Stapel, Karten, Lernstände und Bilder — alles in

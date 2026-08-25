@@ -2,13 +2,18 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.jsx";
 import { DatenSpeicher } from "./core/store.jsx";
+import Auffanglinie from "./ui/Auffanglinie.jsx";
 import "./ui/stil.css";
 
+/* Die Auffanglinie liegt außen: Stürzt der Datenspeicher selbst ab, greift sie
+   immer noch — und kann die Daten unmittelbar aus der Datenbank sichern. */
 createRoot(document.getElementById("wurzel")).render(
   <React.StrictMode>
-    <DatenSpeicher>
-      <App />
-    </DatenSpeicher>
+    <Auffanglinie>
+      <DatenSpeicher>
+        <App />
+      </DatenSpeicher>
+    </Auffanglinie>
   </React.StrictMode>
 );
 
