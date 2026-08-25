@@ -90,3 +90,29 @@ räumt `pruneTombstones()` auf.
 
 Nach jeder Änderung `npm run lint` und `npm test` laufen lassen. Neue Logik im
 Kern bekommt eine Prüfung. Änderungen klein halten und einzeln prüfen.
+
+## Fassung 2 — das Abrufsystem (seit Phase 1)
+
+Zwei Wege stehen nebeneinander und dürfen sich nicht vermischen:
+
+- **Abrufen** (`src/modes/Abrufen.jsx`) ist der verbindliche Lernweg. Ablauf:
+  Frage → Konfidenz → tippen → aufdecken → bewerten. Nur hier ändern sich
+  Wiederholungstermine, und zwar über FSRS (`src/core/fsrs.js`, Hülle um
+  `ts-fsrs`).
+- **Die sieben Übungsmodi** bleiben unangetastet. Sie schreiben Reviews mit
+  `flag: "practice"` und verschieben nichts. Üben ist nicht Messen.
+
+Weitere neue Bausteine: `kalibrierung.js` (Konfidenzauswertung, Plausibilität),
+`warteschlange.js` (was drankommt, Lastprognose), `ui/Faecher.jsx`,
+`ui/Kalibrierung.jsx`.
+
+**Regeln, die nicht verhandelbar sind:**
+
+1. Die Bewertung wird nie aus der Tippeingabe abgeleitet. Exakte Übereinstimmung
+   wird gemeldet, die Note wählt der Mensch. Keine Ähnlichkeitsschwelle.
+2. Der Kalibrierungsaufschlag wirkt als Multiplikator auf das *Ergebnis* von
+   FSRS, nie auf dessen Parameter — sonst wäre die Historie für eine spätere
+   Nachoptimierung wertlos.
+3. `reviews` ist nur-anhängend und wird nie destruktiv verändert.
+4. Jede Schemaänderung erhöht `VERSION` in `db.js` und legt vorher eine
+   Sicherung in der Datenbank `karteikasten-sicherung` ab.

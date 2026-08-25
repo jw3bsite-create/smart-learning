@@ -27,6 +27,7 @@ export default function Stapelansicht({ setId }) {
   const {
     stapel, ordner, kartenVon, staende, karteAendern, stapelAendern,
     stapelLoeschen, stapelVervielfaeltigen, kartenOrdnen, seitenTauschen, standZuruecksetzen,
+    faecher,
   } = useDaten();
   const [sortierung, setSortierung] = useState("eigen");
   const [nurMarkierte, setNurMarkierte] = useState(false);
@@ -113,7 +114,34 @@ export default function Stapelansicht({ setId }) {
         </Leer>
       ) : (
         <>
-          {/* --------------------------- Modi --------------------------- */}
+          {/* ------------------------- Der Lernweg ---------------------- */}
+          <div className="kachel" style={{ marginBottom: 20, minHeight: 0,
+            borderColor: "var(--akzent)" }}
+            onClick={() => gehe(derStapel.subjectId
+              ? "/abrufen/" + derStapel.subjectId : "/faecher")}>
+            <div className="reihe">
+              <Symbol name="blitz" groesse={20} />
+              <div className="dehnen">
+                <div className="titel">Abrufen</div>
+                <div className="klein matt">
+                  {derStapel.subjectId
+                    ? "Tippen, einschätzen, bewerten — hier entscheidet sich, wann diese Karten wiederkommen."
+                    : "Noch keinem Fach zugeordnet. Ohne Fach kann der Plan nicht rechnen."}
+                </div>
+              </div>
+              <select className="feld" style={{ width: "auto" }} value={derStapel.subjectId || ""}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) => stapelAendern(setId, { subjectId: e.target.value || null })}>
+                <option value="">— ohne Fach —</option>
+                {faecher.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* --------------------------- Übungsmodi --------------------- */}
+          <div className="klein blass" style={{ marginBottom: 8 }}>
+            Zum Üben — zählt für die Statistik, verschiebt aber keine Termine
+          </div>
           <div className="gitter" style={{ marginBottom: 24, gridTemplateColumns: "repeat(auto-fill, minmax(215px, 1fr))" }}>
             {MODI.map((m) => (
               <div key={m.id} className="kachel" style={{ minHeight: 96 }}

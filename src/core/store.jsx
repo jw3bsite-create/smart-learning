@@ -13,6 +13,8 @@ import React, { createContext, useContext, useEffect, useMemo, useState, useCall
 import * as db from "./db.js";
 import * as model from "./model.js";
 import { bewerte } from "./scheduler.js";
+import { neuerZustand, bewerteKarte } from "./fsrs.js";
+import { aufschlagFuer, istPlausibel } from "./kalibrierung.js";
 import { tagesSchluessel } from "./util.js";
 
 const Zusammenhang = createContext(null);
@@ -30,6 +32,8 @@ export const STANDARD_EINSTELLUNGEN = {
   sprechTempo: 1,
   ocrSprache: "deu+eng",
   zuletztStapel: null,
+  sitzungsUmfang: 30,            // Aufgaben je Abrufsitzung
+  faecherAngelegt: false,        // ob der Vorschlag der sechs Fächer schon kam
 };
 
 export function DatenSpeicher({ children }) {
@@ -41,20 +45,28 @@ export function DatenSpeicher({ children }) {
   const [sitzungen, setSitzungen] = useState([]);
   const [einstellungen, setEinstellungen] = useState(STANDARD_EINSTELLUNGEN);
   const [wolkeStand, setWolkeStand] = useState({ zustand: "aus", zeit: 0, text: "" });
+  // Fassung 2: Fächer, FSRS-Kartenzustände und die Review-Historie.
+  const [faecher, setFaecher] = useState([]);
+  const [zustaende, setZustaende] = useState({});
+  const [reviews, setReviews] = useState([]);
   const merkeAenderung = useRef(() => {});
 
   /* ------------------------------ Laden ------------------------------ */
   useEffect(() => {
     (async () => {
-      const [o, s, k, f, si, e] = await Promise.all([
+      const [o, s, k, f, si, e, fa, cs, rv] = await Promise.all([
         db.all("folders"), db.all("sets"), db.all("cards"),
         db.all("progress"), db.all("sessions"),
         db.getSetting("einstellungen", null),
+        db.all("subjects"), db.all("cardstates"), db.all("reviews"),
       ]);
       setOrdner(o); setStapel(s); setKarten(k);
       setStaende(Object.fromEntries(f.map((x) => [x.id, x])));
       setSitzungen(si);
       setEinstellungen({ ...STANDARD_EINSTELLUNGEN, ...(e || {}) });
+      setFaecher(fa);
+      setZustaende(Object.fromEntries(cs.map((x) => [x.id, x])));
+      setReviews(rv);
       setBereit(true);
       db.pruneTombstones().catch(() => {});
     })();
@@ -230,15 +242,35 @@ export function DatenSpeicher({ children }) {
   }, []);
 
   /* ------------------------------ Lernstand --------------------------- */
-  const antwortVerbuchen = useCallback((karte, richtung, qualitaet) => {
+  /**
+   * Der Lernstand der sieben Übungsmodi — unverändert wie in Fassung 1.
+   *
+   * Zusätzlich wandert seit Fassung 2 jede Übungsantwort als Review mit dem
+   * Vermerk `practice` in die Historie. Sie füllt Statistik und Strähne,
+   * verschiebt aber keinen Wiederholungstermin: Üben ist nicht Messen.
+   */
+  const antwortVerbuchen = useCallback((karte, richtung, qualitaet, zusatz = {}) => {
     setStaende((alt) => {
       const vorher = alt[karte.id] || model.neuerStand(karte.id, karte.setId);
       const nachher = bewerte(vorher, richtung, qualitaet);
       db.put("progress", nachher);
       return { ...alt, [karte.id]: nachher };
     });
+
+    const zeit = Date.now();
+    const derStapel = stapel.find((s) => s.id === karte.setId);
+    const review = model.neuesReview({
+      cardId: karte.id, richtung, setId: karte.setId,
+      subjectId: zusatz.subjectId || derStapel?.subjectId || null,
+      bewertung: qualitaet >= 2 ? 3 : qualitaet === 1 ? 2 : 1,
+      antwortzeit: zusatz.antwortzeit || 0,
+      konfidenz: null, flag: "practice", modus: zusatz.modus || "uebung", zeit,
+    });
+    db.put("reviews", review);
+    setReviews((alt) => [...alt, review]);
+
     merkeAenderung.current();
-  }, []);
+  }, [stapel]);
 
   const standZuruecksetzen = useCallback(async (setId) => {
     const zeit = Date.now();
@@ -249,6 +281,139 @@ export function DatenSpeicher({ children }) {
         const leer = { ...model.neuerStand(kennung, setId), updatedAt: zeit };
         db.put("progress", leer);
         neu[kennung] = leer;
+      }
+      return neu;
+    });
+    merkeAenderung.current();
+  }, []);
+
+  /* ------------------------------- Fächer ------------------------------- */
+
+  const fachAnlegen = useCallback(async (name, farbe = null, zusatz = {}) => {
+    const f = { ...model.neuesFach(name || "Neues Fach", farbe), ...zusatz };
+    await db.put("subjects", f);
+    setFaecher((alt) => [...alt, f]);
+    merkeAenderung.current();
+    return f;
+  }, []);
+
+  const fachAendern = useCallback(async (kennung, aenderung) => {
+    setFaecher((alt) => alt.map((f) => {
+      if (f.id !== kennung) return f;
+      const neu = { ...f, ...aenderung, updatedAt: Date.now() };
+      db.put("subjects", neu);
+      return neu;
+    }));
+    merkeAenderung.current();
+  }, []);
+
+  /** Das Fach verschwindet; die Stapel darin bleiben und werden fachlos. */
+  const fachLoeschen = useCallback(async (kennung) => {
+    const zeit = Date.now();
+    setFaecher((alt) => alt.filter((f) => {
+      if (f.id !== kennung) return true;
+      db.put("subjects", { ...f, deleted: true, updatedAt: zeit });
+      return false;
+    }));
+    setStapel((alt) => alt.map((s) => {
+      if (s.subjectId !== kennung) return s;
+      const neu = { ...s, subjectId: null, updatedAt: zeit };
+      db.put("sets", neu);
+      return neu;
+    }));
+    merkeAenderung.current();
+  }, []);
+
+  /* --------------------------- Abrufen (FSRS) --------------------------- */
+
+  /**
+   * Verbucht einen Abruf: schreibt das Review und — wenn es zählt — den neuen
+   * Kartenzustand. Das ist der einzige Weg, auf dem sich Wiederholungstermine
+   * ändern.
+   */
+  const abrufVerbuchen = useCallback(async ({
+    karte, stapel, richtung = "td", bewertung, konfidenz = null,
+    antwortzeit = 0, eingabeLeer = false, flag = "normal", modus = "abrufen",
+    fach = null, zeit = Date.now(),
+  }) => {
+    const subjectId = fach?.id || stapel?.subjectId || null;
+    const schluessel = karte.id + ":" + richtung;
+
+    // Durchklicken wird festgehalten, zählt aber nicht (§5).
+    const echt = istPlausibel({ antwortzeit, bewertung, eingabeLeer });
+    const wirklichesFlag = flag === "normal" && !echt ? "implausible" : flag;
+
+    const review = model.neuesReview({
+      cardId: karte.id, richtung, setId: karte.setId, subjectId,
+      bewertung, antwortzeit, konfidenz, flag: wirklichesFlag, modus, zeit,
+    });
+    await db.put("reviews", review);
+    setReviews((alt) => [...alt, review]);
+
+    const wirksam = wirklichesFlag === "normal";
+    let neuerStand = null;
+    setZustaende((alt) => {
+      const vorher = alt[schluessel] ||
+        neuerZustand(karte.id, richtung, karte.setId, subjectId, zeit);
+      if (!wirksam) {
+        // Zustand unberührt lassen, aber die Zugehörigkeit festhalten,
+        // damit die Karte in Übersichten auftaucht.
+        if (alt[schluessel]) return alt;
+        db.put("cardstates", vorher);
+        return { ...alt, [schluessel]: vorher };
+      }
+      const aufschlag = aufschlagFuer(
+        [...reviews, review].filter((r) => r.cardId === karte.id && r.richtung === richtung));
+      neuerStand = bewerteKarte(vorher, bewertung, {
+        zielRetention: fach?.zielRetention ?? 0.9,
+        maximalTage: fach?.maximalTage ?? 3650,
+        zeit, wirksam: true, aufschlag,
+      });
+      db.put("cardstates", neuerStand);
+      return { ...alt, [schluessel]: neuerStand };
+    });
+
+    merkeAenderung.current();
+    return { review, zustand: neuerStand };
+  }, [reviews]);
+
+  /**
+   * Die sieben Übungsmodi melden hierher. Sie füllen die Historie und die
+   * Strähne, verschieben aber keinen Termin — Üben ist nicht Messen.
+   */
+  const uebungVerbuchen = useCallback(async ({
+    karte, stapel, richtung = "td", gewusst, antwortzeit = 0, modus,
+  }) => {
+    return abrufVerbuchen({
+      karte, stapel, richtung, bewertung: gewusst ? 3 : 1,
+      antwortzeit, flag: "practice", modus,
+    });
+  }, [abrufVerbuchen]);
+
+  /** Eine gesperrte Karte (Leech) nach der Überarbeitung wieder freigeben. */
+  const karteEntsperren = useCallback(async (cardId, richtung = "td") => {
+    const schluessel = cardId + ":" + richtung;
+    setZustaende((alt) => {
+      const z = alt[schluessel];
+      if (!z) return alt;
+      const neu = { ...z, gesperrt: false, nochmalZaehler: 0, lapses: 0,
+        updatedAt: Date.now() };
+      db.put("cardstates", neu);
+      return { ...alt, [schluessel]: neu };
+    });
+    merkeAenderung.current();
+  }, []);
+
+  /** Lernstand eines Stapels im neuen Sinne verwerfen. */
+  const zustandZuruecksetzen = useCallback(async (setId) => {
+    const zeit = Date.now();
+    setZustaende((alt) => {
+      const neu = { ...alt };
+      for (const [schluessel, z] of Object.entries(alt)) {
+        if (z.setId !== setId) continue;
+        const leer = neuerZustand(z.cardId, z.richtung, z.setId, z.subjectId, zeit);
+        db.put("cardstates", leer);
+        neu[schluessel] = leer;
       }
       return neu;
     });
@@ -296,9 +461,11 @@ export function DatenSpeicher({ children }) {
 
   /* ------------------------- Sicherung als Datei ---------------------- */
   const alsSicherung = useCallback(async () => {
-    const [o, s, k, f] = await Promise.all([
+    const [o, s, k, f, fa, cs, rv] = await Promise.all([
       db.all("folders", { mitGeloeschten: true }), db.all("sets", { mitGeloeschten: true }),
       db.all("cards", { mitGeloeschten: true }), db.all("progress", { mitGeloeschten: true }),
+      db.all("subjects", { mitGeloeschten: true }), db.all("cardstates", { mitGeloeschten: true }),
+      db.all("reviews", { mitGeloeschten: true }),
     ]);
     const bilder = await db.all("media", { mitGeloeschten: true });
     const eingepackt = await Promise.all(bilder.map(async (b) => ({
@@ -310,18 +477,23 @@ export function DatenSpeicher({ children }) {
         leser.readAsDataURL(b.blob);
       }),
     })));
-    return { fassung: 1, erzeugt: Date.now(), ordner: o, stapel: s, karten: k,
-      staende: f, bilder: eingepackt.filter((b) => b.daten), einstellungen };
+    return { fassung: 2, erzeugt: Date.now(), ordner: o, stapel: s, karten: k,
+      staende: f, faecher: fa, zustaende: cs, reviews: rv,
+      bilder: eingepackt.filter((b) => b.daten), einstellungen };
   }, [einstellungen]);
 
   const ausSicherung = useCallback(async (daten, ersetzen = false) => {
     if (!daten || !Array.isArray(daten.stapel)) throw new Error("Unbekanntes Format");
     if (ersetzen)
-      for (const s of ["folders", "sets", "cards", "progress", "media"]) await db.clear(s);
+      for (const s of ["folders", "sets", "cards", "progress", "media",
+        "subjects", "cardstates", "reviews"]) await db.clear(s);
     await db.putMany("folders", daten.ordner || []);
     await db.putMany("sets", daten.stapel || []);
     await db.putMany("cards", daten.karten || []);
     await db.putMany("progress", daten.staende || []);
+    await db.putMany("subjects", daten.faecher || []);
+    await db.putMany("cardstates", daten.zustaende || []);
+    await db.putMany("reviews", daten.reviews || []);
     for (const b of daten.bilder || []) {
       try {
         const antwort = await fetch(b.daten);
@@ -329,19 +501,27 @@ export function DatenSpeicher({ children }) {
         await db.put("media", { id: b.id, blob, type: b.type, updatedAt: Date.now() });
       } catch (e) { /* einzelnes Bild überspringen */ }
     }
-    const [o, s, k, f] = await Promise.all([
+    const [o, s, k, f, fa, cs, rv] = await Promise.all([
       db.all("folders"), db.all("sets"), db.all("cards"), db.all("progress"),
+      db.all("subjects"), db.all("cardstates"), db.all("reviews"),
     ]);
     setOrdner(o); setStapel(s); setKarten(k);
     setStaende(Object.fromEntries(f.map((x) => [x.id, x])));
+    setFaecher(fa);
+    setZustaende(Object.fromEntries(cs.map((x) => [x.id, x])));
+    setReviews(rv);
   }, []);
 
   const neuLaden = useCallback(async () => {
-    const [o, s, k, f] = await Promise.all([
+    const [o, s, k, f, fa, cs, rv] = await Promise.all([
       db.all("folders"), db.all("sets"), db.all("cards"), db.all("progress"),
+      db.all("subjects"), db.all("cardstates"), db.all("reviews"),
     ]);
     setOrdner(o); setStapel(s); setKarten(k);
     setStaende(Object.fromEntries(f.map((x) => [x.id, x])));
+    setFaecher(fa);
+    setZustaende(Object.fromEntries(cs.map((x) => [x.id, x])));
+    setReviews(rv);
   }, []);
 
   /* ------------------------------ Ableitungen ------------------------- */
@@ -359,13 +539,29 @@ export function DatenSpeicher({ children }) {
   const kartenVon = useCallback((setId) => kartenNachStapel.get(setId) || [],
     [kartenNachStapel]);
 
+  const stapelNachId = useMemo(
+    () => new Map(stapel.map((s) => [s.id, s])), [stapel]);
+  const stapelVon = useCallback((setId) => stapelNachId.get(setId) || null,
+    [stapelNachId]);
+
+  const fachNachId = useMemo(
+    () => new Map(faecher.map((f) => [f.id, f])), [faecher]);
+  const fachVon = useCallback((subjectId) => fachNachId.get(subjectId) || null,
+    [fachNachId]);
+
+  /** Das Fach eines Stapels — über die Zuordnung des Stapels. */
+  const fachDesStapels = useCallback((setId) => {
+    const s = stapelNachId.get(setId);
+    return s?.subjectId ? fachNachId.get(s.subjectId) || null : null;
+  }, [stapelNachId, fachNachId]);
+
   const setAenderungsMelder = useCallback((fn) => {
     merkeAenderung.current = fn || (() => {});
   }, []);
 
   const wert = {
     bereit, ordner, stapel, karten, staende, sitzungen, einstellungen,
-    kartenNachStapel, kartenVon,
+    kartenNachStapel, kartenVon, stapelVon,
     setzeEinstellung,
     ordnerAnlegen, ordnerAendern, ordnerLoeschen,
     stapelAnlegen, stapelAendern, stapelLoeschen, stapelVervielfaeltigen,
@@ -375,6 +571,10 @@ export function DatenSpeicher({ children }) {
     papierkorbLesen, wiederherstellen,
     alsSicherung, ausSicherung, neuLaden,
     wolkeStand, setWolkeStand, setAenderungsMelder,
+    // Fassung 2
+    faecher, zustaende, reviews, fachVon, fachDesStapels,
+    fachAnlegen, fachAendern, fachLoeschen,
+    abrufVerbuchen, uebungVerbuchen, karteEntsperren, zustandZuruecksetzen,
   };
 
   return <Zusammenhang.Provider value={wert}>{children}</Zusammenhang.Provider>;

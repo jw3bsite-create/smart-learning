@@ -12,9 +12,20 @@
  */
 
 const DB_NAME = "karteikasten";
-const VERSION = 1;
+const SICHERUNG_DB = "karteikasten-sicherung";
+const VERSION = 2;
 
-/** Alle Ablagen und ihre Verzeichnisse. */
+/**
+ * Alle Ablagen und ihre Verzeichnisse.
+ *
+ * Fassung 1: folders, sets, cards, progress, media, settings, sessions
+ * Fassung 2: subjects (Fächer), cardstates (FSRS je Karte und Richtung),
+ *            reviews (jede einzelne Antwort — die Historie)
+ *
+ * `progress` bleibt bestehen und unangetastet: davon leben die sieben
+ * Übungsmodi weiter. Über Wiederholungstermine entscheidet ab Fassung 2
+ * ausschließlich `cardstates`.
+ */
 const SCHEMA = {
   folders: { keyPath: "id", indexes: { parent: "parentId" } },
   sets: { keyPath: "id", indexes: { folder: "folderId" } },
@@ -23,32 +34,140 @@ const SCHEMA = {
   media: { keyPath: "id", indexes: {} },
   settings: { keyPath: "key", indexes: {} },
   sessions: { keyPath: "id", indexes: { set: "setId" } },
+  subjects: { keyPath: "id", indexes: {} },
+  cardstates: { keyPath: "id", indexes: { karte: "cardId", fach: "subjectId", stapel: "setId" } },
+  reviews: { keyPath: "id", indexes: { karte: "cardId", fach: "subjectId", zeit: "zeit" } },
 };
 
 export const STORES = Object.keys(SCHEMA);
-/** Ablagen, die mit der Wolke abgeglichen werden. */
-export const SYNCED = ["folders", "sets", "cards", "progress"];
+/**
+ * Ablagen, die mit der Wolke abgeglichen werden.
+ * `reviews` ist nur-anhängend — dort kann es keinen Streit zweier Geräte geben.
+ */
+export const SYNCED = ["folders", "sets", "cards", "progress", "subjects", "cardstates", "reviews"];
 
 let dbPromise = null;
 
+/**
+ * Vor jeder Schemaänderung eine vollständige Kopie in eine zweite Datenbank.
+ * Bilder bleiben außen vor — sie sind groß und werden von Migrationen nicht
+ * angefasst.
+ */
+async function sichereVorMigration(alteVersion) {
+  const alteDaten = {};
+  const alt = await new Promise((fertig, schief) => {
+    const req = indexedDB.open(DB_NAME);        // ohne Version: nimmt die vorhandene
+    req.onsuccess = () => fertig(req.result);
+    req.onerror = () => schief(req.error);
+  });
+  try {
+    const vorhandene = [...alt.objectStoreNames].filter((n) => n !== "media");
+    if (vorhandene.length) {
+      await new Promise((fertig, schief) => {
+        const t = alt.transaction(vorhandene, "readonly");
+        for (const name of vorhandene) {
+          const req = t.objectStore(name).getAll();
+          req.onsuccess = () => { alteDaten[name] = req.result; };
+        }
+        t.oncomplete = () => fertig();
+        t.onerror = () => schief(t.error);
+      });
+    }
+  } finally {
+    alt.close();
+  }
+
+  const sicherung = await new Promise((fertig, schief) => {
+    const req = indexedDB.open(SICHERUNG_DB, 1);
+    req.onupgradeneeded = () => {
+      if (!req.result.objectStoreNames.contains("stand"))
+        req.result.createObjectStore("stand", { keyPath: "id" });
+    };
+    req.onsuccess = () => fertig(req.result);
+    req.onerror = () => schief(req.error);
+  });
+  await new Promise((fertig, schief) => {
+    const t = sicherung.transaction("stand", "readwrite");
+    t.objectStore("stand").put({
+      id: "v" + alteVersion + "-" + new Date().toISOString().slice(0, 19),
+      vonFassung: alteVersion, nachFassung: VERSION, zeit: Date.now(), daten: alteDaten,
+    });
+    t.oncomplete = () => fertig();
+    t.onerror = () => schief(t.error);
+  });
+  sicherung.close();
+  console.info("Sicherung vor der Migration abgelegt (Fassung " + alteVersion + ").");
+}
+
+/** Welche Fassung liegt gerade vor? 0, wenn es die Datenbank noch nicht gibt. */
+async function vorhandeneFassung() {
+  if (indexedDB.databases) {
+    const liste = await indexedDB.databases().catch(() => []);
+    const treffer = (liste || []).find((d) => d.name === DB_NAME);
+    return treffer ? treffer.version || 0 : 0;
+  }
+  // Ältere Browser kennen databases() nicht: einmal öffnen und nachsehen.
+  return new Promise((fertig) => {
+    const req = indexedDB.open(DB_NAME);
+    req.onsuccess = () => { const v = req.result.version; req.result.close(); fertig(v); };
+    req.onerror = () => fertig(0);
+  });
+}
+
 function openDb() {
   if (dbPromise) return dbPromise;
-  dbPromise = new Promise((resolve, reject) => {
-    const req = indexedDB.open(DB_NAME, VERSION);
-    req.onupgradeneeded = () => {
-      const db = req.result;
-      for (const [name, def] of Object.entries(SCHEMA)) {
-        const store = db.objectStoreNames.contains(name)
-          ? req.transaction.objectStore(name)
-          : db.createObjectStore(name, { keyPath: def.keyPath });
-        for (const [idx, feld] of Object.entries(def.indexes))
-          if (!store.indexNames.contains(idx)) store.createIndex(idx, feld);
+  dbPromise = (async () => {
+    const fassung = await vorhandeneFassung();
+    if (fassung > 0 && fassung < VERSION) {
+      try { await sichereVorMigration(fassung); } catch (e) {
+        console.warn("Sicherung vor der Migration misslungen:", e);
       }
-    };
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error);
-  });
+    }
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, VERSION);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        for (const [name, def] of Object.entries(SCHEMA)) {
+          const store = db.objectStoreNames.contains(name)
+            ? req.transaction.objectStore(name)
+            : db.createObjectStore(name, { keyPath: def.keyPath });
+          for (const [idx, feld] of Object.entries(def.indexes))
+            if (!store.indexNames.contains(idx)) store.createIndex(idx, feld);
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  })();
   return dbPromise;
+}
+
+/** Die abgelegten Sicherungen — für den Notfall und zur Beruhigung. */
+export async function sicherungen() {
+  try {
+    const db = await new Promise((fertig, schief) => {
+      const req = indexedDB.open(SICHERUNG_DB, 1);
+      req.onupgradeneeded = () => {
+        if (!req.result.objectStoreNames.contains("stand"))
+          req.result.createObjectStore("stand", { keyPath: "id" });
+      };
+      req.onsuccess = () => fertig(req.result);
+      req.onerror = () => schief(req.error);
+    });
+    const liste = await new Promise((fertig, schief) => {
+      const t = db.transaction("stand", "readonly");
+      const req = t.objectStore("stand").getAll();
+      req.onsuccess = () => fertig(req.result || []);
+      t.onerror = () => schief(t.error);
+    });
+    db.close();
+    return liste.map(({ id, vonFassung, nachFassung, zeit, daten }) => ({
+      id, vonFassung, nachFassung, zeit,
+      umfang: Object.fromEntries(Object.entries(daten || {}).map(([k, v]) => [k, v.length])),
+    }));
+  } catch (e) {
+    return [];
+  }
 }
 
 function tx(store, mode, fn) {
