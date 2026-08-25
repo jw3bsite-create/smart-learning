@@ -13,6 +13,7 @@ import { anzahl } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import { Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Bild, Stern, Leer, Dialog } from "./basis.jsx";
 import { TextEinfuhr, BildEinfuhr } from "./Einfuhr.jsx";
+import KiGenerator from "./KiGenerator.jsx";
 
 /* ----------------------------- Eine Kartenzeile ------------------------ */
 
@@ -121,14 +122,17 @@ function Zeile({ karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZe
 export default function Bearbeiten({ setId }) {
   const {
     stapel, kartenVon, stapelAendern, karteAnlegen, karteAendern, karteLoeschen, kartenOrdnen,
+    entwuerfe,
   } = useDaten();
   const [textEinfuhr, setTextEinfuhr] = useState(false);
   const [bildEinfuhr, setBildEinfuhr] = useState(false);
+  const [generator, setGenerator] = useState(false);
   const [hilfe, setHilfe] = useState(false);
   const unten = useRef(null);
 
   const derStapel = stapel.find((s) => s.id === setId);
   const karten = kartenVon(setId);
+  const wartendeEntwuerfe = entwuerfe.filter((e) => e.setId === setId).length;
 
   if (!derStapel) {
     return <div className="mitte"><Leer titel="Stapel nicht gefunden" /></div>;
@@ -155,6 +159,7 @@ export default function Bearbeiten({ setId }) {
         <h1 style={{ flex: 1 }}>Bearbeiten</h1>
         <Knopf symbol="hinauf" onClick={() => setTextEinfuhr(true)}>Text einfügen</Knopf>
         <Knopf symbol="kamera" onClick={() => setBildEinfuhr(true)}>Aus Bild</Knopf>
+        <Knopf symbol="blitz" onClick={() => setGenerator(true)}>Aus Vorlage</Knopf>
         <Knopf art="voll" symbol="haken" onClick={() => gehe("/stapel/" + setId)}>Fertig</Knopf>
         <Menue knopf={<SymbolKnopf symbol="mehr" titel="Mehr" art="klein" />}>
           <MenuePunkt symbol="auge" onClick={() => setHilfe(true)}>Tastenkürzel</MenuePunkt>
@@ -169,6 +174,20 @@ export default function Bearbeiten({ setId }) {
         placeholder="Beschreibung (freiwillig)"
         style={{ minHeight: 54, marginBottom: 20 }}
         onChange={(e) => stapelAendern(setId, { description: e.target.value })} />
+
+      {wartendeEntwuerfe > 0 && (
+        <div className="rueckmeldung fast" style={{ marginBottom: 16 }}>
+          <div className="reihe">
+            <Symbol name="papier" />
+            <span className="dehnen">
+              {anzahl(wartendeEntwuerfe, "Entwurf wartet", "Entwürfe warten")} auf eine Rückseite.
+            </span>
+            <Knopf art="klein" onClick={() => gehe("/stapel/" + setId + "/entwuerfe")}>
+              Ansehen
+            </Knopf>
+          </div>
+        </div>
+      )}
 
       <div className="reihe" style={{ marginBottom: 12 }}>
         <h3 className="dehnen">{anzahl(karten.length, "Karte", "Karten")}</h3>
@@ -202,6 +221,7 @@ export default function Bearbeiten({ setId }) {
 
       {textEinfuhr && <TextEinfuhr setId={setId} aufSchliessen={() => setTextEinfuhr(false)} />}
       {bildEinfuhr && <BildEinfuhr setId={setId} aufSchliessen={() => setBildEinfuhr(false)} />}
+      {generator && <KiGenerator setId={setId} aufSchliessen={() => setGenerator(false)} />}
 
       {hilfe && (
         <Dialog titel="Tastenkürzel beim Bearbeiten" aufSchliessen={() => setHilfe(false)}>

@@ -7,7 +7,7 @@ import { useDaten } from "../core/store.jsx";
 import { anteileNachStufe, stufe, STUFEN } from "../core/model.js";
 import { faelligZaehlen, naechsteFaelligkeit } from "../core/scheduler.js";
 import { anzahl, datumKurz, mische } from "../core/util.js";
-import { alsCsv, alsText } from "../core/importer.js";
+import { alsCsv, alsText, alsAnkiText, alsCsvMitPlan } from "../core/importer.js";
 import { sprich, SPRACHEN } from "../core/speech.js";
 import { gehe, MODI } from "../App.jsx";
 import {
@@ -27,7 +27,7 @@ export default function Stapelansicht({ setId }) {
   const {
     stapel, ordner, kartenVon, staende, karteAendern, stapelAendern,
     stapelLoeschen, stapelVervielfaeltigen, kartenOrdnen, seitenTauschen, standZuruecksetzen,
-    faecher,
+    faecher, zustaende, stapelVon, fachVon,
   } = useDaten();
   const [sortierung, setSortierung] = useState("eigen");
   const [nurMarkierte, setNurMarkierte] = useState(false);
@@ -63,6 +63,11 @@ export default function Stapelansicht({ setId }) {
     const name = (derStapel.title || "stapel").replace(/[^\p{L}\p{N} _-]/gu, "").trim() || "stapel";
     if (art === "csv") herunterladen(name + ".csv", alsCsv(karten), "text/csv");
     else if (art === "text") herunterladen(name + ".txt", alsText(karten));
+    else if (art === "anki")
+      herunterladen(name + "-anki.txt", alsAnkiText(karten, { stapelName: derStapel.title }));
+    else if (art === "plan")
+      herunterladen(name + "-lernstand.csv",
+        alsCsvMitPlan(karten, zustaende, { stapelVon, fachVon }), "text/csv");
     else herunterladen(name + ".json", JSON.stringify(
       { stapel: derStapel, karten }, null, 2), "application/json");
   };
@@ -88,7 +93,9 @@ export default function Stapelansicht({ setId }) {
             Titel und Sprachen …</MenuePunkt>
           <hr />
           <MenuePunkt symbol="herunter" onClick={() => ausfuhr("csv")}>Als CSV sichern</MenuePunkt>
-          <MenuePunkt symbol="herunter" onClick={() => ausfuhr("text")}>Als Text sichern</MenuePunkt>
+          <MenuePunkt symbol="herunter" onClick={() => ausfuhr("anki")}>Für Anki sichern</MenuePunkt>
+          <MenuePunkt symbol="herunter" onClick={() => ausfuhr("plan")}>
+            Mit Lernstand sichern</MenuePunkt>
           <MenuePunkt symbol="drucken" onClick={() => window.print()}>Drucken</MenuePunkt>
           <MenuePunkt symbol="stapel" onClick={async () => {
             const kopie = await stapelVervielfaeltigen(setId);

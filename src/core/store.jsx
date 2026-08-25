@@ -49,16 +49,18 @@ export function DatenSpeicher({ children }) {
   const [faecher, setFaecher] = useState([]);
   const [zustaende, setZustaende] = useState({});
   const [reviews, setReviews] = useState([]);
+  // Fassung 3: Kartenentwürfe, die noch auf ihre Rückseite warten.
+  const [entwuerfe, setEntwuerfe] = useState([]);
   const merkeAenderung = useRef(() => {});
 
   /* ------------------------------ Laden ------------------------------ */
   useEffect(() => {
     (async () => {
-      const [o, s, k, f, si, e, fa, cs, rv] = await Promise.all([
+      const [o, s, k, f, si, e, fa, cs, rv, en] = await Promise.all([
         db.all("folders"), db.all("sets"), db.all("cards"),
         db.all("progress"), db.all("sessions"),
         db.getSetting("einstellungen", null),
-        db.all("subjects"), db.all("cardstates"), db.all("reviews"),
+        db.all("subjects"), db.all("cardstates"), db.all("reviews"), db.all("drafts"),
       ]);
       setOrdner(o); setStapel(s); setKarten(k);
       setStaende(Object.fromEntries(f.map((x) => [x.id, x])));
@@ -67,6 +69,7 @@ export function DatenSpeicher({ children }) {
       setFaecher(fa);
       setZustaende(Object.fromEntries(cs.map((x) => [x.id, x])));
       setReviews(rv);
+      setEntwuerfe(en);
       setBereit(true);
       db.pruneTombstones().catch(() => {});
     })();
@@ -287,6 +290,58 @@ export function DatenSpeicher({ children }) {
     merkeAenderung.current();
   }, []);
 
+  /* ------------------------------ Entwürfe ------------------------------ */
+
+  const entwuerfeAnlegen = useCallback(async (neue) => {
+    if (!neue.length) return [];
+    await db.putMany("drafts", neue);
+    setEntwuerfe((alt) => [...alt, ...neue]);
+    merkeAenderung.current();
+    return neue;
+  }, []);
+
+  const entwurfAendern = useCallback(async (kennung, aenderung) => {
+    setEntwuerfe((alt) => alt.map((e) => {
+      if (e.id !== kennung) return e;
+      const neu = { ...e, ...aenderung, updatedAt: Date.now() };
+      db.put("drafts", neu);
+      return neu;
+    }));
+  }, []);
+
+  const entwurfVerwerfen = useCallback(async (kennung) => {
+    setEntwuerfe((alt) => alt.filter((e) => {
+      if (e.id !== kennung) return true;
+      db.put("drafts", { ...e, deleted: true, updatedAt: Date.now() });
+      return false;
+    }));
+    merkeAenderung.current();
+  }, []);
+
+  /**
+   * Aus einem Entwurf wird eine Karte.
+   * `herkunft` hält fest, wer die Rückseite geschrieben hat — das ist die
+   * einzige Zahl, an der später abzulesen ist, ob die App noch beim Lernen
+   * hilft oder nur noch Decks füllt.
+   */
+  const entwurfUebernehmen = useCallback(async (entwurf, rueckseite, herkunft) => {
+    const hoechste = karten.filter((k) => k.setId === entwurf.setId)
+      .reduce((m, k) => Math.max(m, k.order), -1);
+    const karte = {
+      ...model.karteAusEntwurf(entwurf, rueckseite, herkunft),
+      order: hoechste + 1,
+    };
+    await db.put("cards", karte);
+    setKarten((alt) => [...alt, karte]);
+    setEntwuerfe((alt) => alt.filter((e) => {
+      if (e.id !== entwurf.id) return true;
+      db.put("drafts", { ...e, deleted: true, updatedAt: Date.now() });
+      return false;
+    }));
+    merkeAenderung.current();
+    return karte;
+  }, [karten]);
+
   /* ------------------------------- Fächer ------------------------------- */
 
   const fachAnlegen = useCallback(async (name, farbe = null, zusatz = {}) => {
@@ -461,11 +516,11 @@ export function DatenSpeicher({ children }) {
 
   /* ------------------------- Sicherung als Datei ---------------------- */
   const alsSicherung = useCallback(async () => {
-    const [o, s, k, f, fa, cs, rv] = await Promise.all([
+    const [o, s, k, f, fa, cs, rv, en] = await Promise.all([
       db.all("folders", { mitGeloeschten: true }), db.all("sets", { mitGeloeschten: true }),
       db.all("cards", { mitGeloeschten: true }), db.all("progress", { mitGeloeschten: true }),
       db.all("subjects", { mitGeloeschten: true }), db.all("cardstates", { mitGeloeschten: true }),
-      db.all("reviews", { mitGeloeschten: true }),
+      db.all("reviews", { mitGeloeschten: true }), db.all("drafts", { mitGeloeschten: true }),
     ]);
     const bilder = await db.all("media", { mitGeloeschten: true });
     const eingepackt = await Promise.all(bilder.map(async (b) => ({
@@ -477,8 +532,8 @@ export function DatenSpeicher({ children }) {
         leser.readAsDataURL(b.blob);
       }),
     })));
-    return { fassung: 2, erzeugt: Date.now(), ordner: o, stapel: s, karten: k,
-      staende: f, faecher: fa, zustaende: cs, reviews: rv,
+    return { fassung: 3, erzeugt: Date.now(), ordner: o, stapel: s, karten: k,
+      staende: f, faecher: fa, zustaende: cs, reviews: rv, entwuerfe: en,
       bilder: eingepackt.filter((b) => b.daten), einstellungen };
   }, [einstellungen]);
 
@@ -486,7 +541,7 @@ export function DatenSpeicher({ children }) {
     if (!daten || !Array.isArray(daten.stapel)) throw new Error("Unbekanntes Format");
     if (ersetzen)
       for (const s of ["folders", "sets", "cards", "progress", "media",
-        "subjects", "cardstates", "reviews"]) await db.clear(s);
+        "subjects", "cardstates", "reviews", "drafts"]) await db.clear(s);
     await db.putMany("folders", daten.ordner || []);
     await db.putMany("sets", daten.stapel || []);
     await db.putMany("cards", daten.karten || []);
@@ -494,6 +549,7 @@ export function DatenSpeicher({ children }) {
     await db.putMany("subjects", daten.faecher || []);
     await db.putMany("cardstates", daten.zustaende || []);
     await db.putMany("reviews", daten.reviews || []);
+    await db.putMany("drafts", daten.entwuerfe || []);
     for (const b of daten.bilder || []) {
       try {
         const antwort = await fetch(b.daten);
@@ -501,27 +557,29 @@ export function DatenSpeicher({ children }) {
         await db.put("media", { id: b.id, blob, type: b.type, updatedAt: Date.now() });
       } catch (e) { /* einzelnes Bild überspringen */ }
     }
-    const [o, s, k, f, fa, cs, rv] = await Promise.all([
+    const [o, s, k, f, fa, cs, rv, en] = await Promise.all([
       db.all("folders"), db.all("sets"), db.all("cards"), db.all("progress"),
-      db.all("subjects"), db.all("cardstates"), db.all("reviews"),
+      db.all("subjects"), db.all("cardstates"), db.all("reviews"), db.all("drafts"),
     ]);
     setOrdner(o); setStapel(s); setKarten(k);
     setStaende(Object.fromEntries(f.map((x) => [x.id, x])));
     setFaecher(fa);
     setZustaende(Object.fromEntries(cs.map((x) => [x.id, x])));
     setReviews(rv);
+    setEntwuerfe(en);
   }, []);
 
   const neuLaden = useCallback(async () => {
-    const [o, s, k, f, fa, cs, rv] = await Promise.all([
+    const [o, s, k, f, fa, cs, rv, en] = await Promise.all([
       db.all("folders"), db.all("sets"), db.all("cards"), db.all("progress"),
-      db.all("subjects"), db.all("cardstates"), db.all("reviews"),
+      db.all("subjects"), db.all("cardstates"), db.all("reviews"), db.all("drafts"),
     ]);
     setOrdner(o); setStapel(s); setKarten(k);
     setStaende(Object.fromEntries(f.map((x) => [x.id, x])));
     setFaecher(fa);
     setZustaende(Object.fromEntries(cs.map((x) => [x.id, x])));
     setReviews(rv);
+    setEntwuerfe(en);
   }, []);
 
   /* ------------------------------ Ableitungen ------------------------- */
@@ -575,6 +633,8 @@ export function DatenSpeicher({ children }) {
     faecher, zustaende, reviews, fachVon, fachDesStapels,
     fachAnlegen, fachAendern, fachLoeschen,
     abrufVerbuchen, uebungVerbuchen, karteEntsperren, zustandZuruecksetzen,
+    // Fassung 3
+    entwuerfe, entwuerfeAnlegen, entwurfAendern, entwurfVerwerfen, entwurfUebernehmen,
   };
 
   return <Zusammenhang.Provider value={wert}>{children}</Zusammenhang.Provider>;
