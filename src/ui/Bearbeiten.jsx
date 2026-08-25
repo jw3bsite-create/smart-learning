@@ -1,0 +1,222 @@
+/*
+ * Der Stapel im Bearbeitungszustand.
+ *
+ * Getippt wird in eigenen Zustandsfeldern je Zeile; erst nach kurzer Ruhe oder
+ * beim Verlassen des Feldes wandert der Text in den Speicher. Sonst schriebe
+ * jeder Tastendruck in die Datenbank.
+ */
+
+import React, { useEffect, useRef, useState } from "react";
+import { useDaten } from "../core/store.jsx";
+import { bildAufnehmen, bildLoeschen, dateiAusEreignis } from "../core/media.js";
+import { anzahl } from "../core/util.js";
+import { gehe } from "../App.jsx";
+import { Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Bild, Stern, Leer, Dialog } from "./basis.jsx";
+import { TextEinfuhr, BildEinfuhr } from "./Einfuhr.jsx";
+
+/* ----------------------------- Eine Kartenzeile ------------------------ */
+
+function Zeile({ karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZeile }) {
+  const [term, setTerm] = useState(karte.term);
+  const [definition, setDefinition] = useState(karte.definition);
+  const [hinweis, setHinweis] = useState(karte.hint || "");
+  const [hinweisOffen, setHinweisOffen] = useState(Boolean(karte.hint));
+  const uhr = useRef(null);
+  const vorderesFeld = useRef(null);
+
+  // Änderungen von außen (Einfuhr, Abgleich) übernehmen.
+  useEffect(() => { setTerm(karte.term); }, [karte.term]);
+  useEffect(() => { setDefinition(karte.definition); }, [karte.definition]);
+
+  const merken = (aenderung) => {
+    clearTimeout(uhr.current);
+    uhr.current = setTimeout(() => aendern(karte.id, aenderung), 500);
+  };
+  const sofort = (aenderung) => { clearTimeout(uhr.current); aendern(karte.id, aenderung); };
+
+  useEffect(() => () => clearTimeout(uhr.current), []);
+
+  const bildWaehlen = async (seite, datei) => {
+    if (!datei) return;
+    const alt = seite === "termImage" ? karte.termImage : karte.defImage;
+    const kennung = await bildAufnehmen(datei);
+    if (!kennung) return;
+    if (alt) bildLoeschen(alt);
+    sofort({ [seite]: kennung });
+  };
+
+  const seite = (welche, wert, setWert, feldName, platzhalter) => (
+    <div className="seite">
+      <textarea
+        ref={welche === "vorn" ? vorderesFeld : null}
+        className="feld" rows={2} placeholder={platzhalter} value={wert}
+        style={{ minHeight: 54, resize: "vertical" }}
+        onChange={(e) => { setWert(e.target.value); merken({ [feldName]: e.target.value }); }}
+        onBlur={(e) => sofort({ [feldName]: e.target.value })}
+        onPaste={(e) => {
+          const datei = dateiAusEreignis(e);
+          if (datei) { e.preventDefault(); bildWaehlen(welche === "vorn" ? "termImage" : "defImage", datei); }
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); aufNeueZeile(); }
+          if (e.key === "Tab" && welche === "hinten" && !e.shiftKey) aufNeueZeile(true);
+        }}
+        onDrop={(e) => {
+          const datei = dateiAusEreignis(e);
+          if (datei) { e.preventDefault(); bildWaehlen(welche === "vorn" ? "termImage" : "defImage", datei); }
+        }}
+      />
+      {(welche === "vorn" ? karte.termImage : karte.defImage) ? (
+        <div style={{ position: "relative", display: "inline-block", marginTop: 8 }}>
+          <Bild kennung={welche === "vorn" ? karte.termImage : karte.defImage}
+            klasse="" stil={{ maxHeight: 110, borderRadius: 8, display: "block" }} />
+          <button className="knopf klein" style={{ position: "absolute", top: 4, right: 4 }}
+            onClick={() => {
+              const alt = welche === "vorn" ? karte.termImage : karte.defImage;
+              bildLoeschen(alt);
+              sofort({ [welche === "vorn" ? "termImage" : "defImage"]: null });
+            }}><Symbol name="kreuz" groesse={14} /></button>
+        </div>
+      ) : (
+        <label className="knopf klein leer" style={{ marginTop: 6, cursor: "pointer" }}>
+          <Symbol name="bild" groesse={15} /> Bild
+          <input type="file" accept="image/*" style={{ display: "none" }}
+            onChange={(e) => bildWaehlen(welche === "vorn" ? "termImage" : "defImage", e.target.files[0])} />
+        </label>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="karten-zeile" style={{ alignItems: "stretch" }}>
+      <div style={{ gridColumn: "1 / -1" }} className="reihe klein blass">
+        <span className="mono">{nummer}</span>
+        <div className="dehnen" />
+        <Stern an={karte.starred} groesse={16}
+          aufKlick={() => sofort({ starred: !karte.starred })} />
+        <SymbolKnopf symbol="hoch" titel="Nach oben" onClick={aufHoch} />
+        <SymbolKnopf symbol="runter" titel="Nach unten" onClick={aufRunter} />
+        <SymbolKnopf symbol="muell" titel="Karte löschen" onClick={() => loeschen(karte.id)} />
+      </div>
+      {seite("vorn", term, setTerm, "term", "Vorderseite — Begriff, Frage, Vokabel")}
+      {seite("hinten", definition, setDefinition, "definition", "Rückseite — Erklärung, Antwort, Übersetzung")}
+      <div style={{ gridColumn: "1 / -1" }}>
+        {hinweisOffen ? (
+          <input className="feld" placeholder="Hinweis (wird auf Wunsch im Lernmodus gezeigt)"
+            value={hinweis}
+            onChange={(e) => { setHinweis(e.target.value); merken({ hint: e.target.value }); }}
+            onBlur={(e) => sofort({ hint: e.target.value })} />
+        ) : (
+          <button className="knopf klein leer" onClick={() => setHinweisOffen(true)}>
+            <Symbol name="plus" groesse={14} /> Hinweis
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------ Die Ansicht ---------------------------- */
+
+export default function Bearbeiten({ setId }) {
+  const {
+    stapel, kartenVon, stapelAendern, karteAnlegen, karteAendern, karteLoeschen, kartenOrdnen,
+  } = useDaten();
+  const [textEinfuhr, setTextEinfuhr] = useState(false);
+  const [bildEinfuhr, setBildEinfuhr] = useState(false);
+  const [hilfe, setHilfe] = useState(false);
+  const unten = useRef(null);
+
+  const derStapel = stapel.find((s) => s.id === setId);
+  const karten = kartenVon(setId);
+
+  if (!derStapel) {
+    return <div className="mitte"><Leer titel="Stapel nicht gefunden" /></div>;
+  }
+
+  const neueKarte = async (ansEnde = true) => {
+    await karteAnlegen(setId);
+    if (ansEnde) setTimeout(() => unten.current?.scrollIntoView({ behavior: "smooth" }), 60);
+  };
+
+  const verschieben = (index, richtung) => {
+    const ziel = index + richtung;
+    if (ziel < 0 || ziel >= karten.length) return;
+    const neu = [...karten];
+    [neu[index], neu[ziel]] = [neu[ziel], neu[index]];
+    kartenOrdnen(neu.map((k) => k.id));
+  };
+
+  return (
+    <div className="mitte">
+      <div className="kopfzeile">
+        <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer"
+          onClick={() => gehe("/stapel/" + setId)} />
+        <h1 style={{ flex: 1 }}>Bearbeiten</h1>
+        <Knopf symbol="hinauf" onClick={() => setTextEinfuhr(true)}>Text einfügen</Knopf>
+        <Knopf symbol="kamera" onClick={() => setBildEinfuhr(true)}>Aus Bild</Knopf>
+        <Knopf art="voll" symbol="haken" onClick={() => gehe("/stapel/" + setId)}>Fertig</Knopf>
+        <Menue knopf={<SymbolKnopf symbol="mehr" titel="Mehr" art="klein" />}>
+          <MenuePunkt symbol="auge" onClick={() => setHilfe(true)}>Tastenkürzel</MenuePunkt>
+        </Menue>
+      </div>
+
+      <input className="feld" value={derStapel.title}
+        placeholder="Titel des Stapels — etwa „Englisch Vokabeln Unit 5“"
+        style={{ fontSize: 20, fontFamily: "var(--serifen)", marginBottom: 10 }}
+        onChange={(e) => stapelAendern(setId, { title: e.target.value })} />
+      <textarea className="feld" value={derStapel.description || ""}
+        placeholder="Beschreibung (freiwillig)"
+        style={{ minHeight: 54, marginBottom: 20 }}
+        onChange={(e) => stapelAendern(setId, { description: e.target.value })} />
+
+      <div className="reihe" style={{ marginBottom: 12 }}>
+        <h3 className="dehnen">{anzahl(karten.length, "Karte", "Karten")}</h3>
+        <span className="klein blass nur-breit">
+          <span className="tastenhilfe">Strg</span> + <span className="tastenhilfe">↵</span> legt eine neue Karte an
+        </span>
+      </div>
+
+      <div style={{ display: "grid", gap: 10 }}>
+        {karten.map((k, i) => (
+          <Zeile key={k.id} karte={k} nummer={i + 1} aendern={karteAendern}
+            loeschen={karteLoeschen}
+            aufHoch={() => verschieben(i, -1)} aufRunter={() => verschieben(i, 1)}
+            aufNeueZeile={() => { if (i === karten.length - 1) neueKarte(); }} />
+        ))}
+      </div>
+
+      <div ref={unten} style={{ marginTop: 16 }}>
+        <Knopf art="gross" symbol="plus" onClick={() => neueKarte()}
+          style={{ width: "100%", justifyContent: "center" }}>
+          Karte hinzufügen
+        </Knopf>
+      </div>
+
+      {karten.length === 0 && (
+        <p className="matt klein" style={{ marginTop: 14, textAlign: "center" }}>
+          Schneller geht es mit „Text einfügen“ — eine Liste aus dem Heft oder aus
+          Quizlet in einem Rutsch.
+        </p>
+      )}
+
+      {textEinfuhr && <TextEinfuhr setId={setId} aufSchliessen={() => setTextEinfuhr(false)} />}
+      {bildEinfuhr && <BildEinfuhr setId={setId} aufSchliessen={() => setBildEinfuhr(false)} />}
+
+      {hilfe && (
+        <Dialog titel="Tastenkürzel beim Bearbeiten" aufSchliessen={() => setHilfe(false)}>
+          <div style={{ display: "grid", gap: 10 }}>
+            <div className="reihe"><span className="tastenhilfe">Strg</span>
+              <span className="tastenhilfe">↵</span>
+              <span className="matt">Neue Karte anlegen</span></div>
+            <div className="reihe"><span className="tastenhilfe">Tab</span>
+              <span className="matt">Ins nächste Feld; am Ende entsteht eine neue Karte</span></div>
+            <div className="reihe"><span className="tastenhilfe">Strg</span>
+              <span className="tastenhilfe">V</span>
+              <span className="matt">Ein Bild aus der Zwischenablage landet auf der Karte</span></div>
+          </div>
+        </Dialog>
+      )}
+    </div>
+  );
+}
