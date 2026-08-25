@@ -8,6 +8,8 @@ import { useDaten } from "../core/store.jsx";
 import { anteileNachStufe } from "../core/model.js";
 import { faelligZaehlen } from "../core/scheduler.js";
 import { straehne, tagesSchluessel, anzahl, datumKurz, zeitLang } from "../core/util.js";
+import { behaltenskurve } from "../core/kalibrierung.js";
+import { eigenleistung } from "../core/generator.js";
 import { gehe } from "../App.jsx";
 import { Symbol, Balken, Leer, Knopf } from "./basis.jsx";
 
@@ -17,7 +19,7 @@ const MODUS_NAME = {
 };
 
 export default function Statistik() {
-  const { stapel, karten, kartenNachStapel, staende, sitzungen } = useDaten();
+  const { stapel, karten, kartenNachStapel, staende, sitzungen, reviews } = useDaten();
 
   const tage = useMemo(() => {
     const nach = new Map();
@@ -52,6 +54,8 @@ export default function Statistik() {
   }, [karten, staende]);
 
   const letzte = [...sitzungen].sort((a, b) => b.zeit - a.zeit).slice(0, 12);
+  const kurve = useMemo(() => behaltenskurve(reviews), [reviews]);
+  const eigen = useMemo(() => eigenleistung(karten), [karten]);
   const heute = tage.get(tagesSchluessel()) || 0;
 
   if (!karten.length) {
@@ -102,6 +106,80 @@ export default function Statistik() {
       <div className="klein blass" style={{ marginBottom: 28 }}>
         Je dunkler, desto mehr beantwortete Karten an diesem Tag.
       </div>
+
+      {/* ------------------------- Behaltenskurve ------------------------- */}
+      {kurve.some((k) => k.gesamt > 2) && (
+        <>
+          <h3 style={{ marginBottom: 4 }}>Wie gut du behältst</h3>
+          <p className="klein matt" style={{ marginTop: 0, marginBottom: 12 }}>
+            Gemessen, nicht geschätzt: Wie oft du eine Karte nach diesem Abstand
+            noch wusstest. Das ist die ehrlichste Zahl dieser App — und die
+            einzige, die etwas darüber sagt, ob das Lernen hält.
+          </p>
+          <div className="zahl-kachel" style={{ marginBottom: 26 }}>
+            {kurve.filter((k) => k.gesamt > 0).map((k) => (
+              <div key={k.tage} style={{ marginBottom: 12 }}>
+                <div className="reihe klein" style={{ marginBottom: 4 }}>
+                  <span className="dehnen">
+                    {k.tage === 1 ? "nach einem Tag"
+                      : k.tage < 30 ? "nach " + k.tage + " Tagen"
+                        : k.tage < 365 ? "nach " + Math.round(k.tage / 30) + " Monaten"
+                          : "nach einem Jahr"}
+                  </span>
+                  <span className="mono">
+                    {k.quote === null ? "—" : Math.round(k.quote * 100) + " %"}
+                  </span>
+                  <span className="blass">({k.gesamt})</span>
+                </div>
+                <div className="balken" style={{ height: 9 }}>
+                  <span style={{ width: (k.quote || 0) * 100 + "%",
+                    background: (k.quote || 0) >= 0.85 ? "var(--gruen)"
+                      : (k.quote || 0) >= 0.7 ? "var(--akzent)" : "var(--gelb)" }} />
+                </div>
+              </div>
+            ))}
+            <p className="klein blass" style={{ marginTop: 4 }}>
+              Ein Abfall über die Zeit ist normal und eingeplant — deshalb kommen
+              die Karten wieder. Fällt es unter zwei Drittel, ist die
+              Ziel-Sicherheit des Fachs zu niedrig eingestellt.
+            </p>
+          </div>
+        </>
+      )}
+
+      {/* -------------------------- Eigenleistung ------------------------- */}
+      {eigen.gesamt > 0 && (eigen.ki_uebernommen > 0 || eigen.ki_vorderseite > 0) && (
+        <>
+          <h3 style={{ marginBottom: 4 }}>Woher deine Karten kommen</h3>
+          <p className="klein matt" style={{ marginTop: 0, marginBottom: 12 }}>
+            Ein Deck, das überwiegend aus übernommenen Vorschlägen besteht, ist
+            voll und das Gedächtnis leer. Darum steht die Zahl hier.
+          </p>
+          <div className="zahl-kachel" style={{ marginBottom: 26 }}>
+            <div className="balken" style={{ height: 14 }}>
+              <span className="fest" style={{ width: 100 * eigen.selbst / eigen.gesamt + "%" }} />
+              <span className="vertraut" style={{ width: 100 * eigen.ki_vorderseite / eigen.gesamt + "%" }} />
+              <span className="lernen" style={{ width: 100 * eigen.einfuhr / eigen.gesamt + "%" }} />
+              <span className="neu" style={{ width: 100 * eigen.ki_uebernommen / eigen.gesamt + "%" }} />
+            </div>
+            <div className="reihe klein matt" style={{ marginTop: 10, flexWrap: "wrap", gap: 14 }}>
+              <span>selbst geschrieben: {eigen.selbst}</span>
+              <span>Rückseite selbst: {eigen.ki_vorderseite}</span>
+              <span>aus Listen: {eigen.einfuhr}</span>
+              <span style={{ color: eigen.anteilUebernommen > 0.3 ? "var(--gelb)" : undefined }}>
+                Vorschlag übernommen: {eigen.ki_uebernommen}
+              </span>
+            </div>
+            {eigen.anteilUebernommen > 0.3 && (
+              <p className="klein" style={{ color: "var(--gelb)", marginTop: 8, marginBottom: 0 }}>
+                Über ein Drittel deiner Karten hast du unverändert übernommen.
+                Schreib die Rückseiten öfter selbst — der Unterschied ist genau
+                das, was hängen bleibt.
+              </p>
+            )}
+          </div>
+        </>
+      )}
 
       <h3 style={{ marginBottom: 10 }}>Nach Stapel</h3>
       <div style={{ display: "grid", gap: 10, marginBottom: 28 }}>

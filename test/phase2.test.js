@@ -20,9 +20,10 @@ import {
 } from "../src/core/importer.js";
 import {
   neuerEntwurf, karteAusEntwurf, herkunftVon, HERKUNFT,
-  neueErklaerung, mitFassung, umfangDerErklaerung,
+  neueErklaerung, mitFassung, umfangDerErklaerung, neuePruefung, pruefungsStand,
 } from "../src/core/model.js";
 import { zerlege, fuelle } from "../prompts/zerlege.js";
+import { behaltenskurve, behaltenGesamt } from "../src/core/kalibrierung.js";
 
 const HIER = dirname(fileURLToPath(import.meta.url));
 
@@ -287,4 +288,99 @@ test("die Anweisung für das Erklären verbietet das Füllen der Lücken", () =>
   assert.match(text, /Fülle keine Lücke/);
   assert.match(text, /[Hh]öchstens\s+fünf/);
   assert.match(text, /JSON/);
+});
+
+/* ==================== Phase 5 — Prüfung und Behalten ==================== */
+
+test("eine Prüfung beginnt leer und ohne Ergebnis", () => {
+  const p = neuePruefung({ titel: "Analysis", kriterien: ["Ableitung", "Randwerte"] });
+  assert.equal(p.titel, "Analysis");
+  assert.deepEqual(p.kriterien, ["Ableitung", "Randwerte"]);
+  assert.equal(p.begonnen, 0);
+  assert.equal(p.abgegeben, 0);
+  assert.equal(p.ergebnis, null);
+});
+
+test("der Stand einer Prüfung zählt, was behandelt wurde", () => {
+  const p = {
+    ...neuePruefung({ titel: "T", kriterien: ["A", "B", "C"] }),
+    ergebnis: [
+      { kriterium: "A", stand: "ja" },
+      { kriterium: "B", stand: "nein" },
+      { kriterium: "C", stand: "unklar" },
+    ],
+  };
+  const s = pruefungsStand(p);
+  assert.equal(s.gesamt, 3);
+  assert.equal(s.ja, 1);
+  assert.equal(s.nein, 1);
+  assert.equal(s.unklar, 1);
+});
+
+test("die eigene Einschätzung überstimmt die der KI", () => {
+  const p = {
+    ...neuePruefung({ titel: "T", kriterien: ["A", "B"] }),
+    ergebnis: [{ kriterium: "A", stand: "nein" }, { kriterium: "B", stand: "nein" }],
+    selbstpruefung: { 0: "ja" },
+  };
+  const s = pruefungsStand(p);
+  assert.equal(s.ja, 1, "wer sagt, es stehe da, hat recht — er kennt seinen Text");
+  assert.equal(s.nein, 1);
+});
+
+test("ohne Kriterien gibt es nichts zu zählen", () => {
+  const s = pruefungsStand(neuePruefung({ titel: "T" }));
+  assert.equal(s.gesamt, 0);
+  assert.equal(s.anteil, 0);
+});
+
+test("die Kriterien-Anweisung verbietet Noten und Verbesserungen", () => {
+  const roh = readFileSync(join(HIER, "..", "prompts", "kriterien.md"), "utf8");
+  const { kopf, text } = zerlege(roh);
+  assert.equal(kopf.name, "kriterien");
+  assert.match(text, /[Kk]eine Punkte, keine Note/);
+  assert.match(text, /[Kk]eine Verbesserungsvorschläge/);
+  assert.match(text, /ja.{0,10}nein.{0,10}unklar/s);
+});
+
+test("die Behaltenskurve misst über die Abstände", () => {
+  const TAG = 86400000;
+  const start = new Date("2026-01-01T09:00:00Z").getTime();
+  const reviews = [
+    // Karte 1: nach zwei Tagen gewusst, nach zwanzig nicht mehr
+    { cardId: "k1", richtung: "td", zeit: start, bewertung: 3, flag: "normal" },
+    { cardId: "k1", richtung: "td", zeit: start + 2 * TAG, bewertung: 3, flag: "normal" },
+    { cardId: "k1", richtung: "td", zeit: start + 22 * TAG, bewertung: 1, flag: "normal" },
+    // Karte 2: nach zwei Tagen gewusst
+    { cardId: "k2", richtung: "td", zeit: start, bewertung: 3, flag: "normal" },
+    { cardId: "k2", richtung: "td", zeit: start + 2 * TAG, bewertung: 4, flag: "normal" },
+    // Übung zählt nicht mit
+    { cardId: "k3", richtung: "td", zeit: start, bewertung: 3, flag: "practice" },
+    { cardId: "k3", richtung: "td", zeit: start + 2 * TAG, bewertung: 1, flag: "practice" },
+  ];
+  const kurve = behaltenskurve(reviews);
+  const kurz = kurve.find((k) => k.tage === 3);
+  assert.equal(kurz.gesamt, 2, "zwei Wiederholungen im Abstand von zwei Tagen");
+  assert.equal(kurz.gewusst, 2);
+  assert.equal(kurz.quote, 1);
+  const lang = kurve.find((k) => k.tage === 30);
+  assert.equal(lang.gesamt, 1);
+  assert.equal(lang.quote, 0, "nach zwanzig Tagen war sie weg");
+});
+
+test("Lernschritte am selben Tag verfälschen die Kurve nicht", () => {
+  const start = Date.now();
+  const reviews = [
+    { cardId: "k1", richtung: "td", zeit: start, bewertung: 3, flag: "normal" },
+    { cardId: "k1", richtung: "td", zeit: start + 600000, bewertung: 3, flag: "normal" },
+  ];
+  const kurve = behaltenskurve(reviews);
+  assert.equal(kurve.reduce((n, k) => n + k.gesamt, 0), 0,
+    "zehn Minuten Abstand sind keine Behaltensleistung");
+});
+
+test("ohne Daten bleibt die Kurve leer statt zu raten", () => {
+  const kurve = behaltenskurve([]);
+  assert.ok(kurve.every((k) => k.quote === null));
+  assert.equal(behaltenGesamt([]), null);
 });
