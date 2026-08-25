@@ -146,3 +146,86 @@ test("ohne Reviews steht die Strähne bei null, ohne Absturz", () => {
   assert.equal(s.heuteAbrufe, 0);
   assert.equal(laengsteStraehne([]), 0);
 });
+
+/* ============================ Klausur-Modus ============================= */
+
+import {
+  wirksameRetention, tageBisPruefung, pensumPruefen, baueCramSitzung,
+  VERDICHTUNG_AB_TAGEN, CRAM_AB_TAGEN,
+} from "../src/core/warteschlange.js";
+import { neuerZustand, bewerteKarte, NOTEN } from "../src/core/fsrs.js";
+import { neueKarte } from "../src/core/model.js";
+
+test("ohne Termin bleibt die Ziel-Retention, wie sie eingestellt ist", () => {
+  assert.equal(wirksameRetention({ zielRetention: 0.85 }), 0.85);
+  assert.equal(wirksameRetention(null), 0.9);
+});
+
+test("je näher die Prüfung, desto strenger das Ziel", () => {
+  const jetzt = Date.now();
+  const fach = (tage) => ({ zielRetention: 0.9, pruefungsdatum: jetzt + tage * TAG });
+  const weit = wirksameRetention(fach(VERDICHTUNG_AB_TAGEN + 10), jetzt);
+  const mittel = wirksameRetention(fach(30), jetzt);
+  const nah = wirksameRetention(fach(3), jetzt);
+  assert.equal(weit, 0.9, "außerhalb der Frist ändert sich nichts");
+  assert.ok(mittel > weit, "in dreißig Tagen wird es strenger");
+  assert.ok(nah > mittel, "kurz davor noch strenger");
+  assert.ok(nah <= 0.97, "aber nie über 97 Prozent");
+});
+
+test("nach dem Termin gilt wieder die Grundeinstellung", () => {
+  const fach = { zielRetention: 0.88, pruefungsdatum: Date.now() - 5 * TAG };
+  assert.equal(wirksameRetention(fach), 0.88);
+  assert.equal(tageBisPruefung(fach) < 0, true);
+});
+
+test("das Pensum wird ehrlich gerechnet", () => {
+  const jetzt = Date.now();
+  const fach = { id: "f1", zielRetention: 0.9, pruefungsdatum: jetzt + 10 * TAG };
+  const karten = Array.from({ length: 40 }, (_, i) => ({
+    ...neueKarte("s1", "F" + i, "A" + i, i), id: "k" + i,
+  }));
+  const stapelVon = () => ({ id: "s1", subjectId: "f1" });
+
+  const machbar = pensumPruefen(karten, {}, stapelVon, fach, jetzt);
+  assert.equal(machbar.tage, 10);
+  assert.equal(machbar.offen, 40);
+  assert.equal(machbar.jeTag, 4);
+  assert.equal(machbar.machbar, true);
+
+  const eng = pensumPruefen(karten, {}, stapelVon,
+    { ...fach, pruefungsdatum: jetzt + TAG }, jetzt);
+  assert.equal(eng.machbar, false, "vierzig Karten an einem Tag sind nicht machbar");
+  assert.match(eng.text, /geht sich nicht aus/);
+});
+
+test("die Endspurt-Warteschlange nimmt das Wackligste zuerst", () => {
+  const karten = [0, 1, 2].map((i) => ({
+    ...neueKarte("s1", "F" + i, "A" + i, i), id: "k" + i,
+  }));
+  const stapelVon = () => ({ id: "s1", subjectId: "f1" });
+  const zustaende = {};
+  // k0 ist gut gefestigt, k1 wacklig, k2 unberührt
+  let fest = neuerZustand("k0", "td", "s1", "f1");
+  for (let i = 0; i < 4; i++)
+    fest = bewerteKarte(fest, NOTEN.LEICHT, { zeit: Date.now() + i * 10 * TAG });
+  zustaende["k0:td"] = fest;
+  let wacklig = neuerZustand("k1", "td", "s1", "f1");
+  wacklig = bewerteKarte(wacklig, NOTEN.NOCHMAL, { zeit: Date.now() });
+  zustaende["k1:td"] = wacklig;
+
+  const s = baueCramSitzung({ karten, zustaende, stapelVon, fach: { id: "f1" } });
+  assert.equal(s.cram, true);
+  assert.equal(s.aufgaben.length, 3, "alles kommt dran, auch was nicht fällig ist");
+  assert.equal(s.aufgaben[s.aufgaben.length - 1].karte.id, "k0",
+    "das Gefestigte steht hinten");
+});
+
+test("die Endspurt-Warteschlange lässt gesperrte Karten aus", () => {
+  const karten = [{ ...neueKarte("s1", "F", "A", 0), id: "k0" }];
+  const zustaende = { "k0:td": { ...neuerZustand("k0", "td", "s1", "f1"), gesperrt: true } };
+  const s = baueCramSitzung({ karten, zustaende,
+    stapelVon: () => ({ id: "s1", subjectId: "f1" }), fach: { id: "f1" } });
+  assert.equal(s.aufgaben.length, 0);
+  assert.ok(CRAM_AB_TAGEN > 0);
+});

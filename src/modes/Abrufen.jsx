@@ -25,7 +25,9 @@ import { clozeTeile, kartenArt, richtungName, schritteVon, schrittBilanz } from 
 import {
   NOTEN, NOTEN_NAMEN, KONFIDENZ, vorschau, abstandLang, neuerZustand, istNeu,
 } from "../core/fsrs.js";
-import { baueSitzung } from "../core/warteschlange.js";
+import {
+  baueSitzung, baueCramSitzung, wirksameRetention, tageBisPruefung, CRAM_AB_TAGEN,
+} from "../core/warteschlange.js";
 import { kalibrierung, kalibrierungInWorten } from "../core/kalibrierung.js";
 import { sprich } from "../core/speech.js";
 import { anzahl } from "../core/util.js";
@@ -127,12 +129,20 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
 
   const faecherVon = useCallback(() => faecher, [faecher]);
 
-  const sitzungBauen = useCallback(() => baueSitzung({
-    karten, zustaende, stapelVon, faecherVon, fach,
-    faecherIds: fachId ? null : gewaehlteFaecher,
-    umfang: Number(einstellungen.sitzungsUmfang) || 30,
-  }), [karten, zustaende, stapelVon, faecherVon, fach, fachId, gewaehlteFaecher,
-    einstellungen.sitzungsUmfang]);
+  /* Endspurt: in den letzten Tagen vor dem Termin lässt sich der ganze Stoff
+     durchgehen, ohne dass es den Plan verstellt. */
+  const [cram, setCram] = useState(false);
+  const restTage = tageBisPruefung(fach);
+  const cramMoeglich = restTage !== null && restTage >= 0 && restTage <= CRAM_AB_TAGEN;
+
+  const sitzungBauen = useCallback(() => (cram && fach
+    ? baueCramSitzung({ karten, zustaende, stapelVon, fach, umfang: 40 })
+    : baueSitzung({
+      karten, zustaende, stapelVon, faecherVon, fach,
+      faecherIds: fachId ? null : gewaehlteFaecher,
+      umfang: Number(einstellungen.sitzungsUmfang) || 30,
+    })), [karten, zustaende, stapelVon, faecherVon, fach, fachId, gewaehlteFaecher,
+    einstellungen.sitzungsUmfang, cram]);
 
   /* Die Warteschlange wird einmal beim Betreten gebaut — was während der
      Sitzung fällig wird, kommt erst beim nächsten Mal dran. */
@@ -157,7 +167,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
 
   const zeitfenster = useMemo(
     () => (zustand ? vorschau(zustand, {
-      zielRetention: fach?.zielRetention ?? 0.9,
+      zielRetention: wirksameRetention(fach),
       maximalTage: fach?.maximalTage ?? 3650,
     }) : null),
     [aufgabe?.schluessel, phase === "aufgedeckt"]);
@@ -221,7 +231,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
       karte: aufgabe.karte, stapel: aufgabe.stapel, richtung: aufgabe.richtung,
       bewertung: note, konfidenz, antwortzeit,
       eingabeLeer: !eingabe.trim(), fach: fachVon(aufgabe.fachId),
-      flag: "normal", modus: "abrufen",
+      flag: cram ? "cram" : "normal", modus: cram ? "endspurt" : "abrufen",
     });
     setErgebnisse((alt) => [...alt, {
       schluessel: aufgabe.schluessel, note, konfidenz, stimmtGenau,
@@ -340,7 +350,22 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
           text={nichtsFaellig
             ? `Das Tageslimit für neue Karten ist erreicht. ${anzahl(sitzung.neu, "Karte wartet", "Karten warten")} auf später — so bleibt die Menge tragbar.`
             : "Alle Karten sitzen im Plan. Komm wieder, wenn etwas fällig wird."}>
-          <Knopf onClick={() => gehe("/faecher")}>Zur Übersicht</Knopf>
+          <div className="reihe" style={{ justifyContent: "center", flexWrap: "wrap" }}>
+            <Knopf onClick={() => gehe("/faecher")}>Zur Übersicht</Knopf>
+            {cramMoeglich && (
+              <Knopf art="voll" symbol="uhr" onClick={() => setCram(true)}>
+                Endspurt — alles durchgehen
+              </Knopf>
+            )}
+          </div>
+          {cramMoeglich && (
+            <p className="klein blass" style={{ maxWidth: 460, margin: "14px auto 0" }}>
+              In {restTage === 0 ? "null" : restTage} Tagen ist deine Prüfung. Der
+              Endspurt geht den ganzen Stoff durch, ohne Rücksicht auf Termine —
+              und ohne den Plan zu verstellen: Was hier geschieht, zählt nicht
+              als Wiederholung.
+            </p>
+          )}
         </Leer>
       </ModusRahmen>
     );
@@ -402,7 +427,8 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
     <ModusRahmen titel={titel} symbol="blitz" aufSchliessen={aufSchliessen}
       anteil={stelle / sitzung.aufgaben.length}
       rechts={<>
-        {frisch && <span className="marke">neu</span>}
+        {cram && <span className="marke rot">Endspurt — zählt nicht für den Plan</span>}
+        {frisch && !cram && <span className="marke">neu</span>}
         <span className="klein matt mono">{stelle + 1} / {sitzung.aufgaben.length}</span>
       </>}>
 

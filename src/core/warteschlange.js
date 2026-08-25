@@ -171,3 +171,107 @@ export function lastprognose(zustaende, neuProTagGesamt, tage = 180) {
     minutenHeute: Math.round(inTagen * 8 / 60),   // rund acht Sekunden je Karte
   };
 }
+
+/* ===================================================================== */
+/*  Klausur-Modus                                                        */
+/* ===================================================================== */
+
+/**
+ * Zwei getrennte Mechanismen, damit die Historie sauber bleibt:
+ *
+ * **Verdichtung** — je näher der Termin, desto höher die Ziel-Retention des
+ * Fachs. Die Termine rücken zusammen, aber alles läuft weiter durch FSRS und
+ * die Reviews bleiben gewöhnliche Reviews. Das ist kein Pauken, sondern
+ * dichteres Wiederholen.
+ *
+ * **Cram-Warteschlange** — nur in den letzten Tagen. Sie geht den ganzen Stoff
+ * durch, ohne Rücksicht auf Termine, verändert den Kartenzustand *nicht* und
+ * schreibt Reviews mit dem Vermerk `cram`. Was hier geschieht, verfälscht die
+ * Messung nicht: Sie ist Notbehelf, nicht Lernen.
+ */
+
+/** Ab so vielen Tagen vor dem Termin beginnt die Verdichtung. */
+export const VERDICHTUNG_AB_TAGEN = 60;
+/** Ab so vielen Tagen davor ist die Cram-Warteschlange sinnvoll. */
+export const CRAM_AB_TAGEN = 5;
+
+/**
+ * Die wirksame Ziel-Retention eines Fachs — angehoben, wenn der Termin naht.
+ * Steigt von der eingestellten Marke bis auf höchstens 0,97.
+ */
+export function wirksameRetention(fach, zeit = Date.now()) {
+  const grund = Number(fach?.zielRetention) || 0.9;
+  if (!fach?.pruefungsdatum) return grund;
+  const tage = (fach.pruefungsdatum - zeit) / TAG;
+  if (tage <= 0 || tage > VERDICHTUNG_AB_TAGEN) return grund;
+  const naehe = 1 - tage / VERDICHTUNG_AB_TAGEN;     // 0 weit weg, 1 am Termin
+  return Math.min(0.97, grund + (0.97 - grund) * naehe);
+}
+
+/** Wie viele Tage bleiben — oder null, wenn kein Termin hinterlegt ist. */
+export function tageBisPruefung(fach, zeit = Date.now()) {
+  if (!fach?.pruefungsdatum) return null;
+  return Math.ceil((fach.pruefungsdatum - zeit) / TAG);
+}
+
+/**
+ * Reicht die Zeit?
+ *
+ * Gerechnet wird schlicht: Wie viele Karten sind noch nie in einen stabilen
+ * Zustand gekommen, und wie viele Tage bleiben? Bei mehr als dreißig Karten
+ * am Tag wird es unrealistisch — das sagt die App dann auch.
+ */
+export function pensumPruefen(karten, zustaende, stapelVon, fach, zeit = Date.now()) {
+  const tage = tageBisPruefung(fach, zeit);
+  if (tage === null) return null;
+
+  const { gesamt, neu, faellig } = fachZaehlung(karten, zustaende, stapelVon, fach.id, zeit);
+  let wacklig = 0;
+  for (const z of Object.values(zustaende)) {
+    if (z.subjectId !== fach.id || z.gesperrt) continue;
+    if (!istNeu(z) && (z.stability || 0) < 7) wacklig += 1;
+  }
+
+  const offen = neu + wacklig;
+  const jeTag = tage > 0 ? offen / tage : offen;
+
+  return {
+    tage, gesamt, neu, faellig, wacklig, offen,
+    jeTag: Math.ceil(jeTag),
+    machbar: tage > 0 && jeTag <= 30,
+    text: tage <= 0
+      ? "Der Termin ist da."
+      : offen === 0
+        ? "Alles steht — es geht nur noch ums Halten."
+        : jeTag <= 30
+          ? `${Math.ceil(jeTag)} Karten am Tag, dann steht bis dahin alles.`
+          : `${offen} Karten in ${tage} Tagen wären ${Math.ceil(jeTag)} am Tag — das geht `
+            + "sich nicht aus. Kürze den Stoff oder fang bei dem an, was am meisten zählt.",
+  };
+}
+
+/**
+ * Die Warteschlange für den Endspurt: alles, quer durch, ohne Rücksicht auf
+ * Termine. Verändert nichts — die Reviews tragen den Vermerk `cram`.
+ */
+export function baueCramSitzung({ karten, zustaende, stapelVon, fach, umfang = 40 }) {
+  const alle = [];
+  for (const karte of karten) {
+    if (karte.deleted) continue;
+    const stapel = stapelVon(karte.setId);
+    if (!stapel || (fach && stapel.subjectId !== fach.id)) continue;
+    for (const richtung of richtungenFuer(karte, stapel)) {
+      const zustand = zustaende[karte.id + ":" + richtung];
+      if (zustand?.gesperrt) continue;
+      alle.push({ karte, stapel, richtung, zustand, fachId: stapel.subjectId,
+        schluessel: karte.id + ":" + richtung });
+    }
+  }
+  // Das Wackligste zuerst — in den letzten Tagen zählt, was am ehesten fehlt.
+  alle.sort((a, b) => (a.zustand?.stability || 0) - (b.zustand?.stability || 0));
+  return {
+    aufgaben: alle.slice(0, umfang),
+    gesamt: alle.length,
+    cram: true,
+  };
+}

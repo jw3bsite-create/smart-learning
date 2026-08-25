@@ -10,7 +10,9 @@
 import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { anteileNachStufe } from "../core/fsrs.js";
-import { fachZaehlung, faelligJeTag, lastprognose } from "../core/warteschlange.js";
+import {
+  fachZaehlung, faelligJeTag, lastprognose, pensumPruefen, tageBisPruefung,
+} from "../core/warteschlange.js";
 import { kalibrierungJeFach, kalibrierungInWorten } from "../core/kalibrierung.js";
 import { anzahl, datumKurz } from "../core/util.js";
 import { gehe } from "../App.jsx";
@@ -213,8 +215,9 @@ export default function Faecher() {
           const z = zaehlungen[f.id] || { faellig: 0, neu: 0, gesamt: 0, gesperrt: 0 };
           const anteile = anteileNachStufe(zustaendeVonFach(f.id));
           const k = kalibrierungen[f.id];
-          const tageBisPruefung = f.pruefungsdatum
-            ? Math.ceil((f.pruefungsdatum - Date.now()) / 86400000) : null;
+          const restTage = tageBisPruefung(f);
+          const pensum = restTage !== null && restTage > 0
+            ? pensumPruefen(karten, zustaende, stapelVon, f) : null;
           return (
             <div key={f.id} className="kachel" onClick={() => gehe("/abrufen/" + f.id)}>
               <div className="reihe">
@@ -246,14 +249,20 @@ export default function Faecher() {
                 {anzahl(z.gesamt, "Karte", "Karten")}
                 {k && k.ueberschaetzung !== null &&
                   " · " + kalibrierungInWorten(k)}
-                {tageBisPruefung !== null && (
-                  <span style={{ color: tageBisPruefung < 30 ? "var(--gelb)" : undefined }}>
-                    {" · Prüfung " + (tageBisPruefung > 0
-                      ? "in " + tageBisPruefung + " Tagen"
+                {restTage !== null && (
+                  <span style={{ color: restTage < 30 ? "var(--gelb)" : undefined }}>
+                    {" · Prüfung " + (restTage > 0
+                      ? "in " + restTage + " Tagen"
                       : datumKurz(f.pruefungsdatum))}
                   </span>
                 )}
               </div>
+              {pensum && pensum.offen > 0 && (
+                <div className="klein" style={{ marginTop: 6,
+                  color: pensum.machbar ? "var(--schrift-matt)" : "var(--rot)" }}>
+                  {pensum.text}
+                </div>
+              )}
             </div>
           );
         })}

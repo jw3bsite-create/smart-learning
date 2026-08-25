@@ -141,8 +141,8 @@ Spezifikation gerade erodiert — dann Rückfrage, kein Alleingang.
 ## Offen
 
 - Prüfungszeiten und Pflichtlektüren sind leer und werden nicht geraten.
-- Klausur-Modus (Verdichtung, Cram-Warteschlange) ist vorgesehen, aber nicht gebaut.
-- Mehrschritt-Karten sind im Modell angelegt, aber noch nicht eingebbar.
+
+
 - FSRS-Parameteroptimierung aus der eigenen Historie — dafür braucht es erst
   ein paar hundert Reviews.
 

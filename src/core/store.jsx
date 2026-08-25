@@ -15,6 +15,7 @@ import * as model from "./model.js";
 import { bewerte } from "./scheduler.js";
 import { neuerZustand, bewerteKarte } from "./fsrs.js";
 import { aufschlagFuer, istPlausibel } from "./kalibrierung.js";
+import { wirksameRetention } from "./warteschlange.js";
 import { tagesSchluessel } from "./util.js";
 
 const Zusammenhang = createContext(null);
@@ -488,7 +489,7 @@ export function DatenSpeicher({ children }) {
       const aufschlag = aufschlagFuer(
         [...reviews, review].filter((r) => r.cardId === karte.id && r.richtung === richtung));
       neuerStand = bewerteKarte(vorher, bewertung, {
-        zielRetention: fach?.zielRetention ?? 0.9,
+        zielRetention: wirksameRetention(fach),
         maximalTage: fach?.maximalTage ?? 3650,
         zeit, wirksam: true, aufschlag,
       });
