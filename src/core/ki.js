@@ -20,7 +20,7 @@
  */
 
 import * as db from "./db.js";
-import { anweisung } from "../../prompts/index.js";
+import { anweisung, tutorAnweisung } from "../../prompts/index.js";
 import { id } from "./model.js";
 
 export const ANBIETER = {
@@ -245,6 +245,110 @@ async function frageAnthropic(zugang, systemText, nutzerText, bild, hoechstens, 
       messages: [{ role: "user", content: inhalt }],
       max_tokens: Math.ceil(hoechstens / 3),
       temperature: temperatur,
+    }),
+  });
+  if (!antwort.ok) {
+    const text = await antwort.text().catch(() => "");
+    throw new Error("Das Modell antwortete mit " + antwort.status +
+      (text ? ": " + text.slice(0, 200) : ""));
+  }
+  const daten = await antwort.json();
+  return (daten?.content || []).filter((t) => t.type === "text")
+    .map((t) => t.text).join("\n");
+}
+
+/* -------------------------------- Tutoren ------------------------------- */
+
+/**
+ * Ein Zug im Gespräch mit einem Fachtutor.
+ *
+ * Anders als `frage` bekommt der Tutor einen Gesprächsverlauf mit. Die
+ * Anweisung wird bei jedem Zug neu vorangestellt — Modelle vergessen sie
+ * sonst. Zusätzlich prüft der Aufrufer die Antwort mit `drift.js`; hier
+ * geschieht das nicht, damit die Prüfung auch auf gespeicherte Verläufe
+ * anwendbar bleibt.
+ */
+export async function tutorZug({
+  fach, verlauf, stoff = "", hilfsgrad = "mittel", hoechstensZeichen = 900,
+}) {
+  const zugang = await zugangLesen();
+  if (!eingerichtet(zugang)) throw new Error("Die KI ist nicht eingerichtet.");
+
+  const verbraucht = await verbrauchHeute();
+  if (verbraucht >= (Number(zugang.tagesbudget) || 100))
+    throw new Error("Das Tagesbudget von " + zugang.tagesbudget + " Aufrufen ist aufgebraucht.");
+
+  const a = tutorAnweisung(fach, { stoff, hilfsgrad });
+  if (!a) throw new Error("Für dieses Fach gibt es keinen Tutor.");
+
+  const beginn = Date.now();
+  let ergebnis = "";
+  try {
+    ergebnis = zugang.anbieter === "anthropic"
+      ? await gespraechAnthropic(zugang, a.text, verlauf, hoechstensZeichen)
+      : await gespraechOffen(zugang, a.text, verlauf, hoechstensZeichen);
+  } catch (fehler) {
+    await protokolliere({ prompt: a.name, fassung: a.fassung, zweck: "Tutor " + fach,
+      anbieter: zugang.anbieter, gelungen: false, fehler: String(fehler.message || fehler),
+      dauer: Date.now() - beginn, zeichenHin: verlaufsLaenge(verlauf) });
+    throw fehler;
+  }
+
+  await protokolliere({ prompt: a.name, fassung: a.fassung, zweck: "Tutor " + fach,
+    anbieter: zugang.anbieter, gelungen: true, dauer: Date.now() - beginn,
+    zeichenHin: verlaufsLaenge(verlauf), zeichenZurueck: ergebnis.length });
+
+  return ergebnis;
+}
+
+const verlaufsLaenge = (verlauf) =>
+  (verlauf || []).reduce((n, z) => n + String(z.text || "").length, 0);
+
+function alsNachrichten(verlauf) {
+  return (verlauf || []).map((z) => ({
+    role: z.wer === "tutor" ? "assistant" : "user",
+    content: z.text,
+  }));
+}
+
+async function gespraechOffen(zugang, systemText, verlauf, hoechstens) {
+  const antwort = await fetch(zugang.adresse.replace(/\/+$/, "") + "/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(zugang.schluessel ? { Authorization: "Bearer " + zugang.schluessel } : {}),
+    },
+    body: JSON.stringify({
+      model: zugang.modell || "local-model",
+      messages: [{ role: "system", content: systemText }, ...alsNachrichten(verlauf)],
+      temperature: 0.4,
+      max_tokens: Math.ceil(hoechstens / 3),
+    }),
+  });
+  if (!antwort.ok) {
+    const text = await antwort.text().catch(() => "");
+    throw new Error("Das Modell antwortete mit " + antwort.status +
+      (text ? ": " + text.slice(0, 200) : ""));
+  }
+  const daten = await antwort.json();
+  return daten?.choices?.[0]?.message?.content || "";
+}
+
+async function gespraechAnthropic(zugang, systemText, verlauf, hoechstens) {
+  const antwort = await fetch(zugang.adresse.replace(/\/+$/, "") + "/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": zugang.schluessel,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({
+      model: zugang.modell || "claude-sonnet-5",
+      system: systemText,
+      messages: alsNachrichten(verlauf),
+      max_tokens: Math.ceil(hoechstens / 3),
+      temperature: 0.4,
     }),
   });
   if (!antwort.ok) {
