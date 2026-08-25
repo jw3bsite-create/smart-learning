@@ -382,3 +382,49 @@ export function pruefungsStand(pruefung) {
     anteil: zaehle("ja") / gesamt, eintraege,
   };
 }
+
+/* ===================================================================== */
+/*  Mehrschritt-Karten (Mathematik, Chemie)                              */
+/* ===================================================================== */
+
+/**
+ * Eine Karte mit Zwischenschritten.
+ *
+ * Der Sinn: Ein Rechenweg besteht aus Entscheidungen, nicht aus einem
+ * Ergebnis. Wer nur die Lösung abfragt, merkt nicht, an welcher Stelle es
+ * hakt — und lernt genau die Stelle nicht.
+ *
+ * `schritte` ist eine Folge von `{ frage, antwort }`. Die Frage darf leer
+ * bleiben, dann steht nur „Nächster Schritt" da.
+ */
+export function neueMehrschrittKarte(setId, aufgabe, schritte = [], order = 0) {
+  return {
+    ...neueKarte(setId, aufgabe, "", order),
+    art: "mehrschritt",
+    schritte: schritte.map((s) => (typeof s === "string"
+      ? { frage: "", antwort: s }
+      : { frage: s.frage || "", antwort: s.antwort || "" })),
+  };
+}
+
+/** Die Schritte einer Karte, immer als brauchbare Liste. */
+export function schritteVon(karte) {
+  if (kartenArt(karte) !== "mehrschritt") return [];
+  return (karte.schritte || []).filter((s) => (s.antwort || "").trim());
+}
+
+/**
+ * Wie viel eines Rechenwegs gelungen ist.
+ * Für die Rückmeldung nach der Karte — nicht für die Bewertung, die bleibt
+ * beim Menschen.
+ */
+export function schrittBilanz(ergebnisse) {
+  const gesamt = ergebnisse.length;
+  const richtig = ergebnisse.filter(Boolean).length;
+  const erstesFalsch = ergebnisse.findIndex((e) => e === false);
+  return {
+    gesamt, richtig,
+    erstesFalsch: erstesFalsch < 0 ? null : erstesFalsch,
+    alleRichtig: gesamt > 0 && richtig === gesamt,
+  };
+}

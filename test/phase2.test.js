@@ -21,9 +21,11 @@ import {
 import {
   neuerEntwurf, karteAusEntwurf, herkunftVon, HERKUNFT,
   neueErklaerung, mitFassung, umfangDerErklaerung, neuePruefung, pruefungsStand,
+  neueMehrschrittKarte, schritteVon, schrittBilanz,
 } from "../src/core/model.js";
 import { zerlege, fuelle } from "../prompts/zerlege.js";
 import { behaltenskurve, behaltenGesamt } from "../src/core/kalibrierung.js";
+import { formelStimmt } from "../src/core/text.js";
 
 const HIER = dirname(fileURLToPath(import.meta.url));
 
@@ -383,4 +385,54 @@ test("ohne Daten bleibt die Kurve leer statt zu raten", () => {
   const kurve = behaltenskurve([]);
   assert.ok(kurve.every((k) => k.quote === null));
   assert.equal(behaltenGesamt([]), null);
+});
+
+/* ====================== Fachmodul Mathematik =========================== */
+
+test("Schreibweisen einer Formel werden vereinheitlicht", () => {
+  assert.equal(formelStimmt("f´(x)=2·x", "f'(x) = 2x"), true);
+  assert.equal(formelStimmt("x**2", "x^2"), true);
+  assert.equal(formelStimmt("0,5", "0.5"), true);
+  assert.equal(formelStimmt("a÷b", "a/b"), true);
+  assert.equal(formelStimmt("3−1", "3-1"), true);
+});
+
+test("gerechnet wird beim Vergleich nicht", () => {
+  assert.equal(formelStimmt("2+2", "4"), false,
+    "ob zwei Ausdrücke gleichwertig sind, entscheidet der Mensch");
+  assert.equal(formelStimmt("", "x"), false);
+});
+
+test("eine Mehrschritt-Karte führt ihre Schritte mit", () => {
+  const k = neueMehrschrittKarte("s1", "Extremstellen von f(x)=x²", [
+    { frage: "ableiten", antwort: "f'(x) = 2x" },
+    "f'(x) = 0",
+    "x = 0",
+  ]);
+  assert.equal(k.art, "mehrschritt");
+  assert.equal(k.schritte.length, 3);
+  assert.equal(k.schritte[0].frage, "ableiten");
+  assert.equal(k.schritte[1].frage, "", "eine bloße Zeile ist ein Schritt ohne Anweisung");
+  assert.equal(schritteVon(k).length, 3);
+});
+
+test("leere Schritte fallen heraus", () => {
+  const k = neueMehrschrittKarte("s1", "Aufgabe", [
+    { antwort: "erster" }, { antwort: "   " }, { antwort: "zweiter" },
+  ]);
+  assert.equal(schritteVon(k).length, 2);
+  assert.deepEqual(schritteVon({ term: "x", definition: "y" }), [],
+    "eine gewöhnliche Karte hat keine Schritte");
+});
+
+test("die Bilanz nennt die erste Stelle, an der es kippt", () => {
+  const b = schrittBilanz([true, true, false, false]);
+  assert.equal(b.gesamt, 4);
+  assert.equal(b.richtig, 2);
+  assert.equal(b.erstesFalsch, 2);
+  assert.equal(b.alleRichtig, false);
+
+  const gut = schrittBilanz([true, true]);
+  assert.equal(gut.alleRichtig, true);
+  assert.equal(gut.erstesFalsch, null);
 });

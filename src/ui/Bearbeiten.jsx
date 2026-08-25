@@ -10,6 +10,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { bildAufnehmen, bildLoeschen, dateiAusEreignis } from "../core/media.js";
 import { anzahl } from "../core/util.js";
+import { kartenArt, KARTENARTEN } from "../core/model.js";
 import { gehe } from "../App.jsx";
 import { Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Bild, Stern, Leer, Dialog } from "./basis.jsx";
 import { TextEinfuhr, BildEinfuhr } from "./Einfuhr.jsx";
@@ -22,6 +23,10 @@ function Zeile({ karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZe
   const [definition, setDefinition] = useState(karte.definition);
   const [hinweis, setHinweis] = useState(karte.hint || "");
   const [hinweisOffen, setHinweisOffen] = useState(Boolean(karte.hint));
+  const istMehrschritt = kartenArt(karte) === "mehrschritt";
+  const [schritteText, setSchritteText] = useState(
+    (karte.schritte || []).map((s) => (s.frage ? s.frage + ": " + s.antwort : s.antwort))
+      .join("\n"));
   const uhr = useRef(null);
   const vorderesFeld = useRef(null);
 
@@ -34,6 +39,21 @@ function Zeile({ karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZe
     uhr.current = setTimeout(() => aendern(karte.id, aenderung), 500);
   };
   const sofort = (aenderung) => { clearTimeout(uhr.current); aendern(karte.id, aenderung); };
+
+  /** Zeilen zu Schritten: „ableiten: f'(x) = 2x" wird Frage und Antwort. */
+  const alsSchritte = (text) => String(text || "").split("\n")
+    .map((z) => z.trim()).filter(Boolean)
+    .map((z) => {
+      const stelle = z.indexOf(":");
+      // Nur trennen, wenn vorn wirklich eine Anweisung steht und nicht etwa
+      // ein Verhältnis wie „3:4".
+      if (stelle > 2 && /[a-zäöüß]\s*$/i.test(z.slice(0, stelle)))
+        return { frage: z.slice(0, stelle).trim(), antwort: z.slice(stelle + 1).trim() };
+      return { frage: "", antwort: z };
+    });
+
+  const merkenSchritte = (text) => merken({ schritte: alsSchritte(text) });
+  const sofortSchritte = (text) => sofort({ schritte: alsSchritte(text) });
 
   useEffect(() => () => clearTimeout(uhr.current), []);
 
@@ -97,10 +117,33 @@ function Zeile({ karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZe
           aufKlick={() => sofort({ starred: !karte.starred })} />
         <SymbolKnopf symbol="hoch" titel="Nach oben" onClick={aufHoch} />
         <SymbolKnopf symbol="runter" titel="Nach unten" onClick={aufRunter} />
+        <select className="feld klein" style={{ width: "auto", padding: "3px 24px 3px 8px",
+          fontSize: 12 }}
+          value={kartenArt(karte)}
+          onChange={(e) => sofort({ art: e.target.value })}>
+          {Object.entries(KARTENARTEN).map(([k, n]) => (
+            <option key={k} value={k}>{n}</option>
+          ))}
+        </select>
         <SymbolKnopf symbol="muell" titel="Karte löschen" onClick={() => loeschen(karte.id)} />
       </div>
       {seite("vorn", term, setTerm, "term", "Vorderseite — Begriff, Frage, Vokabel")}
-      {seite("hinten", definition, setDefinition, "definition", "Rückseite — Erklärung, Antwort, Übersetzung")}
+      {istMehrschritt ? (
+        <div className="seite">
+          <label className="beschriftung">Rechenweg — ein Schritt je Zeile</label>
+          <textarea className="feld" rows={4} value={schritteText}
+            placeholder={"f'(x) = 2x\nf'(x) = 0\nx = 0"}
+            style={{ minHeight: 96, fontFamily: "ui-monospace, monospace" }}
+            onChange={(e) => { setSchritteText(e.target.value); merkenSchritte(e.target.value); }}
+            onBlur={(e) => sofortSchritte(e.target.value)} />
+          <p className="klein blass" style={{ marginTop: 6 }}>
+            Jede Zeile wird einzeln abgefragt. Ein Doppelpunkt trennt eine
+            Anweisung von ihrem Ergebnis: <em>ableiten: f'(x) = 2x</em>
+          </p>
+        </div>
+      ) : (
+        seite("hinten", definition, setDefinition, "definition", "Rückseite — Erklärung, Antwort, Übersetzung")
+      )}
       <div style={{ gridColumn: "1 / -1" }}>
         {hinweisOffen ? (
           <input className="feld" placeholder="Hinweis (wird auf Wunsch im Lernmodus gezeigt)"
