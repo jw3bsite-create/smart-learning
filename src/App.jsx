@@ -9,6 +9,7 @@ import * as wolke from "./core/cloud.js";
 import * as erinnerung from "./core/erinnerung.js";
 import { tagesLage } from "./core/straehne.js";
 import { istFaellig } from "./core/fsrs.js";
+import { anwenden as gestaltungAnwenden } from "./core/gestaltung.js";
 import { Symbol, SymbolKnopf } from "./ui/basis.jsx";
 import Seitenleiste from "./ui/Seitenleiste.jsx";
 import Bibliothek from "./ui/Bibliothek.jsx";
@@ -75,21 +76,17 @@ export default function App() {
   const abgleichLaeuft = useRef(false);
   const anstoss = useRef(null);
 
-  /* Erscheinungsbild an die Wurzel hängen. */
+  /* Die Gestaltung an die Wurzel hängen. Bei „wie das System" wird zusätzlich
+     auf den Wechsel gehorcht — wer abends umschaltet, soll das sehen. */
   useEffect(() => {
     const wurzel = document.documentElement;
-    const dunkelGewuenscht = einstellungen.design === "system"
-      ? window.matchMedia("(prefers-color-scheme: dark)").matches
-      : einstellungen.design === "dunkel";
-    wurzel.dataset.design = dunkelGewuenscht ? "dunkel" : "hell";
-    wurzel.dataset.gross = einstellungen.schriftGross ? "ja" : "nein";
-    wurzel.style.setProperty("--akzent", einstellungen.akzent);
+    gestaltungAnwenden(wurzel, einstellungen);
     if (einstellungen.design !== "system") return;
     const beobachter = window.matchMedia("(prefers-color-scheme: dark)");
-    const f = () => { wurzel.dataset.design = beobachter.matches ? "dunkel" : "hell"; };
+    const f = () => gestaltungAnwenden(wurzel, einstellungen);
     beobachter.addEventListener("change", f);
     return () => beobachter.removeEventListener("change", f);
-  }, [einstellungen.design, einstellungen.akzent, einstellungen.schriftGross]);
+  }, [einstellungen]);
 
   /* ---------------------------- Wolkenabgleich --------------------------- */
   const abgleichen = useCallback(async (still = true) => {
