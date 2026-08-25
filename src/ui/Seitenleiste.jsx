@@ -9,6 +9,7 @@ import { baueBaum } from "../core/model.js";
 import { istFaellig } from "../core/fsrs.js";
 import { gehe } from "../App.jsx";
 import { Symbol, SymbolKnopf, Knopf, useMerker } from "./basis.jsx";
+import Flamme from "./Flamme.jsx";
 
 function Zweig({ ordner, tiefe, aktiv, offen, umschalten, aufAblegen }) {
   const [ziel, setZiel] = useState(false);
@@ -149,6 +150,8 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
           <Symbol name="auge" groesse={16} />
           <span className="name">Kalibrierung</span>
         </div>
+
+        <Flamme knapp />
 
         <hr className="trennlinie" style={{ margin: "12px 0" }} />
         <div className="klein blass" style={{ padding: "0 8px 6px" }}>Stapel verwalten</div>

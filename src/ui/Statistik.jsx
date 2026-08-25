@@ -7,11 +7,12 @@ import React, { useMemo } from "react";
 import { useDaten } from "../core/store.jsx";
 import { anteileNachStufe } from "../core/model.js";
 import { faelligZaehlen } from "../core/scheduler.js";
-import { straehne, tagesSchluessel, anzahl, datumKurz, zeitLang } from "../core/util.js";
+import { tagesSchluessel, anzahl, datumKurz, zeitLang } from "../core/util.js";
 import { behaltenskurve } from "../core/kalibrierung.js";
 import { eigenleistung } from "../core/generator.js";
 import { gehe } from "../App.jsx";
 import { Symbol, Balken, Leer, Knopf } from "./basis.jsx";
+import Flamme from "./Flamme.jsx";
 
 const MODUS_NAME = {
   karten: "Karteikarten", lernen: "Lernen", schreiben: "Schreiben",
@@ -30,7 +31,7 @@ export default function Statistik() {
     return nach;
   }, [sitzungen]);
 
-  const strecke = straehne([...tage.keys()]);
+
 
   /* Die letzten 91 Tage als Streifen, beginnend am ältesten. */
   const streifen = useMemo(() => {
@@ -73,12 +74,9 @@ export default function Statistik() {
     <div className="mitte">
       <div className="kopfzeile"><h1>Fortschritt</h1></div>
 
+      <div style={{ marginBottom: 26 }}><Flamme /></div>
+
       <div className="gitter" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", marginBottom: 26 }}>
-        <div className="zahl-kachel">
-          <div className="reihe klein matt"><Symbol name="feuer" groesse={15} /> Strähne</div>
-          <div className="zahl">{strecke}</div>
-          <div className="klein blass">{strecke === 1 ? "Tag" : "Tage"} in Folge</div>
-        </div>
         <div className="zahl-kachel">
           <div className="reihe klein matt"><Symbol name="haken" groesse={15} /> Beherrscht</div>
           <div className="zahl">{gesamt.beherrscht}</div>

@@ -7,6 +7,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import * as wolke from "../core/cloud.js";
 import * as ki from "../core/ki.js";
+import * as erinnerung from "../core/erinnerung.js";
 import { stimmen, beiStimmen, sprich } from "../core/speech.js";
 import { datumKurz } from "../core/util.js";
 import { Symbol, Knopf, SymbolKnopf, Dialog } from "./basis.jsx";
@@ -323,6 +324,69 @@ function Sprachmodellteil() {
   );
 }
 
+/* ----------------------------- Erinnerung ------------------------------ */
+
+function Erinnerungsteil() {
+  const [e, setE] = useState(null);
+  const [erlaubnis, setErlaubnis] = useState(erinnerung.erlaubnisStand());
+
+  useEffect(() => { erinnerung.einstellungLesen().then(setE); }, []);
+  if (!e) return null;
+
+  const aendern = async (aenderung) => {
+    const neu = { ...e, ...aenderung };
+    setE(neu);
+    await erinnerung.einstellungSchreiben(neu);
+  };
+
+  const anschalten = async (an) => {
+    if (an && erlaubnis !== "granted") {
+      const antwort = await erinnerung.erlaubnisHolen();
+      setErlaubnis(antwort);
+      if (antwort !== "granted") return;
+    }
+    aendern({ an });
+  };
+
+  return (
+    <Abschnitt titel="Tageserinnerung"
+      hinweis="Eine ruhige Nachricht am Tag mit der Zahl der fälligen Karten. Keine Drohung, keine Flamme.">
+      <label className="schalter">
+        <input type="checkbox" checked={Boolean(e.an)}
+          onChange={(ev) => anschalten(ev.target.checked)} />
+        <span>Einmal am Tag erinnern</span>
+      </label>
+
+      {e.an && (
+        <label className="reihe klein matt" style={{ gap: 8, marginTop: 10 }}>
+          Ab
+          <input className="feld" type="number" min="0" max="23" style={{ width: 80 }}
+            value={e.stunde} onChange={(ev) => aendern({ stunde: Number(ev.target.value) })} />
+          Uhr
+        </label>
+      )}
+
+      {erlaubnis === "denied" && (
+        <div className="rueckmeldung schlecht klein" style={{ marginTop: 10 }}>
+          Der Browser hat Benachrichtigungen für diese Seite abgelehnt. Das
+          lässt sich nur in seinen eigenen Einstellungen zurücknehmen.
+        </div>
+      )}
+      {erlaubnis === "geht nicht" && (
+        <div className="klein blass" style={{ marginTop: 10 }}>
+          Dieser Browser kennt keine Benachrichtigungen.
+        </div>
+      )}
+
+      <p className="klein blass" style={{ marginTop: 10 }}>
+        Die Nachricht erscheint nur, solange die App irgendwo geöffnet ist —
+        ohne eigenen Server geht es nicht anders. Auf dem Handy also beim
+        Öffnen, nicht davor.
+      </p>
+    </Abschnitt>
+  );
+}
+
 /* ------------------------------ Die Ansicht ---------------------------- */
 
 export default function Einstellungen({ aufAbgleich }) {
@@ -426,6 +490,8 @@ export default function Einstellungen({ aufAbgleich }) {
           </Knopf>
         </div>
       </Abschnitt>
+
+      <Erinnerungsteil />
 
       <Sprachmodellteil />
 

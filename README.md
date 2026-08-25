@@ -1,8 +1,9 @@
 # Karteikasten
 
-Karteikarten für die Abiturvorbereitung — Ordner, Stapel, sieben Lernmodi,
-Bilder auf den Karten und Texterkennung, die aus einem Foto Karten macht.
-Alles läuft im Browser, ohne Konto und ohne Kosten.
+Lern- und Arbeitssystem für das Abitur 2027. Karteikarten mit sieben
+Übungsmodi, dazu ein Abrufsystem mit verteilter Wiederholung, Fachtutoren mit
+Sperren und Prüfungssimulation. Alles im Browser, ohne Konto, ohne laufende
+Kosten.
 
 ## Starten
 
@@ -11,99 +12,108 @@ npm install
 npm run dev
 ```
 
-Dann `http://localhost:5180` öffnen. Für den täglichen Gebrauch:
+Dann `http://localhost:5180` öffnen. Über „Installieren" im Browser landet die
+App als eigenes Programm auf dem Gerät und läuft auch ohne Netz.
 
-```
-npm run build
-npm run preview
-```
+## Zwei Wege, die sich nicht in die Quere kommen
 
-Im Browser über „Installieren“ (Chrome/Edge: Symbol in der Adresszeile,
-iPhone: Teilen → „Zum Home-Bildschirm“) landet die App als eigenes Programm
-auf dem Gerät und läuft dann auch ohne Netz.
+**Üben** — die sieben Quizlet-artigen Modi: Karteikarten, Lernen, Schreiben,
+Buchstabieren, Test, Zuordnen, Meteor. Zum Warmwerden, für Vokabeln, weil es
+Spaß macht. Zählt für die Statistik, verschiebt aber keine Termine.
 
-## Was es kann
+**Abrufen** — der Weg, der zählt: Frage sehen, sich selbst einschätzen, Antwort
+tippen, aufdecken, bewerten. Nur hier entscheidet sich, wann eine Karte
+wiederkommt.
 
-**Ordnen.** Ordner, beliebig tief geschachtelt, darin Stapel, darin Karten.
-Stapel lassen sich mit der Maus in Ordner ziehen. Suche über alle Karten.
+Die Trennung hat einen Grund: Wiedererkennen (Paare zuordnen, aus vier
+auswählen) schadet nicht, es nützt nur weniger. Schädlich wird es erst, wenn
+die App daraufhin „beherrscht" meldet.
 
-**Karten.** Vorder- und Rückseite, wahlweise mit Bild (einfügen, hineinziehen
-oder auswählen), dazu ein Hinweis und eine Markierung für schwierige Karten.
+## Was drin ist
 
-**Sieben Modi.**
+**Verteilte Wiederholung.** FSRS schätzt je Karte, wie lange das Wissen hält,
+und setzt den nächsten Termin dorthin, wo es zu kippen droht. Je Fach
+einstellbar, wie sicher du sein willst (Chemie-Nomenklatur 95 %,
+Überblickswissen 85 %).
 
-| Modus | Was er tut |
-|---|---|
-| Karteikarten | Durchblättern, umdrehen, vorlesen lassen, selbst einschätzen |
-| Lernen | Runden aus Auswahl-, Schreib- und Wahr/Falsch-Aufgaben, über Tage verteilt |
-| Schreiben | Antwort tippen, nachsichtige Prüfung, „War doch richtig“ |
-| Buchstabieren | Wort anhören und schreiben — strenge Prüfung |
-| Test | Gemischte Aufgaben auf einer Seite, Auswertung am Ende |
-| Zuordnen | Sechs Paare finden, auf Zeit, mit Bestzeit |
-| Meteor | Begriffe fallen, Antwort tippen, wird schneller |
+**Kalibrierung.** Vor jedem Aufdecken schätzt du dich ein. Daraus entsteht die
+Zahl, die zeigt, ob dein Gefühl trägt: Wie oft war „sicher" tatsächlich
+richtig? Wer hier bei 60 % steht, lernt nicht zu wenig — er hört zu früh auf.
 
-**Verteiltes Wiederholen.** Jede Karte sitzt je Abfragerichtung in einem Fach
-von 0 bis 7. Richtig beantwortet steigt sie auf und kommt später wieder,
-falsch fällt sie zurück. Daraus ergibt sich, was „heute dran“ ist.
+**Karten erzeugen mit Eigenleistung.** Aus Text oder Foto entstehen
+Vorderseiten samt Quellenauszug. Die Rückseite schreibst du selbst; der
+Vorschlag wird erst danach zum Vergleich eingeblendet. Ein „Alle übernehmen"
+gibt es nicht.
 
-**Einfuhr.** Liste einfügen (Tabulator, Komma, Gedankenstrich, eigenes
-Zeichen) — so kommen auch Stapel aus Quizlet herüber. Oder ein Foto: die
-Texterkennung liest das Blatt und trennt die Spalten anhand der Lücke
-zwischen ihnen. Vor dem Anlegen wird alles zur Durchsicht gezeigt.
+**Erklären.** Ein Thema in eigenen Worten aufschreiben. Die KI nennt
+ausschließlich Lücken und stellt Fragen dazu — sie füllt nichts. Jede Fassung
+wird aufgehoben; wie eine Erklärung über Wochen wächst, ist der ehrlichste
+Fortschrittsmesser.
 
-**Ausfuhr.** CSV, Text, ganze Sicherung als Datei (samt Bildern und
-Lernständen), Druckansicht.
+**Verschachteln.** Mehrere Fächer in einer Sitzung, Herkunft erst nach der
+Antwort. In der Prüfung steht auch nicht dabei, welches Verfahren gemeint ist.
 
-**Fortschritt.** Strähne, Tagesübersicht der letzten drei Monate,
-Beherrschung je Stapel, letzte Sitzungen.
+**Vorab.** Fünf Fragen zu Stoff, den du noch nicht hattest. Wird nicht
+gewertet — der Effekt entsteht durch das Versuchen, nicht durch das Treffen.
 
-## Abgleich zwischen Geräten
+**Sechs Fachtutoren mit Sperren.** Mathe rechnet nichts aus. Chemie formuliert
+keine Mechanismen. IT schreibt keine Zeile Code. Deutsch liefert keine Deutung
+und verlangt Textbelege. Gemeinschaftskunde wertet nicht und trennt [FAKT] von
+[WERTUNG]. Gestaltung gibt Kriterien statt Analysen. Weicht einer ab, erscheint
+eine Warnung und ein ZURÜCK-Knopf, der die Regeln neu einspielt.
 
-Freiwillig und erst dann, wenn du ihn einrichtest:
+**Prüfungssimulation.** Unter Zeit, ohne Modell, ohne Karten. Auswertung erst
+nach der Abgabe — und ohne Note: Die App prüft nur, ob die Kriterien vorkommen,
+die du selbst hinterlegt hast.
+
+**Behaltenskurve.** Gemessen, nicht geschätzt: wie oft du eine Karte nach einem
+Tag, einer Woche, einem Monat noch wusstest.
+
+**Strähne.** Zählt abgerufene Karten, nicht geöffnete Fenster. Durchklicken
+zählt nicht. Zwei Ruhetage im Monat, damit eine Lücke keine achtzig Tage
+zerreißt. Daneben steht immer die Kalibrierung — die Strähne misst
+Beharrlichkeit, die andere Zahl misst Können.
+
+**Dazu aus der ersten Fassung:** Ordner und Stapel, Bilder auf Karten,
+Texterkennung aus Fotos, Vorlesen, Suche, Papierkorb, Druckansicht, hell und
+dunkel, Anki-Ein- und -Ausfuhr, Sicherung als Datei.
+
+## Sprachmodell (freiwillig)
+
+Gelernt wird ohne. Gebraucht wird es nur für Kartenvorschläge, das Erklären,
+die Tutoren und den Kriterienabgleich.
+
+Am einfachsten mit **LM Studio** auf demselben Rechner: Server starten, in den
+Einstellungen die Adresse `http://localhost:1234/v1` eintragen, prüfen. Kein
+Schlüssel, keine Kosten, und nichts verlässt das Gerät. Alternativ ein eigener
+Schlüssel für OpenAI oder Anthropic — der bleibt lokal gespeichert und wird nie
+mit der Wolke abgeglichen.
+
+Es gibt kein freies Chatfenster. Jeder Aufruf folgt einer der Anweisungen in
+`prompts/`, die als lesbare Dateien im Projekt liegen. Vor dem Absenden lässt
+sich ansehen, was hinausgeht; jeder Aufruf wird protokolliert, und ein
+Tagesbudget begrenzt die Zahl.
+
+## Abgleich zwischen Geräten (freiwillig)
 
 1. Bei [supabase.com](https://supabase.com) ein kostenloses Projekt anlegen.
-2. Im *SQL Editor* den Inhalt von `wolke.sql` ausführen. Das legt Tabelle,
-   Zeilenrechte und die Ablage für Bilder an.
-3. In *Project Settings → API* die *Project URL* und den *anon public*-Schlüssel
-   kopieren und in den Einstellungen der App eintragen.
+2. Im *SQL Editor* den Inhalt von `wolke.sql` ausführen.
+3. In *Project Settings → API* die Adresse und den *anon public*-Schlüssel in
+   die Einstellungen der App eintragen.
 4. Kennung anlegen, auf jedem Gerät dieselbe.
 
-Abgeglichen wird beim Start, kurz nach Änderungen und beim Verlassen des
-Fensters. Bei Streit gewinnt die jüngere Änderung. Ohne diesen Schritt bleibt
-alles auf dem Gerät; zum Umziehen dient dann die Sicherungsdatei.
+Ohne diesen Schritt bleibt alles auf dem Gerät; zum Umziehen dient die
+Sicherungsdatei.
 
-## Was Quizlet Plus hat und dieser Karteikasten nicht
+## Noch einzutragen
 
-- Gemeinsames Lernen in Gruppen, geteilte Stapel, Bestenlisten
-- Fremde Stapel durchsuchen und übernehmen
-- Erklärungen zu Schulbuchaufgaben
-- KI-gestützte Zusammenfassungen und Fragen aus hochgeladenen Skripten
-
-Handschrift erkennt die Texterkennung nur mäßig; gedruckte Listen dagegen gut.
-
-## Aufbau
-
-```
-src/core/     Rechnender Kern ohne Oberfläche
-  db.js         IndexedDB
-  model.js      Datenmodell
-  scheduler.js  Fächer und Abstände
-  text.js       Antwortprüfung
-  importer.js   Einfuhr und Ausfuhr als Text
-  ocr.js        Texterkennung und Spaltentrennung
-  media.js      Bilder
-  speech.js     Vorlesen
-  cloud.js      Abgleich mit Supabase
-  store.jsx     Gemeinsamer Datenbestand (React)
-src/ui/       Bibliothek, Stapel, Bearbeiten, Einfuhr, Einstellungen …
-src/modes/    Die sieben Lernmodi
-test/         Prüfungen für den Kern (npm test)
-werkzeug/     Erzeugt die Symbole (npm run symbole)
-```
+Die **Prüfungszeiten** und die **Pflichtlektüren** stehen absichtlich leer: Sie
+gelten je Jahrgang und werden hier nicht geraten. Trag sie ein, sobald du sie
+aus dem Bildungsplan oder von den Fachlehrkräften hast.
 
 ## Prüfen
 
 ```
-npm test
+npm test        # 122 Prüfungen, darunter Golden-Tests gegen ts-fsrs
 npm run lint
 ```
