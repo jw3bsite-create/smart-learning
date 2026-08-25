@@ -6,6 +6,7 @@
 import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { baueBaum } from "../core/model.js";
+import { istFaellig } from "../core/fsrs.js";
 import { gehe } from "../App.jsx";
 import { Symbol, SymbolKnopf, Knopf, useMerker } from "./basis.jsx";
 
@@ -43,7 +44,10 @@ function Zweig({ ordner, tiefe, aktiv, offen, umschalten, aufAblegen }) {
 }
 
 export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
-  const { ordner, stapel, ordnerAnlegen, stapelAnlegen, stapelAendern, wolkeStand } = useDaten();
+  const {
+    ordner, stapel, ordnerAnlegen, stapelAnlegen, stapelAendern, wolkeStand,
+    faecher, zustaende,
+  } = useDaten();
   const [aufgeklappt, setAufgeklappt] = useMerker("aufgeklappt", []);
   const [suche, setSuche] = useState("");
   const weg = window.location.hash.slice(1) || "/";
@@ -51,6 +55,9 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
 
   const baum = useMemo(() => baueBaum(ordner), [ordner]);
   const ohneOrdner = stapel.filter((s) => !s.folderId).length;
+
+  const faellig = useMemo(
+    () => Object.values(zustaende).filter((z) => istFaellig(z)).length, [zustaende]);
 
   const umschalten = (id) =>
     setAufgeklappt((alt) => alt.includes(id) ? alt.filter((x) => x !== id) : [...alt, id]);
@@ -103,6 +110,31 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
       </form>
 
       <div className="leiste-inhalt">
+        {/* Der Lernweg steht oben — er ist der Zweck der App. */}
+        <div className={"baum-zeile" + (weg.startsWith("/abrufen") ? " aktiv" : "")}
+          onClick={() => gehe("/abrufen")}>
+          <span className="pfeil" />
+          <Symbol name="blitz" groesse={16} />
+          <span className="name dehnen">Abrufen</span>
+          {faellig > 0 && <span className="marke gelb klein">{faellig}</span>}
+        </div>
+        <div className={"baum-zeile" + (weg.startsWith("/faecher") ? " aktiv" : "")}
+          onClick={() => gehe("/faecher")}>
+          <span className="pfeil" />
+          <Symbol name="buch" groesse={16} />
+          <span className="name dehnen">Fächer</span>
+          {faecher.length > 0 && <span className="klein blass">{faecher.length}</span>}
+        </div>
+        <div className={"baum-zeile" + (weg.startsWith("/kalibrierung") ? " aktiv" : "")}
+          onClick={() => gehe("/kalibrierung")}>
+          <span className="pfeil" />
+          <Symbol name="auge" groesse={16} />
+          <span className="name">Kalibrierung</span>
+        </div>
+
+        <hr className="trennlinie" style={{ margin: "12px 0" }} />
+        <div className="klein blass" style={{ padding: "0 8px 6px" }}>Stapel verwalten</div>
+
         <div className={"baum-zeile" + (weg === "/" ? " aktiv" : "")}
           onClick={() => gehe("/")}
           onDragOver={(e) => e.preventDefault()}

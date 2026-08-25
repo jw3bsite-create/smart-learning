@@ -14,6 +14,9 @@ import Bearbeiten from "./ui/Bearbeiten.jsx";
 import Einstellungen from "./ui/Einstellungen.jsx";
 import Statistik from "./ui/Statistik.jsx";
 import Papierkorb from "./ui/Papierkorb.jsx";
+import Faecher from "./ui/Faecher.jsx";
+import Kalibrierung from "./ui/Kalibrierung.jsx";
+import Abrufen from "./modes/Abrufen.jsx";
 import Karteikarten from "./modes/Karteikarten.jsx";
 import Lernen from "./modes/Lernen.jsx";
 import Schreiben from "./modes/Schreiben.jsx";
@@ -135,6 +138,12 @@ export default function App() {
 
   const teile = weg.split("/").filter(Boolean);
 
+  /* Das Abrufen ist der verbindliche Lernweg und bekommt die ganze Fläche. */
+  if (teile[0] === "abrufen") {
+    return <Abrufen fachId={teile[1] || null}
+      aufSchliessen={() => gehe(teile[1] ? "/faecher" : "/faecher")} />;
+  }
+
   /* Lernmodi bekommen die ganze Fläche. */
   if (teile[0] === "stapel" && teile[2] && teile[2] !== "bearbeiten") {
     const setId = teile[1];
@@ -158,6 +167,8 @@ export default function App() {
   else if (teile[0] === "einstellungen") inhalt = <Einstellungen aufAbgleich={() => abgleichen(false)} />;
   else if (teile[0] === "statistik") inhalt = <Statistik />;
   else if (teile[0] === "papierkorb") inhalt = <Papierkorb />;
+  else if (teile[0] === "faecher") inhalt = <Faecher />;
+  else if (teile[0] === "kalibrierung") inhalt = <Kalibrierung />;
 
   return (
     <div className="huelle">

@@ -117,3 +117,107 @@ export function anteileNachStufe(karten, staende) {
   }
   return anteile;
 }
+
+/* ===================================================================== */
+/*  Fassung 2 — Fächer, Kartenarten, Reviews                             */
+/* ===================================================================== */
+
+/**
+ * Die Kartenarten (§3.2). Bewusst wenige.
+ *
+ * frei        Vorderseite zeigen, Antwort tippen — der Standard
+ * cloze       Lückentext, jede Lücke wird eigenständig geplant
+ * bild        wie `frei`, aber die Frage ist ein Bild
+ * mehrschritt Rechenweg oder Mechanismus, Zwischenschritte einzeln
+ */
+export const KARTENARTEN = {
+  frei: "Freies Abrufen",
+  cloze: "Lückentext",
+  bild: "Bildkarte",
+  mehrschritt: "Mehrschritt",
+};
+
+/** Karten aus Fassung 1 haben kein `art`-Feld — sie sind freies Abrufen. */
+export function kartenArt(karte) {
+  return karte?.art && KARTENARTEN[karte.art] ? karte.art : "frei";
+}
+
+export function neuesFach(name, farbe = null) {
+  return {
+    id: id("f"), name, farbe,
+    zielRetention: 0.9,        // Ziel-Behaltenswahrscheinlichkeit (§3.1)
+    maximalTage: 3650,
+    pruefungsdatum: null,      // Zeitstempel oder null
+    neuProTag: 15,             // Bremse gegen den Rückstau
+    richtungen: ["td"],        // bei Sprachen: ["td", "dt"]
+    updatedAt: jetzt(), deleted: false,
+  };
+}
+
+/**
+ * Ein einzelnes Review — der wichtigste Datensatz der App.
+ *
+ * `flag` trennt, was zählt, von dem, was nur geübt wurde:
+ *   normal      zählt, verändert den Kartenzustand
+ *   practice    aus den Übungsmodi — zählt für die Strähne, nicht für Termine
+ *   cram        Endspurt vor der Klausur, lässt den Zustand unberührt
+ *   pretest     Fragen vor dem Lernen, fließen in keine Statistik
+ *   implausible zu schnell beantwortet, um echt zu sein
+ */
+export function neuesReview({
+  cardId, richtung = "td", setId = null, subjectId = null,
+  bewertung, antwortzeit = 0, konfidenz = null, flag = "normal",
+  modus = "abrufen", zeit = Date.now(),
+}) {
+  return {
+    id: id("r"), cardId, richtung, setId, subjectId,
+    zeit, bewertung, antwortzeit, konfidenz, flag, modus,
+    updatedAt: zeit, deleted: false,
+  };
+}
+
+/**
+ * Zerlegt einen Lückentext.
+ * „Das {{Ohmsche Gesetz}} lautet U = R · I" → Stücke mit Lücken.
+ */
+export function clozeTeile(text) {
+  const stuecke = [];
+  const muster = /\{\{(.+?)\}\}/g;
+  let letzte = 0, treffer, nummer = 0;
+  while ((treffer = muster.exec(String(text || "")))) {
+    if (treffer.index > letzte)
+      stuecke.push({ art: "text", text: text.slice(letzte, treffer.index) });
+    nummer += 1;
+    stuecke.push({ art: "luecke", nummer, text: treffer[1] });
+    letzte = treffer.index + treffer[0].length;
+  }
+  if (letzte < String(text || "").length)
+    stuecke.push({ art: "text", text: text.slice(letzte) });
+  return stuecke;
+}
+
+export function clozeAnzahl(text) {
+  return clozeTeile(text).filter((s) => s.art === "luecke").length;
+}
+
+/**
+ * Welche Abfragerichtungen eine Karte hat.
+ * Bei Lückentexten ist jede Lücke eine eigene Richtung (`c1`, `c2`, …),
+ * sonst entscheidet der Stapel: nur vorwärts oder beide Wege.
+ */
+export function richtungenFuer(karte, stapel) {
+  if (kartenArt(karte) === "cloze") {
+    const anzahl = clozeAnzahl(karte.term) || 1;
+    return Array.from({ length: anzahl }, (_, i) => "c" + (i + 1));
+  }
+  const eigene = stapel?.richtungen;
+  return Array.isArray(eigene) && eigene.length ? eigene : ["td"];
+}
+
+/** Menschenlesbarer Name einer Richtung. */
+export function richtungName(richtung, stapel) {
+  if (richtung?.startsWith("c")) return "Lücke " + richtung.slice(1);
+  return richtung === "dt"
+    ? (stapel?.defLabel || "Rückseite") + " → " + (stapel?.termLabel || "Vorderseite")
+    : (stapel?.termLabel || "Vorderseite") + " → " + (stapel?.defLabel || "Rückseite");
+}
