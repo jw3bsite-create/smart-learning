@@ -6,6 +6,9 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useDaten } from "./core/store.jsx";
 import * as wolke from "./core/cloud.js";
+import * as erinnerung from "./core/erinnerung.js";
+import { tagesLage } from "./core/straehne.js";
+import { istFaellig } from "./core/fsrs.js";
 import { Symbol, SymbolKnopf } from "./ui/basis.jsx";
 import Seitenleiste from "./ui/Seitenleiste.jsx";
 import Bibliothek from "./ui/Bibliothek.jsx";
@@ -128,6 +131,20 @@ export default function App() {
       setAenderungsMelder(null);
     };
   }, [bereit, abgleichen, setAenderungsMelder]);
+
+  /* Die Tageserinnerung: einmal beim Start prüfen, danach stündlich. Mehr
+     kann eine App ohne eigenen Server nicht tun. */
+  useEffect(() => {
+    if (!bereit) return;
+    const pruefen = () => {
+      const faellig = Object.values(daten.zustaende).filter((z) => istFaellig(z)).length;
+      const lage = tagesLage(daten.reviews, faellig);
+      if (!lage.heuteGeschafft) erinnerung.vielleichtErinnern({ faellig, text: lage.text });
+    };
+    pruefen();
+    const takt = setInterval(pruefen, 3600000);
+    return () => clearInterval(takt);
+  }, [bereit, daten.reviews.length]);
 
   /* Beim Wechsel des Weges die Leiste auf schmalen Geräten schließen. */
   useEffect(() => { setLeisteOffen(false); }, [weg]);
