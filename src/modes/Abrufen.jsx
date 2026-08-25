@@ -20,8 +20,8 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
-import { normalisiere } from "../core/text.js";
-import { clozeTeile, kartenArt, richtungName } from "../core/model.js";
+import { normalisiere, formelStimmt } from "../core/text.js";
+import { clozeTeile, kartenArt, richtungName, schritteVon, schrittBilanz } from "../core/model.js";
 import {
   NOTEN, NOTEN_NAMEN, KONFIDENZ, vorschau, abstandLang, neuerZustand, istNeu,
 } from "../core/fsrs.js";
@@ -43,6 +43,17 @@ import { ModusRahmen } from "./gemeinsam.jsx";
  */
 function aufgabeTeile(karte, richtung) {
   const art = kartenArt(karte);
+
+  /* Mehrschritt: der Rechenweg wird Schritt für Schritt abgefragt. Eine
+     Bewertung gibt es trotzdem nur einmal, am Ende — es ist eine Karte. */
+  if (art === "mehrschritt") {
+    const schritte = schritteVon(karte);
+    return {
+      art: "mehrschritt", schritte,
+      frage: karte.term, frageBild: karte.termImage,
+      loesung: schritte.map((s) => s.antwort).join("\n"),
+    };
+  }
 
   if (art === "cloze" && richtung.startsWith("c")) {
     const nummer = Number(richtung.slice(1)) || 1;
@@ -108,6 +119,9 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
   const [gewaehlteFaecher, setGewaehlteFaecher] = useMerker("interleaving:faecher", []);
   const [herkunftVerbergen, setHerkunftVerbergen] = useMerker("interleaving:verbergen", true);
   const [gestartet, setGestartet] = useState(Boolean(fachId));
+  // Mehrschritt-Karten: welcher Schritt ist dran, und wie lief es bisher?
+  const [schrittNr, setSchrittNr] = useState(0);
+  const [schrittErgebnisse, setSchrittErgebnisse] = useState([]);
   const feld = useRef(null);
   const beginn = useRef(Date.now());
 
@@ -167,10 +181,38 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
     setPhase("aufgedeckt");
   };
 
+  /* --------------------------- Mehrschritt-Karten ------------------------ */
+
+  const istMehrschritt = teile?.art === "mehrschritt";
+  const derSchritt = istMehrschritt ? teile.schritte[schrittNr] : null;
+
+  /** Einen Zwischenschritt prüfen und zum nächsten gehen. */
+  const schrittPruefen = () => {
+    if (!derSchritt) return;
+    const stimmt = formelStimmt(eingabe, derSchritt.antwort)
+      || normalisiere(eingabe) === normalisiere(derSchritt.antwort);
+    const neueErgebnisse = [...schrittErgebnisse, stimmt];
+    setSchrittErgebnisse(neueErgebnisse);
+    setEingabe("");
+    if (schrittNr + 1 >= teile.schritte.length) setPhase("aufgedeckt");
+    else setSchrittNr((n) => n + 1);
+  };
+
+  const schritteZuruecksetzen = () => {
+    setSchrittNr(0);
+    setSchrittErgebnisse([]);
+  };
+
   const stimmtGenau = useMemo(() => {
-    if (!teile || !eingabe.trim()) return false;
+    if (!teile) return false;
+    if (teile.art === "mehrschritt") {
+      const b = schrittBilanz(schrittErgebnisse);
+      return b.alleRichtig;
+    }
+    if (!eingabe.trim()) return false;
     return normalisiere(eingabe) === normalisiere(teile.loesung);
-  }, [eingabe, teile]);
+  }, [eingabe, teile, schrittErgebnisse]);
+
 
   const bewerten = async (note) => {
     if (phase !== "aufgedeckt" || !aufgabe) return;
@@ -187,7 +229,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
       loesung: teile.loesung,
     }]);
 
-    setEingabe(""); setKonfidenz(null); setPhase("konfidenz");
+    setEingabe(""); setKonfidenz(null); setPhase("konfidenz"); schritteZuruecksetzen();
     if (stelle + 1 >= sitzung.aufgaben.length) setFertig(true);
     else setStelle((s) => s + 1);
   };
@@ -199,7 +241,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
     4: () => phase === "aufgedeckt" && bewerten(NOTEN.LEICHT),
     " ": { auchBeimTippen: true, fn: () => phase === "tippen" && aufdecken() },
     Enter: { auchBeimTippen: true, fn: () => {
-      if (phase === "tippen") aufdecken();
+      if (phase === "tippen") { if (istMehrschritt) schrittPruefen(); else aufdecken(); }
       else if (phase === "aufgedeckt") bewerten(stimmtGenau ? NOTEN.GUT : NOTEN.NOCHMAL);
     } },
   }, Boolean(aufgabe) && !fertig);
@@ -429,7 +471,44 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
       )}
 
       {/* ----------------------------- Tippen ----------------------------- */}
-      {phase === "tippen" && (
+      {phase === "tippen" && istMehrschritt && (
+        <>
+          {/* Was schon steht, bleibt sichtbar — ein Rechenweg baut aufeinander auf. */}
+          {schrittErgebnisse.length > 0 && (
+            <div style={{ display: "grid", gap: 6, marginBottom: 14 }}>
+              {teile.schritte.slice(0, schrittNr).map((s, i) => (
+                <div key={i} className="reihe klein" style={{ gap: 8 }}>
+                  <Symbol name={schrittErgebnisse[i] ? "haken" : "kreuz"} groesse={15}
+                    style={{ color: schrittErgebnisse[i] ? "var(--gruen)" : "var(--rot)" }} />
+                  <span className="matt">{s.frage || "Schritt " + (i + 1)}</span>
+                  <span className="dehnen mono" style={{ textAlign: "right" }}>{s.antwort}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="klein matt" style={{ marginBottom: 6 }}>
+            Schritt {schrittNr + 1} von {teile.schritte.length}
+            {derSchritt?.frage ? " — " + derSchritt.frage : ""}
+          </div>
+          <input ref={feld} className="feld"
+            style={{ fontSize: 19, padding: "14px 16px", fontFamily: "ui-monospace, monospace" }}
+            placeholder="Diesen Schritt schreiben"
+            value={eingabe} onChange={(e) => setEingabe(e.target.value)} />
+          <div className="reihe" style={{ marginTop: 12 }}>
+            <span className="klein blass nur-breit">
+              Schreibweise ist egal: 2·x, 2*x und 2x gelten gleich.
+            </span>
+            <div className="dehnen" />
+            <Knopf art="voll" onClick={schrittPruefen} disabled={!eingabe.trim()}>
+              {schrittNr + 1 >= teile.schritte.length ? "Weg abschließen" : "Nächster Schritt"}
+              <span className="tastenhilfe nur-breit">↵</span>
+            </Knopf>
+          </div>
+        </>
+      )}
+
+      {phase === "tippen" && !istMehrschritt && (
         <>
           <input ref={feld} className="feld" style={{ fontSize: 19, padding: "14px 16px" }}
             placeholder="Antwort schreiben — dann Leertaste zum Aufdecken"
@@ -450,6 +529,40 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
       {/* ---------------------------- Aufgedeckt --------------------------- */}
       {phase === "aufgedeckt" && (
         <>
+          {istMehrschritt ? (
+            <div className={"rueckmeldung " + (stimmtGenau ? "gut" : "fast")}>
+              <div className="reihe" style={{ marginBottom: 10 }}>
+                <Symbol name={stimmtGenau ? "haken" : "auge"} />
+                <strong>
+                  {stimmtGenau
+                    ? "Der ganze Weg stimmt"
+                    : "Bis Schritt " + ((schrittBilanz(schrittErgebnisse).erstesFalsch ?? 0) + 1)
+                      + " war es richtig"}
+                </strong>
+                <div className="dehnen" />
+                <span className="klein matt">
+                  {schrittBilanz(schrittErgebnisse).richtig} von {teile.schritte.length}
+                </span>
+              </div>
+              <div style={{ display: "grid", gap: 8 }}>
+                {teile.schritte.map((s, i) => (
+                  <div key={i} className="reihe klein" style={{ gap: 8, alignItems: "flex-start" }}>
+                    <Symbol name={schrittErgebnisse[i] ? "haken" : "kreuz"} groesse={15}
+                      style={{ color: schrittErgebnisse[i] ? "var(--gruen)" : "var(--rot)",
+                        marginTop: 3 }} />
+                    <div className="dehnen">
+                      {s.frage && <div className="blass">{s.frage}</div>}
+                      <div className="mono" style={{ fontSize: 15 }}>{s.antwort}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <p className="klein matt" style={{ marginTop: 10, marginBottom: 0 }}>
+                Ein Weg, der an einer Stelle kippt, ist nicht halb richtig —
+                aber du siehst, wo. Bewerte danach.
+              </p>
+            </div>
+          ) : (
           <div className={"rueckmeldung " + (stimmtGenau ? "gut" : "fast")}>
             {stimmtGenau ? (
               <div className="reihe">
@@ -477,6 +590,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
               <div className="klein blass" style={{ marginTop: 6 }}>Hinweis: {aufgabe.karte.hint}</div>
             )}
           </div>
+          )}
 
           <p className="matt klein" style={{ textAlign: "center", margin: "18px 0 10px" }}>
             Du entscheidest, ob es zählt.

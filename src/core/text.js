@@ -133,3 +133,40 @@ export function schablone(text) {
     .map((w) => (w.length <= 1 ? w : w[0] + "_".repeat(w.length - 1)))
     .join(" ");
 }
+
+/* ===================================================================== */
+/*  Mathematische Schreibweisen                                          */
+/* ===================================================================== */
+
+/**
+ * Normalisiert einen Rechenausdruck für den Vergleich.
+ *
+ * Bewusst keine Formelbibliothek: Wer „f'(x) = 2x" tippt, meint dasselbe wie
+ * „f´(x)=2·x". Verglichen wird darum eine geglättete Fassung — Leerzeichen,
+ * Malzeichen, Anführungsstriche und die üblichen Schreibvarianten fallen weg.
+ *
+ * Was hier NICHT geschieht: rechnen. „2+2" und „4" bleiben verschieden. Ob
+ * zwei Ausdrücke mathematisch gleichwertig sind, entscheidet der Mensch beim
+ * Bewerten — dieselbe Regel wie überall in dieser App.
+ */
+export function normalisiereFormel(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[´`'′]/g, "'")            // Ableitungsstrich in allen Formen
+    .replace(/[·×∙]/g, "*")             // Malzeichen vereinheitlichen
+    .replace(/[−–—]/g, "-")             // Minus in allen Formen
+    .replace(/[:÷]/g, "/")              // Geteilt
+    .replace(/\*\*/g, "^")              // Potenz
+    .replace(/,(\d)/g, ".$1")           // Dezimalkomma
+    .replace(/√/g, "wurzel")
+    // Stillschweigende Multiplikation: „2*x" und „2x" sind dasselbe.
+    .replace(/(\d)\*(?=[a-z(])/g, "$1")
+    .replace(/[{}]/g, "");
+}
+
+export function formelStimmt(eingabe, erwartet) {
+  const a = normalisiereFormel(eingabe);
+  const b = normalisiereFormel(erwartet);
+  return Boolean(a) && a === b;
+}
