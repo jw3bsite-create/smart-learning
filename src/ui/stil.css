@@ -5,6 +5,11 @@
  * dieselbe Struktur teilen. Umgeschaltet wird über data-design am Wurzelelement.
  */
 
+/*
+ * Die Werte hier sind Vorgaben. Fast alle lassen sich in den Einstellungen
+ * ändern — die App schreibt sie dann als eigene Veränderliche an das
+ * Wurzelelement und überschreibt damit, was hier steht.
+ */
 :root {
   --akzent: #5b8bff;
   --akzent-tief: #3b6ef6;
@@ -20,10 +25,31 @@
   --gelb: #e8b84b;
   --lila: #a97bf0;
   --schatten: 0 8px 30px rgba(0, 0, 0, 0.35);
-  --rund: 14px;
-  --breite: 1120px;
+
+  /* Vom Nutzer einstellbar */
+  --rund: 14px;              /* Eckenrundung */
+  --breite: 1120px;          /* Textbreite der Hauptfläche */
+  --schriftgroesse: 15px;    /* Grundgröße */
+  --zeilenhoehe: 1.5;
+  --dichte: 1;               /* Faktor für Abstände */
+  --kartenhoehe: 340px;      /* Höhe der großen Karteikarte */
+  --wechsel: 0.12s;          /* Dauer der Übergänge; 0 heißt ruhig */
+
   --serifen: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --grotesk: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --schrift-oberflaeche: var(--grotesk);
+  --schrift-karten: var(--serifen);
+  --akzent-schrift: #ffffff;   /* Schrift auf gefüllten Knöpfen */
+  color-scheme: dark;
+}
+
+/* Tiefes Schwarz — auf Bildschirmen, die einzelne Punkte abschalten. */
+:root[data-design="tief"] {
+  --grund: #000000;
+  --grund-2: #0b0d11;
+  --grund-3: #14171d;
+  --rand: #262b34;
+  --schatten: 0 8px 30px rgba(0, 0, 0, 0.6);
   color-scheme: dark;
 }
 
@@ -47,21 +73,21 @@ body {
   margin: 0;
   background: var(--grund);
   color: var(--schrift);
-  font-family: var(--grotesk);
-  font-size: 15px;
-  line-height: 1.5;
+  font-family: var(--schrift-oberflaeche);
+  font-size: var(--schriftgroesse);
+  line-height: var(--zeilenhoehe);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior-y: none;
 }
 
-:root[data-gross="ja"] body { font-size: 17px; }
+
 
 button, input, select, textarea { font: inherit; color: inherit; }
 
 a { color: var(--akzent); }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: var(--rand); border-radius: 8px; }
+::-webkit-scrollbar-thumb { background: var(--rand); border-radius: calc(var(--rund) * 0.55); }
 ::-webkit-scrollbar-track { background: transparent; }
 
 /* ------------------------------- Gerüst ------------------------------- */
@@ -76,7 +102,7 @@ a { color: var(--akzent); }
 
 .leiste-kopf {
   display: flex; align-items: center; gap: 10px; padding: 16px 16px 10px;
-  font-family: var(--serifen); font-size: 19px; letter-spacing: 0.2px;
+  font-family: var(--schrift-karten); font-size: 19px; letter-spacing: 0.2px;
 }
 
 .leiste-inhalt { overflow: auto; padding: 6px 10px 16px; flex: 1; }
@@ -85,14 +111,15 @@ a { color: var(--akzent); }
 
 .buehne { flex: 1; min-width: 0; }
 
-.mitte { max-width: var(--breite); margin: 0 auto; padding: 26px 24px 90px; }
+.mitte { max-width: var(--breite); margin: 0 auto;
+  padding: calc(26px * var(--dichte)) 24px 90px; }
 
 .kopfzeile {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   margin-bottom: 18px;
 }
 
-h1, h2, h3 { font-family: var(--serifen); font-weight: 600; margin: 0; }
+h1, h2, h3 { font-family: var(--schrift-karten); font-weight: 600; margin: 0; }
 h1 { font-size: 30px; letter-spacing: -0.2px; }
 h2 { font-size: 21px; }
 h3 { font-size: 17px; }
@@ -106,22 +133,23 @@ h3 { font-size: 17px; }
 
 .knopf {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 9px 14px; border-radius: 10px; border: 1px solid var(--rand);
+  padding: 9px 14px; border-radius: calc(var(--rund) * 0.7); border: 1px solid var(--rand);
   background: var(--grund-2); color: var(--schrift); cursor: pointer;
-  transition: background 0.12s, border-color 0.12s, transform 0.06s;
+  transition: background var(--wechsel), border-color var(--wechsel), transform var(--wechsel);
   white-space: nowrap;
 }
 .knopf:hover { background: var(--grund-3); }
 .knopf:active { transform: translateY(1px); }
 .knopf:disabled { opacity: 0.45; cursor: default; }
-.knopf.voll { background: var(--akzent); border-color: var(--akzent); color: #fff; }
+.knopf.voll { background: var(--akzent); border-color: var(--akzent);
+  color: var(--akzent-schrift, #fff); }
 .knopf.voll:hover { background: var(--akzent-tief); }
 .knopf.leer { background: transparent; border-color: transparent; }
 .knopf.leer:hover { background: var(--grund-3); }
 .knopf.gefahr { color: var(--rot); }
 .knopf.gefahr:hover { background: rgba(239, 91, 107, 0.12); }
-.knopf.klein { padding: 5px 9px; font-size: 13px; border-radius: 8px; }
-.knopf.gross { padding: 13px 20px; font-size: 16px; border-radius: 12px; }
+.knopf.klein { padding: 5px 9px; font-size: 13px; border-radius: calc(var(--rund) * 0.55); }
+.knopf.gross { padding: 13px 20px; font-size: 16px; border-radius: calc(var(--rund) * 0.85); }
 
 .reihe { display: flex; align-items: center; gap: 8px; }
 .reihe.umbruch { flex-wrap: wrap; }
@@ -130,7 +158,7 @@ h3 { font-size: 17px; }
 /* ------------------------------- Felder ------------------------------- */
 
 .feld {
-  width: 100%; padding: 10px 12px; border-radius: 10px;
+  width: 100%; padding: 10px 12px; border-radius: calc(var(--rund) * 0.7);
   border: 1px solid var(--rand); background: var(--grund-2); color: var(--schrift);
   outline: none;
 }
@@ -156,16 +184,18 @@ select.feld { appearance: none; padding-right: 30px;
 
 /* ------------------------------- Kacheln ------------------------------ */
 
-.gitter { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.gitter { display: grid; gap: calc(14px * var(--dichte));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
 
 .kachel {
   background: var(--grund-2); border: 1px solid var(--rand); border-radius: var(--rund);
-  padding: 16px; cursor: pointer; text-align: left; width: 100%;
-  transition: border-color 0.12s, transform 0.08s, background 0.12s;
-  display: flex; flex-direction: column; gap: 8px; min-height: 118px;
+  padding: calc(16px * var(--dichte)); cursor: pointer; text-align: left; width: 100%;
+  transition: border-color var(--wechsel), transform var(--wechsel), background var(--wechsel);
+  display: flex; flex-direction: column; gap: calc(8px * var(--dichte));
+  min-height: calc(118px * var(--dichte));
 }
 .kachel:hover { border-color: var(--akzent); transform: translateY(-1px); }
-.kachel .titel { font-family: var(--serifen); font-size: 17px; }
+.kachel .titel { font-family: var(--schrift-karten); font-size: 17px; }
 
 .marke {
   display: inline-flex; align-items: center; gap: 5px; padding: 2px 8px;
@@ -179,7 +209,7 @@ select.feld { appearance: none; padding-right: 30px;
 /* ------------------------------ Ordnerbaum ---------------------------- */
 
 .baum-zeile {
-  display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 9px;
+  display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: calc(var(--rund) * 0.65);
   cursor: pointer; color: var(--schrift-matt); user-select: none;
 }
 .baum-zeile:hover { background: var(--grund-3); color: var(--schrift); }
@@ -202,21 +232,22 @@ select.feld { appearance: none; padding-right: 30px;
 .karten-buehne { perspective: 1600px; }
 
 .karte-gross {
-  position: relative; width: 100%; min-height: 340px;
-  transform-style: preserve-3d; transition: transform 0.42s cubic-bezier(.3,.8,.3,1);
+  position: relative; width: 100%; min-height: var(--kartenhoehe);
+  transform-style: preserve-3d;
+  transition: transform calc(var(--wechsel) * 3.5) cubic-bezier(.3,.8,.3,1);
   cursor: pointer;
 }
 .karte-gross.gedreht { transform: rotateX(180deg); }
 .karte-seite {
   position: absolute; inset: 0; backface-visibility: hidden;
-  background: var(--grund-2); border: 1px solid var(--rand); border-radius: 18px;
+  background: var(--grund-2); border: 1px solid var(--rand); border-radius: calc(var(--rund) * 1.3);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   gap: 14px; padding: 32px; text-align: center; box-shadow: var(--schatten);
 }
 .karte-seite.rueck { transform: rotateX(180deg); }
-.karte-text { font-family: var(--serifen); font-size: 28px; line-height: 1.35; max-width: 40ch; }
+.karte-text { font-family: var(--schrift-karten); font-size: 28px; line-height: 1.35; max-width: 40ch; }
 .karte-text.lang { font-size: 21px; }
-.karte-bild { max-height: 190px; max-width: 100%; border-radius: 10px; object-fit: contain; }
+.karte-bild { max-height: 190px; max-width: 100%; border-radius: calc(var(--rund) * 0.7); object-fit: contain; }
 .karte-ecke { position: absolute; top: 12px; font-size: 12px; color: var(--schrift-blass); }
 
 .karten-leiste { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 16px; }
@@ -225,12 +256,12 @@ select.feld { appearance: none; padding-right: 30px;
 
 .karten-zeile {
   display: grid; grid-template-columns: 1fr 1fr auto; gap: 14px; align-items: start;
-  background: var(--grund-2); border: 1px solid var(--rand); border-radius: 12px;
-  padding: 14px 16px;
+  background: var(--grund-2); border: 1px solid var(--rand); border-radius: calc(var(--rund) * 0.85);
+  padding: calc(14px * var(--dichte)) 16px;
 }
 .karten-zeile .seite { min-width: 0; }
 .karten-zeile .seite .inhalt { white-space: pre-wrap; word-break: break-word; }
-.karten-zeile img { max-height: 90px; border-radius: 8px; margin-top: 8px; display: block; }
+.karten-zeile img { max-height: 90px; border-radius: calc(var(--rund) * 0.55); margin-top: 8px; display: block; }
 
 .werkzeuge { display: flex; gap: 4px; align-items: center; }
 
@@ -242,7 +273,7 @@ select.feld { appearance: none; padding-right: 30px;
   padding: 20px; z-index: 60;
 }
 .dialog {
-  background: var(--grund-2); border: 1px solid var(--rand); border-radius: 16px;
+  background: var(--grund-2); border: 1px solid var(--rand); border-radius: calc(var(--rund) * 1.15);
   box-shadow: var(--schatten); width: min(680px, 100%); max-height: 88vh;
   display: flex; flex-direction: column; overflow: hidden;
 }
@@ -255,11 +286,11 @@ select.feld { appearance: none; padding-right: 30px;
 
 .menue {
   position: absolute; z-index: 70; background: var(--grund-2); border: 1px solid var(--rand);
-  border-radius: 12px; box-shadow: var(--schatten); padding: 6px; min-width: 190px;
+  border-radius: calc(var(--rund) * 0.85); box-shadow: var(--schatten); padding: 6px; min-width: 190px;
 }
 .menue button {
   display: flex; align-items: center; gap: 9px; width: 100%; text-align: left;
-  padding: 8px 10px; border-radius: 8px; border: none; background: none; cursor: pointer;
+  padding: 8px 10px; border-radius: calc(var(--rund) * 0.55); border: none; background: none; cursor: pointer;
 }
 .menue button:hover { background: var(--grund-3); }
 .menue hr { border: none; border-top: 1px solid var(--rand); margin: 5px 0; }
@@ -277,7 +308,7 @@ select.feld { appearance: none; padding-right: 30px;
 @media (max-width: 640px) { .antwort-gitter { grid-template-columns: 1fr; } }
 
 .antwort {
-  text-align: left; padding: 16px; border-radius: 12px; border: 1px solid var(--rand);
+  text-align: left; padding: 16px; border-radius: calc(var(--rund) * 0.85); border: 1px solid var(--rand);
   background: var(--grund-2); cursor: pointer; min-height: 60px;
   display: flex; align-items: center; gap: 10px; transition: border-color 0.1s, background 0.1s;
 }
@@ -287,13 +318,13 @@ select.feld { appearance: none; padding-right: 30px;
 .antwort .ziffer { width: 22px; height: 22px; border-radius: 6px; background: var(--grund-3);
   display: grid; place-items: center; font-size: 12px; color: var(--schrift-matt); flex: none; }
 
-.frage-block { background: var(--grund-2); border: 1px solid var(--rand); border-radius: 16px;
+.frage-block { background: var(--grund-2); border: 1px solid var(--rand); border-radius: calc(var(--rund) * 1.15);
   padding: 28px; margin-bottom: 20px; min-height: 170px; display: flex;
   flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; }
-.frage-text { font-family: var(--serifen); font-size: 26px; line-height: 1.35; }
+.frage-text { font-family: var(--schrift-karten); font-size: 26px; line-height: 1.35; }
 .frage-text.lang { font-size: 20px; }
 
-.rueckmeldung { border-radius: 12px; padding: 14px 16px; margin-top: 14px; }
+.rueckmeldung { border-radius: calc(var(--rund) * 0.85); padding: 14px 16px; margin-top: 14px; }
 .rueckmeldung.gut { background: rgba(63, 191, 127, 0.12); border: 1px solid rgba(63, 191, 127, 0.4); }
 .rueckmeldung.fast { background: rgba(232, 184, 75, 0.12); border: 1px solid rgba(232, 184, 75, 0.4); }
 .rueckmeldung.schlecht { background: rgba(239, 91, 107, 0.12); border: 1px solid rgba(239, 91, 107, 0.4); }
@@ -305,7 +336,7 @@ select.feld { appearance: none; padding-right: 30px;
 @media (max-width: 520px) { .zuordnen-gitter { grid-template-columns: repeat(2, 1fr); } }
 
 .plaettchen {
-  border: 1px solid var(--rand); background: var(--grund-2); border-radius: 12px;
+  border: 1px solid var(--rand); background: var(--grund-2); border-radius: calc(var(--rund) * 0.85);
   min-height: 108px; padding: 12px; cursor: pointer; display: flex; align-items: center;
   justify-content: center; text-align: center; font-size: 14px; overflow: hidden;
   transition: transform 0.1s, border-color 0.1s, opacity 0.25s, background 0.1s;
@@ -326,11 +357,11 @@ select.feld { appearance: none; padding-right: 30px;
 /* ------------------------------- Meteor ------------------------------- */
 
 .himmel {
-  position: relative; height: 460px; border: 1px solid var(--rand); border-radius: 16px;
+  position: relative; height: 460px; border: 1px solid var(--rand); border-radius: calc(var(--rund) * 1.15);
   background: linear-gradient(180deg, var(--grund-2), var(--grund-3)); overflow: hidden;
 }
 .meteor {
-  position: absolute; padding: 8px 14px; border-radius: 10px; background: var(--grund);
+  position: absolute; padding: 8px 14px; border-radius: calc(var(--rund) * 0.7); background: var(--grund);
   border: 1px solid var(--akzent); box-shadow: 0 4px 18px rgba(91, 139, 255, 0.25);
   font-size: 15px; white-space: nowrap; max-width: 80%; overflow: hidden;
   text-overflow: ellipsis;
@@ -346,9 +377,9 @@ select.feld { appearance: none; padding-right: 30px;
 .streifen i[data-stufe="2"] { background: rgba(91, 139, 255, 0.6); }
 .streifen i[data-stufe="3"] { background: var(--akzent); }
 
-.zahl-kachel { background: var(--grund-2); border: 1px solid var(--rand); border-radius: 12px;
+.zahl-kachel { background: var(--grund-2); border: 1px solid var(--rand); border-radius: calc(var(--rund) * 0.85);
   padding: 14px 16px; }
-.zahl-kachel .zahl { font-family: var(--serifen); font-size: 26px; }
+.zahl-kachel .zahl { font-family: var(--schrift-karten); font-size: 26px; }
 
 /* ------------------------------ Kleinkram ----------------------------- */
 

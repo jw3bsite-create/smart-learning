@@ -17,13 +17,17 @@ import { neuerZustand, bewerteKarte } from "./fsrs.js";
 import { aufschlagFuer, istPlausibel } from "./kalibrierung.js";
 import { wirksameRetention } from "./warteschlange.js";
 import { tagesSchluessel } from "./util.js";
+import { STANDARD_GESTALTUNG } from "./gestaltung.js";
 
 const Zusammenhang = createContext(null);
 
 export const STANDARD_EINSTELLUNGEN = {
-  design: "system",              // hell | dunkel | system
-  akzent: "#5b8bff",
-  schriftGross: false,
+  /* Gestaltung — die einzelnen Werte stehen in core/gestaltung.js. Sie liegen
+     hier mit den übrigen Einstellungen, damit sie mit gesichert und
+     abgeglichen werden. */
+  ...STANDARD_GESTALTUNG,
+  schriftGross: false,           // aus Fassung 1; wirkt nicht mehr, wird beim
+                                 // ersten Start in schriftgroesse überführt
   tippfehlerErlauben: true,
   ohneArtikel: true,
   zeichenEgal: true,
@@ -71,7 +75,13 @@ export function DatenSpeicher({ children }) {
       setOrdner(o); setStapel(s); setKarten(k);
       setStaende(Object.fromEntries(f.map((x) => [x.id, x])));
       setSitzungen(si);
-      setEinstellungen({ ...STANDARD_EINSTELLUNGEN, ...(e || {}) });
+      /* Aus Fassung 1 gab es nur einen Schalter für größere Schrift. Wer ihn
+         an hatte, bekommt jetzt die entsprechende Punktgröße — sonst stünde
+         die Oberfläche nach dem Umstieg plötzlich wieder klein da. */
+      const gespeichert = e || {};
+      if (gespeichert.schriftGross && gespeichert.schriftgroesse === undefined)
+        gespeichert.schriftgroesse = 17;
+      setEinstellungen({ ...STANDARD_EINSTELLUNGEN, ...gespeichert });
       setFaecher(fa);
       setZustaende(Object.fromEntries(cs.map((x) => [x.id, x])));
       setReviews(rv);

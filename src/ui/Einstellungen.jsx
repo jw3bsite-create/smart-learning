@@ -11,8 +11,9 @@ import * as erinnerung from "../core/erinnerung.js";
 import { stimmen, beiStimmen, sprich } from "../core/speech.js";
 import { datumKurz } from "../core/util.js";
 import { Symbol, Knopf, SymbolKnopf, Dialog } from "./basis.jsx";
+import Gestaltung from "./Gestaltung.jsx";
 
-const FARBEN = ["#5b8bff", "#a97bf0", "#3fbf7f", "#e8b84b", "#ef5b6b", "#4bc6d8"];
+
 
 function Abschnitt({ titel, hinweis, children }) {
   return (
@@ -437,24 +438,9 @@ export default function Einstellungen({ aufAbgleich }) {
     <div className="mitte" style={{ maxWidth: 780 }}>
       <div className="kopfzeile"><h1>Einstellungen</h1></div>
 
-      <Abschnitt titel="Erscheinungsbild">
-        <div className="reihe umbruch" style={{ gap: 8, marginBottom: 14 }}>
-          {[["system", "Wie das System", "zahnrad"], ["hell", "Hell", "sonne"], ["dunkel", "Dunkel", "mond"]]
-            .map(([wert, name, symbol]) => (
-              <Knopf key={wert} art={einstellungen.design === wert ? "voll" : ""} symbol={symbol}
-                onClick={() => setzeEinstellung("design", wert)}>{name}</Knopf>
-            ))}
-        </div>
-        <label className="beschriftung">Akzentfarbe</label>
-        <div className="reihe" style={{ gap: 8, marginBottom: 12 }}>
-          {FARBEN.map((f) => (
-            <button key={f} onClick={() => setzeEinstellung("akzent", f)}
-              title="Farbe wählen"
-              style={{ width: 30, height: 30, borderRadius: 9, background: f, cursor: "pointer",
-                border: einstellungen.akzent === f ? "2px solid var(--schrift)" : "1px solid var(--rand)" }} />
-          ))}
-        </div>
-        {schalter("schriftGross", "Größere Schrift")}
+      <Abschnitt titel="Erscheinungsbild"
+        hinweis="Jede Änderung greift sofort. Die Vorschau daneben zeigt, was du beim Verstellen sonst nicht vor Augen hast.">
+        <Gestaltung />
       </Abschnitt>
 
       <Abschnitt titel="Antwortprüfung"
