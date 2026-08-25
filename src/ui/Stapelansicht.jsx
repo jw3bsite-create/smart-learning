@@ -4,8 +4,8 @@
 
 import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
-import { anteileNachStufe, stufe, STUFEN } from "../core/model.js";
-import { faelligZaehlen, naechsteFaelligkeit } from "../core/scheduler.js";
+import { anteileNachStufe, stufe, STUFEN } from "../core/fsrs.js";
+import { stapelStand } from "../core/warteschlange.js";
 import { anzahl, datumKurz, mische } from "../core/util.js";
 import { alsCsv, alsText, alsAnkiText, alsCsvMitPlan } from "../core/importer.js";
 import { sprich, SPRACHEN } from "../core/speech.js";
@@ -25,8 +25,9 @@ function herunterladen(name, inhalt, art = "text/plain") {
 
 export default function Stapelansicht({ setId }) {
   const {
-    stapel, ordner, kartenVon, staende, karteAendern, stapelAendern,
-    stapelLoeschen, stapelVervielfaeltigen, kartenOrdnen, seitenTauschen, standZuruecksetzen,
+    stapel, ordner, kartenVon, karteAendern, stapelAendern,
+    stapelLoeschen, stapelVervielfaeltigen, kartenOrdnen, seitenTauschen,
+    zustandZuruecksetzen,
     faecher, zustaende, stapelVon, fachVon,
   } = useDaten();
   const [sortierung, setSortierung] = useState("eigen");
@@ -44,18 +45,17 @@ export default function Stapelansicht({ setId }) {
       liste = [...liste].sort((a, b) => (a.term || "").localeCompare(b.term || "", "de"));
     else if (sortierung === "schwierig")
       liste = [...liste].sort((a, b) =>
-        (staende[a.id]?.td.box ?? 0) - (staende[b.id]?.td.box ?? 0));
+        ((zustaende[a.id + ":td"]?.stability) ?? -1) - ((zustaende[b.id + ":td"]?.stability) ?? -1));
     return liste;
-  }, [karten, sortierung, nurMarkierte, staende]);
+  }, [karten, sortierung, nurMarkierte, zustaende]);
 
   if (!derStapel) {
     return <div className="mitte"><Leer titel="Stapel nicht gefunden"
       text="Vielleicht wurde er gelöscht."><Knopf onClick={() => gehe("/")}>Zur Übersicht</Knopf></Leer></div>;
   }
 
-  const anteile = anteileNachStufe(karten, staende);
-  const zaehlung = faelligZaehlen(karten, staende);
-  const naechste = naechsteFaelligkeit(karten, staende);
+  const stand = stapelStand(karten, zustaende, derStapel);
+  const anteile = anteileNachStufe(stand.zustaende);
   const derOrdner = ordner.find((o) => o.id === derStapel.folderId);
   const markierte = karten.filter((k) => k.starred).length;
 
@@ -169,12 +169,12 @@ export default function Stapelansicht({ setId }) {
             <div className="reihe" style={{ marginBottom: 10, flexWrap: "wrap" }}>
               <h3 className="dehnen">Fortschritt</h3>
               <span className="klein matt">
-                {zaehlung.faellige > 0
-                  ? anzahl(zaehlung.faellige, "Karte ist fällig", "Karten sind fällig")
-                  : zaehlung.neu > 0
-                    ? anzahl(zaehlung.neu, "Karte ist noch neu", "Karten sind noch neu")
-                    : naechste && naechste > Date.now()
-                      ? "Nächste Wiederholung " + datumKurz(naechste)
+                {stand.faellig > 0
+                  ? anzahl(stand.faellig, "Karte ist fällig", "Karten sind fällig")
+                  : stand.neu > 0
+                    ? anzahl(stand.neu, "Karte ist noch neu", "Karten sind noch neu")
+                    : stand.naechste && stand.naechste > Date.now()
+                      ? "Nächste Wiederholung " + datumKurz(stand.naechste)
                       : "Alles auf dem Laufenden"}
               </span>
             </div>
@@ -211,8 +211,12 @@ export default function Stapelansicht({ setId }) {
 
           <div style={{ display: "grid", gap: 8 }}>
             {sortiert.map((k) => {
-              const stand = staende[k.id];
-              const s = Math.min(stufe(stand, "td"), stufe(stand, "dt"));
+              /* Die schwächere der beiden Richtungen entscheidet, wie eine
+                 Karte hier dasteht. */
+              const zTd = zustaende[k.id + ":td"];
+              const zDt = zustaende[k.id + ":dt"];
+              const s = (derStapel.richtungen || ["td"]).includes("dt")
+                ? Math.min(stufe(zTd), stufe(zDt)) : stufe(zTd);
               return (
                 <div key={k.id} className="karten-zeile">
                   <div className="seite">
@@ -285,7 +289,7 @@ export default function Stapelansicht({ setId }) {
         <Rueckfrage titel="Lernstand zurücksetzen?" bestaetigung="Zurücksetzen"
           text="Alle Fächer und Wiederholungstermine dieses Stapels beginnen wieder von vorn. Die Karten selbst bleiben."
           aufNein={() => setSetztZurueck(false)}
-          aufJa={() => { standZuruecksetzen(setId); setSetztZurueck(false); }} />
+          aufJa={() => { zustandZuruecksetzen(setId); setSetztZurueck(false); }} />
       )}
     </div>
   );

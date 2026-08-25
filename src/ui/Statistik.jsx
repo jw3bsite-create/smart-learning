@@ -5,8 +5,8 @@
 
 import React, { useMemo } from "react";
 import { useDaten } from "../core/store.jsx";
-import { anteileNachStufe } from "../core/model.js";
-import { faelligZaehlen } from "../core/scheduler.js";
+import { anteileNachStufe } from "../core/fsrs.js";
+import { fachZaehlung, stapelStand } from "../core/warteschlange.js";
 import { tagesSchluessel, anzahl, datumKurz, zeitLang } from "../core/util.js";
 import { behaltenskurve } from "../core/kalibrierung.js";
 import { eigenleistung } from "../core/generator.js";
@@ -20,7 +20,7 @@ const MODUS_NAME = {
 };
 
 export default function Statistik() {
-  const { stapel, karten, kartenNachStapel, staende, sitzungen, reviews } = useDaten();
+  const { stapel, karten, kartenNachStapel, zustaende, stapelVon, sitzungen, reviews } = useDaten();
 
   const tage = useMemo(() => {
     const nach = new Map();
@@ -49,10 +49,10 @@ export default function Statistik() {
   }, [tage]);
 
   const gesamt = useMemo(() => {
-    const anteile = anteileNachStufe(karten, staende);
-    const zaehlung = faelligZaehlen(karten, staende);
-    return { anteile, ...zaehlung };
-  }, [karten, staende]);
+    const anteile = anteileNachStufe(Object.values(zustaende));
+    const zaehlung = fachZaehlung(karten, zustaende, stapelVon, null);
+    return { anteile, ...zaehlung, beherrscht: anteile[3] };
+  }, [karten, zustaende, stapelVon]);
 
   const letzte = [...sitzungen].sort((a, b) => b.zeit - a.zeit).slice(0, 12);
   const kurve = useMemo(() => behaltenskurve(reviews), [reviews]);
@@ -84,7 +84,7 @@ export default function Statistik() {
         </div>
         <div className="zahl-kachel">
           <div className="reihe klein matt"><Symbol name="uhr" groesse={15} /> Heute fällig</div>
-          <div className="zahl">{gesamt.faellige}</div>
+          <div className="zahl">{gesamt.faellig}</div>
           <div className="klein blass">{heute} Antworten heute</div>
         </div>
         <div className="zahl-kachel">
@@ -184,8 +184,10 @@ export default function Statistik() {
         {stapel.map((s) => {
           const eigene = kartenNachStapel.get(s.id) || [];
           if (!eigene.length) return null;
-          const anteile = anteileNachStufe(eigene, staende);
-          const anteil = Math.round(100 * (anteile[3] + anteile[2] * 0.6) / eigene.length);
+          const stand = stapelStand(eigene, zustaende, s);
+          const anteile = anteileNachStufe(stand.zustaende);
+          const anteil = Math.round(100 * (anteile[3] + anteile[2] * 0.6)
+            / Math.max(1, stand.gesamt));
           return (
             <div key={s.id} className="zahl-kachel" style={{ cursor: "pointer" }}
               onClick={() => gehe("/stapel/" + s.id)}>

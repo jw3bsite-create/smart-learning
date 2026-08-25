@@ -6,24 +6,43 @@
 import React, { useEffect, useMemo } from "react";
 import { useDaten } from "../core/store.jsx";
 import { sprich, schweig } from "../core/speech.js";
+import { istUebbar } from "../core/kartenseiten.js";
 import { gehe } from "../App.jsx";
 import { Symbol, SymbolKnopf, Knopf, Bild } from "../ui/basis.jsx";
 
-/** Stapel, Karten und die üblichen Handgriffe für einen Modus. */
+/** Ein Notstapel, damit ein fehlender Stapel keinen Absturz auslöst. */
+const LEERER_STAPEL = {
+  id: null, title: "", description: "", termLabel: "Vorderseite",
+  defLabel: "Rückseite", termLang: "de", defLang: "de", richtungen: ["td"],
+};
+
+/**
+ * Stapel, Karten und die üblichen Handgriffe für einen Modus.
+ *
+ * Gibt es den Stapel nicht — ein alter Verweis, ein gelöschter Stapel —, kommt
+ * ein leerer zurück statt `undefined`. Sonst stürzt der Modus beim ersten
+ * Zugriff auf einen Namen ab und hinterlässt eine weiße Seite; die Modi
+ * fangen den leeren Fall über ihre Abbruchbedingung ohnehin ab.
+ */
 export function useModus(setId) {
   const daten = useDaten();
-  const derStapel = daten.stapel.find((s) => s.id === setId);
+  const gefunden = daten.stapel.find((s) => s.id === setId);
   const karten = daten.kartenVon(setId);
   useEffect(() => () => schweig(), []);
-  return { ...daten, derStapel, karten };
+  return { ...daten, derStapel: gefunden || LEERER_STAPEL,
+    stapelFehlt: !gefunden, karten };
 }
 
-/** Karten mit Inhalt; leere Zeilen sollen keine Aufgabe werden. */
+/**
+ * Karten, die sich üben lassen — leere Zeilen sollen keine Aufgabe werden.
+ *
+ * Geprüft wird auf der übersetzten Karte, nicht auf den Rohfeldern: Ein
+ * Rechenweg hat keine Rückseite im alten Sinne, sehr wohl aber eine Antwort.
+ * Vorher fielen solche Karten stillschweigend aus allen Übungsmodi heraus.
+ */
 export function useBrauchbar(karten, nurMarkierte = false) {
   return useMemo(() => karten.filter((k) =>
-    ((k.term || "").trim() || k.termImage) &&
-    ((k.definition || "").trim() || k.defImage) &&
-    (!nurMarkierte || k.starred)), [karten, nurMarkierte]);
+    (!nurMarkierte || k.starred) && istUebbar(k)), [karten, nurMarkierte]);
 }
 
 export function ModusRahmen({ titel, symbol, aufSchliessen, anteil = null, rechts, children }) {
@@ -112,17 +131,7 @@ export const RICHTUNGEN = (derStapel) => [
   ["beide", "Beide Richtungen"],
 ];
 
-/** Wählt die Frage- und die Antwortseite einer Karte. */
-export function seitenFuer(karte, richtung) {
-  if (richtung === "dt")
-    return { frage: karte.definition, frageBild: karte.defImage,
-      antwort: karte.term, antwortBild: karte.termImage };
-  return { frage: karte.term, frageBild: karte.termImage,
-    antwort: karte.definition, antwortBild: karte.defImage };
-}
-
-export function sprachenFuer(derStapel, richtung) {
-  const t = derStapel?.termLang || "de";
-  const d = derStapel?.defLang || "de";
-  return richtung === "dt" ? { frage: d, antwort: t } : { frage: t, antwort: d };
-}
+/* Die Übersetzung einer Karte in Frage und Antwort liegt im Kern, damit sie
+   ohne Browser prüfbar ist. Hier nur weitergereicht, damit die Modi sich
+   nicht ändern müssen. */
+export { seitenFuer, sprachenFuer } from "../core/kartenseiten.js";

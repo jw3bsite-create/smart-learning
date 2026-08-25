@@ -275,3 +275,30 @@ export function baueCramSitzung({ karten, zustaende, stapelVon, fach, umfang = 4
     cram: true,
   };
 }
+
+/**
+ * Der Stand eines einzelnen Stapels — für die Stapelansicht.
+ *
+ * Wichtig: Gerechnet wird mit den FSRS-Zuständen, nicht mit dem alten
+ * Fächerplan. Sonst zeigt dieselbe Karte an zwei Stellen der App zwei
+ * verschiedene Wahrheiten, und keine davon ist die, nach der gelernt wird.
+ */
+export function stapelStand(karten, zustaende, stapel, zeit = Date.now()) {
+  let faellig = 0, neu = 0, gesperrt = 0, gesamt = 0;
+  let naechste = null;
+  const alle = [];
+
+  for (const karte of karten) {
+    if (karte.deleted) continue;
+    for (const richtung of richtungenFuer(karte, stapel)) {
+      const z = zustaende[karte.id + ":" + richtung];
+      gesamt += 1;
+      alle.push(z || null);
+      if (z?.gesperrt) { gesperrt += 1; continue; }
+      if (istNeu(z)) { neu += 1; continue; }
+      if (istFaellig(z, zeit)) faellig += 1;
+      else if (naechste === null || z.due < naechste) naechste = z.due;
+    }
+  }
+  return { faellig, neu, gesperrt, gesamt, naechste, zustaende: alle };
+}
