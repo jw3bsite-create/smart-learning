@@ -105,3 +105,68 @@ export function kalibrierungInWorten(k) {
   if (treffer >= 75) return `„sicher" stimmt zu ${treffer} %`;
   return `„sicher" stimmt nur zu ${treffer} % — du überschätzt dich`;
 }
+
+/* ===================================================================== */
+/*  Behaltenskurve                                                       */
+/* ===================================================================== */
+
+/**
+ * Wie gut hältst du, was du gelernt hast?
+ *
+ * Gerechnet wird aus den Reviews selbst, nicht aus einer Modellannahme: Für
+ * jede Antwort ist bekannt, wie lange sie nach der vorigen kam. Der Anteil
+ * der Karten, die nach einem gewissen Abstand noch gewusst wurden, ist die
+ * gemessene Behaltenswahrscheinlichkeit — die ehrlichste Zahl, die diese App
+ * kennt.
+ *
+ * Sie ist eine Rückschau, keine Vorhersage. Wer heute anfängt, sieht hier
+ * lange nichts; nach ein paar Wochen wird sie aussagekräftig.
+ */
+export function behaltenskurve(reviews, { eimer = [1, 3, 7, 14, 30, 90, 365] } = {}) {
+  const nachKarte = new Map();
+  for (const r of reviews) {
+    if (r.flag !== "normal") continue;
+    const schluessel = r.cardId + ":" + (r.richtung || "td");
+    if (!nachKarte.has(schluessel)) nachKarte.set(schluessel, []);
+    nachKarte.get(schluessel).push(r);
+  }
+
+  const treffer = eimer.map((tage) => ({ tage, gesamt: 0, gewusst: 0 }));
+
+  for (const liste of nachKarte.values()) {
+    liste.sort((a, b) => a.zeit - b.zeit);
+    for (let i = 1; i < liste.length; i++) {
+      const abstandTage = (liste[i].zeit - liste[i - 1].zeit) / 86400000;
+      if (abstandTage < 0.5) continue;          // Lernschritte am selben Tag zählen nicht
+      const eimerIndex = eimer.findIndex((t) => abstandTage <= t);
+      const ziel = treffer[eimerIndex >= 0 ? eimerIndex : treffer.length - 1];
+      ziel.gesamt += 1;
+      if (gewusst(liste[i].bewertung)) ziel.gewusst += 1;
+    }
+  }
+
+  return treffer.map((t) => ({
+    ...t, quote: t.gesamt ? t.gewusst / t.gesamt : null,
+  }));
+}
+
+/** Über alle Abstände hinweg: der Anteil gewusster Wiederholungen. */
+export function behaltenGesamt(reviews) {
+  const echte = reviews.filter((r) => r.flag === "normal");
+  if (!echte.length) return null;
+  return echte.filter((r) => gewusst(r.bewertung)).length / echte.length;
+}
+
+/** Dieselbe Rechnung je Fach — für den Vergleich der Fächer untereinander. */
+export function behaltenJeFach(reviews) {
+  const nach = new Map();
+  for (const r of reviews) {
+    if (!r.subjectId || r.flag !== "normal") continue;
+    if (!nach.has(r.subjectId)) nach.set(r.subjectId, []);
+    nach.get(r.subjectId).push(r);
+  }
+  const ergebnis = {};
+  for (const [fach, liste] of nach)
+    ergebnis[fach] = { gesamt: behaltenGesamt(liste), kurve: behaltenskurve(liste) };
+  return ergebnis;
+}

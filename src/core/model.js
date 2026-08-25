@@ -316,3 +316,69 @@ export function umfangDerErklaerung(erklaerung) {
   if (!letzte) return 0;
   return letzte.text.trim().split(/\s+/).filter(Boolean).length;
 }
+
+/* ===================================================================== */
+/*  Fassung 5 — Prüfungssimulationen                                     */
+/* ===================================================================== */
+
+/**
+ * Die Formate der schriftlichen Abiturprüfung.
+ *
+ * **Die Zeiten sind Platzhalter.** Der Agent kennt die gültigen Vorgaben für
+ * den Jahrgang 2027 nicht und rät sie nicht. Der Nutzer trägt sie ein, sobald
+ * er sie hat — bis dahin steht in der Oberfläche ein Hinweis darauf.
+ */
+export function neuesFormat(name, minuten = 0) {
+  return { id: id("fm"), name, minuten, hilfsmittelfrei: false, geprueft: false };
+}
+
+export const FORMAT_VORLAGEN = [
+  { fach: "Mathematik", teile: [
+    { name: "Pflichtteil (hilfsmittelfrei)", minuten: 0, hilfsmittelfrei: true },
+    { name: "Wahlteil", minuten: 0, hilfsmittelfrei: false }] },
+  { fach: "Deutsch", teile: [{ name: "nach Aufgabenart", minuten: 0 }] },
+  { fach: "GMT", teile: [{ name: "Profilprüfung", minuten: 0 }] },
+  { fach: "Chemie", teile: [{ name: "schriftlich", minuten: 0 }] },
+  { fach: "Informatik", teile: [{ name: "schriftlich", minuten: 0 }] },
+  { fach: "Gemeinschaftskunde", teile: [{ name: "schriftlich", minuten: 0 }] },
+];
+
+/**
+ * Eine Prüfungssimulation.
+ *
+ * Der Erwartungshorizont kommt vom Nutzer, nicht vom Modell: eine Liste von
+ * Kriterien, wie sie im Unterricht besprochen oder aus einer Musterlösung
+ * abgeschrieben wurde. Die KI prüft nur, ob ein Kriterium im Text vorkommt —
+ * Punkte vergibt niemand.
+ */
+export function neuePruefung({ subjectId = null, titel, aufgabe = "",
+  kriterien = [], minuten = 0, hilfsmittelfrei = false }) {
+  return {
+    id: id("pr"), subjectId, titel, aufgabe,
+    kriterien: kriterien.map((k) => (typeof k === "string" ? k : k.text)).filter(Boolean),
+    minuten, hilfsmittelfrei,
+    text: "",                   // was der Nutzer geschrieben hat
+    begonnen: 0, abgegeben: 0,
+    gebrauchteZeit: 0,
+    ergebnis: null,             // [{ kriterium, stand, stelle }]
+    selbstpruefung: {},         // was der Nutzer selbst abgehakt hat
+    zeit: jetzt(), updatedAt: jetzt(), deleted: false,
+  };
+}
+
+/** Wie viele Kriterien der Nutzer selbst als erfüllt ansieht. */
+export function pruefungsStand(pruefung) {
+  const gesamt = (pruefung?.kriterien || []).length;
+  if (!gesamt) return { gesamt: 0, ja: 0, unklar: 0, nein: 0, anteil: 0 };
+  const eintraege = pruefung.kriterien.map((k, i) => {
+    const eigen = pruefung.selbstpruefung?.[i];
+    if (eigen) return eigen;
+    const gefunden = (pruefung.ergebnis || []).find((e) => e.kriterium === k);
+    return gefunden ? gefunden.stand : "offen";
+  });
+  const zaehle = (was) => eintraege.filter((e) => e === was).length;
+  return {
+    gesamt, ja: zaehle("ja"), unklar: zaehle("unklar"), nein: zaehle("nein"),
+    anteil: zaehle("ja") / gesamt, eintraege,
+  };
+}

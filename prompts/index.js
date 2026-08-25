@@ -20,6 +20,7 @@
 import { zerlege, fuelle } from "./zerlege.js";
 import kartengenerator from "./kartengenerator.md?raw";
 import feynman from "./feynman.md?raw";
+import kriterien from "./kriterien.md?raw";
 import tutorGrund from "./tutor-grund.md?raw";
 import tutorMathe from "./tutor-mathe.md?raw";
 import tutorChemie from "./tutor-chemie.md?raw";
@@ -31,6 +32,7 @@ import tutorGmt from "./tutor-gmt.md?raw";
 export const PROMPTS = {
   kartengenerator,
   feynman,
+  kriterien,
   "tutor-grund": tutorGrund,
   "tutor-mathe": tutorMathe,
   "tutor-chemie": tutorChemie,

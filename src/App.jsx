@@ -21,6 +21,7 @@ import Abrufen from "./modes/Abrufen.jsx";
 import Feynman from "./modes/Feynman.jsx";
 import Pretest from "./modes/Pretest.jsx";
 import Tutor from "./modes/Tutor.jsx";
+import Pruefung from "./modes/Pruefung.jsx";
 import Karteikarten from "./modes/Karteikarten.jsx";
 import Lernen from "./modes/Lernen.jsx";
 import Schreiben from "./modes/Schreiben.jsx";
@@ -151,6 +152,11 @@ export default function App() {
   if (teile[0] === "erklaeren") {
     return <Feynman erklaerungId={teile[1] || null}
       aufSchliessen={() => gehe(teile[1] ? "/erklaeren" : "/faecher")} />;
+  }
+
+  if (teile[0] === "pruefung") {
+    return <Pruefung pruefungId={teile[1] || null}
+      aufSchliessen={() => gehe(teile[1] ? "/pruefung" : "/faecher")} />;
   }
 
   if (teile[0] === "tutor") {

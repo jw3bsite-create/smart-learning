@@ -131,6 +131,12 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
           <Symbol name="buch" groesse={16} />
           <span className="name">Erklären</span>
         </div>
+        <div className={"baum-zeile" + (weg.startsWith("/pruefung") ? " aktiv" : "")}
+          onClick={() => gehe("/pruefung")}>
+          <span className="pfeil" />
+          <Symbol name="papier" groesse={16} />
+          <span className="name">Prüfungen</span>
+        </div>
         <div className={"baum-zeile" + (weg.startsWith("/tutor") ? " aktiv" : "")}
           onClick={() => gehe("/tutor")}>
           <span className="pfeil" />
