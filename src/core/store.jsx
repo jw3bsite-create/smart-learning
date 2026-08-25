@@ -51,16 +51,19 @@ export function DatenSpeicher({ children }) {
   const [reviews, setReviews] = useState([]);
   // Fassung 3: Kartenentwürfe, die noch auf ihre Rückseite warten.
   const [entwuerfe, setEntwuerfe] = useState([]);
+  // Fassung 4: Erklärungen aus dem Feynman-Modus.
+  const [erklaerungen, setErklaerungen] = useState([]);
   const merkeAenderung = useRef(() => {});
 
   /* ------------------------------ Laden ------------------------------ */
   useEffect(() => {
     (async () => {
-      const [o, s, k, f, si, e, fa, cs, rv, en] = await Promise.all([
+      const [o, s, k, f, si, e, fa, cs, rv, en, xk] = await Promise.all([
         db.all("folders"), db.all("sets"), db.all("cards"),
         db.all("progress"), db.all("sessions"),
         db.getSetting("einstellungen", null),
         db.all("subjects"), db.all("cardstates"), db.all("reviews"), db.all("drafts"),
+        db.all("explanations"),
       ]);
       setOrdner(o); setStapel(s); setKarten(k);
       setStaende(Object.fromEntries(f.map((x) => [x.id, x])));
@@ -69,7 +72,7 @@ export function DatenSpeicher({ children }) {
       setFaecher(fa);
       setZustaende(Object.fromEntries(cs.map((x) => [x.id, x])));
       setReviews(rv);
-      setEntwuerfe(en);
+      setEntwuerfe(en); setErklaerungen(xk);
       setBereit(true);
       db.pruneTombstones().catch(() => {});
     })();
@@ -342,6 +345,38 @@ export function DatenSpeicher({ children }) {
     return karte;
   }, [karten]);
 
+  /* ----------------------------- Erklärungen ---------------------------- */
+
+  const erklaerungAnlegen = useCallback(async ({ thema, subjectId = null, setId = null }) => {
+    const x = model.neueErklaerung({ thema, subjectId, setId });
+    await db.put("explanations", x);
+    setErklaerungen((alt) => [...alt, x]);
+    merkeAenderung.current();
+    return x;
+  }, []);
+
+  /** Hängt eine überarbeitete Fassung an — nichts wird überschrieben. */
+  const erklaerungFortschreiben = useCallback(async (kennung, text, luecken) => {
+    let ergebnis = null;
+    setErklaerungen((alt) => alt.map((x) => {
+      if (x.id !== kennung) return x;
+      ergebnis = model.mitFassung(x, text, luecken);
+      db.put("explanations", ergebnis);
+      return ergebnis;
+    }));
+    merkeAenderung.current();
+    return ergebnis;
+  }, []);
+
+  const erklaerungLoeschen = useCallback(async (kennung) => {
+    setErklaerungen((alt) => alt.filter((x) => {
+      if (x.id !== kennung) return true;
+      db.put("explanations", { ...x, deleted: true, updatedAt: Date.now() });
+      return false;
+    }));
+    merkeAenderung.current();
+  }, []);
+
   /* ------------------------------- Fächer ------------------------------- */
 
   const fachAnlegen = useCallback(async (name, farbe = null, zusatz = {}) => {
@@ -516,11 +551,12 @@ export function DatenSpeicher({ children }) {
 
   /* ------------------------- Sicherung als Datei ---------------------- */
   const alsSicherung = useCallback(async () => {
-    const [o, s, k, f, fa, cs, rv, en] = await Promise.all([
+    const [o, s, k, f, fa, cs, rv, en, xk] = await Promise.all([
       db.all("folders", { mitGeloeschten: true }), db.all("sets", { mitGeloeschten: true }),
       db.all("cards", { mitGeloeschten: true }), db.all("progress", { mitGeloeschten: true }),
       db.all("subjects", { mitGeloeschten: true }), db.all("cardstates", { mitGeloeschten: true }),
       db.all("reviews", { mitGeloeschten: true }), db.all("drafts", { mitGeloeschten: true }),
+      db.all("explanations", { mitGeloeschten: true }),
     ]);
     const bilder = await db.all("media", { mitGeloeschten: true });
     const eingepackt = await Promise.all(bilder.map(async (b) => ({
@@ -532,8 +568,8 @@ export function DatenSpeicher({ children }) {
         leser.readAsDataURL(b.blob);
       }),
     })));
-    return { fassung: 3, erzeugt: Date.now(), ordner: o, stapel: s, karten: k,
-      staende: f, faecher: fa, zustaende: cs, reviews: rv, entwuerfe: en,
+    return { fassung: 4, erzeugt: Date.now(), ordner: o, stapel: s, karten: k,
+      staende: f, faecher: fa, zustaende: cs, reviews: rv, entwuerfe: en, erklaerungen: xk,
       bilder: eingepackt.filter((b) => b.daten), einstellungen };
   }, [einstellungen]);
 
@@ -541,7 +577,7 @@ export function DatenSpeicher({ children }) {
     if (!daten || !Array.isArray(daten.stapel)) throw new Error("Unbekanntes Format");
     if (ersetzen)
       for (const s of ["folders", "sets", "cards", "progress", "media",
-        "subjects", "cardstates", "reviews", "drafts"]) await db.clear(s);
+        "subjects", "cardstates", "reviews", "drafts", "explanations"]) await db.clear(s);
     await db.putMany("folders", daten.ordner || []);
     await db.putMany("sets", daten.stapel || []);
     await db.putMany("cards", daten.karten || []);
@@ -550,6 +586,7 @@ export function DatenSpeicher({ children }) {
     await db.putMany("cardstates", daten.zustaende || []);
     await db.putMany("reviews", daten.reviews || []);
     await db.putMany("drafts", daten.entwuerfe || []);
+    await db.putMany("explanations", daten.erklaerungen || []);
     for (const b of daten.bilder || []) {
       try {
         const antwort = await fetch(b.daten);
@@ -557,29 +594,31 @@ export function DatenSpeicher({ children }) {
         await db.put("media", { id: b.id, blob, type: b.type, updatedAt: Date.now() });
       } catch (e) { /* einzelnes Bild überspringen */ }
     }
-    const [o, s, k, f, fa, cs, rv, en] = await Promise.all([
+    const [o, s, k, f, fa, cs, rv, en, xk] = await Promise.all([
       db.all("folders"), db.all("sets"), db.all("cards"), db.all("progress"),
       db.all("subjects"), db.all("cardstates"), db.all("reviews"), db.all("drafts"),
+      db.all("explanations"),
     ]);
     setOrdner(o); setStapel(s); setKarten(k);
     setStaende(Object.fromEntries(f.map((x) => [x.id, x])));
     setFaecher(fa);
     setZustaende(Object.fromEntries(cs.map((x) => [x.id, x])));
     setReviews(rv);
-    setEntwuerfe(en);
+    setEntwuerfe(en); setErklaerungen(xk);
   }, []);
 
   const neuLaden = useCallback(async () => {
-    const [o, s, k, f, fa, cs, rv, en] = await Promise.all([
+    const [o, s, k, f, fa, cs, rv, en, xk] = await Promise.all([
       db.all("folders"), db.all("sets"), db.all("cards"), db.all("progress"),
       db.all("subjects"), db.all("cardstates"), db.all("reviews"), db.all("drafts"),
+      db.all("explanations"),
     ]);
     setOrdner(o); setStapel(s); setKarten(k);
     setStaende(Object.fromEntries(f.map((x) => [x.id, x])));
     setFaecher(fa);
     setZustaende(Object.fromEntries(cs.map((x) => [x.id, x])));
     setReviews(rv);
-    setEntwuerfe(en);
+    setEntwuerfe(en); setErklaerungen(xk);
   }, []);
 
   /* ------------------------------ Ableitungen ------------------------- */
@@ -635,6 +674,8 @@ export function DatenSpeicher({ children }) {
     abrufVerbuchen, uebungVerbuchen, karteEntsperren, zustandZuruecksetzen,
     // Fassung 3
     entwuerfe, entwuerfeAnlegen, entwurfAendern, entwurfVerwerfen, entwurfUebernehmen,
+    // Fassung 4
+    erklaerungen, erklaerungAnlegen, erklaerungFortschreiben, erklaerungLoeschen,
   };
 
   return <Zusammenhang.Provider value={wert}>{children}</Zusammenhang.Provider>;

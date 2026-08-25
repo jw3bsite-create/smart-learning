@@ -18,6 +18,8 @@ import Faecher from "./ui/Faecher.jsx";
 import Kalibrierung from "./ui/Kalibrierung.jsx";
 import EntwuerfeAnsicht from "./ui/Entwuerfe.jsx";
 import Abrufen from "./modes/Abrufen.jsx";
+import Feynman from "./modes/Feynman.jsx";
+import Pretest from "./modes/Pretest.jsx";
 import Karteikarten from "./modes/Karteikarten.jsx";
 import Lernen from "./modes/Lernen.jsx";
 import Schreiben from "./modes/Schreiben.jsx";
@@ -143,6 +145,15 @@ export default function App() {
   if (teile[0] === "abrufen") {
     return <Abrufen fachId={teile[1] || null}
       aufSchliessen={() => gehe(teile[1] ? "/faecher" : "/faecher")} />;
+  }
+
+  if (teile[0] === "erklaeren") {
+    return <Feynman erklaerungId={teile[1] || null}
+      aufSchliessen={() => gehe(teile[1] ? "/erklaeren" : "/faecher")} />;
+  }
+
+  if (teile[0] === "vorab" && teile[1]) {
+    return <Pretest setId={teile[1]} aufSchliessen={() => gehe("/stapel/" + teile[1])} />;
   }
 
   /* Lernmodi bekommen die ganze Fläche. */

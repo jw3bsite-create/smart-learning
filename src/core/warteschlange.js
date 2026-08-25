@@ -45,7 +45,7 @@ export function heuteEingefuehrt(zustaende, subjectId = null, zeit = Date.now())
  * `umfang`      Höchstzahl der Aufgaben
  */
 export function baueSitzung({
-  karten, zustaende, stapelVon, faecherVon, fach = null,
+  karten, zustaende, stapelVon, faecherVon, fach = null, faecherIds = null,
   umfang = 30, zeit = Date.now(), nurWiederholung = false,
 }) {
   const faellige = [];
@@ -57,6 +57,8 @@ export function baueSitzung({
     if (!stapel) continue;
     const fachId = stapel.subjectId || null;
     if (fach && fachId !== fach.id) continue;
+    // Beim Verschachteln über mehrere Fächer: nur die gewählten.
+    if (faecherIds && faecherIds.length && !faecherIds.includes(fachId)) continue;
 
     for (const richtung of richtungenFuer(karte, stapel)) {
       const zustand = zustaende[karte.id + ":" + richtung];
@@ -80,6 +82,7 @@ export function baueSitzung({
     } else {
       // Ohne Fachwahl gilt die Summe der Einzellimits.
       for (const f of faecherVon()) {
+        if (faecherIds && faecherIds.length && !faecherIds.includes(f.id)) continue;
         const limit = Number(f.neuProTag) || 0;
         neuErlaubt += Math.max(0, limit -
           heuteEingefuehrt(Object.values(zustaende), f.id, zeit));

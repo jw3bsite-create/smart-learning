@@ -30,7 +30,9 @@ import { kalibrierung, kalibrierungInWorten } from "../core/kalibrierung.js";
 import { sprich } from "../core/speech.js";
 import { anzahl } from "../core/util.js";
 import { gehe } from "../App.jsx";
-import { Knopf, SymbolKnopf, Symbol, Bild, Stern, Leer, useTastatur } from "../ui/basis.jsx";
+import {
+  Knopf, SymbolKnopf, Symbol, Bild, Stern, Leer, useTastatur, useMerker,
+} from "../ui/basis.jsx";
 import { ModusRahmen } from "./gemeinsam.jsx";
 
 /* ------------------------- Was gefragt, was gesucht --------------------- */
@@ -102,23 +104,31 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
   const [eingabe, setEingabe] = useState("");
   const [ergebnisse, setErgebnisse] = useState([]);
   const [fertig, setFertig] = useState(false);
+  // Verschachteln: mehrere Fächer in einer Sitzung, Herkunft verborgen (§3.5).
+  const [gewaehlteFaecher, setGewaehlteFaecher] = useMerker("interleaving:faecher", []);
+  const [herkunftVerbergen, setHerkunftVerbergen] = useMerker("interleaving:verbergen", true);
+  const [gestartet, setGestartet] = useState(Boolean(fachId));
   const feld = useRef(null);
   const beginn = useRef(Date.now());
 
   const faecherVon = useCallback(() => faecher, [faecher]);
 
+  const sitzungBauen = useCallback(() => baueSitzung({
+    karten, zustaende, stapelVon, faecherVon, fach,
+    faecherIds: fachId ? null : gewaehlteFaecher,
+    umfang: Number(einstellungen.sitzungsUmfang) || 30,
+  }), [karten, zustaende, stapelVon, faecherVon, fach, fachId, gewaehlteFaecher,
+    einstellungen.sitzungsUmfang]);
+
   /* Die Warteschlange wird einmal beim Betreten gebaut — was während der
      Sitzung fällig wird, kommt erst beim nächsten Mal dran. */
   useEffect(() => {
-    const gebaut = baueSitzung({
-      karten, zustaende, stapelVon, faecherVon, fach,
-      umfang: Number(einstellungen.sitzungsUmfang) || 30,
-    });
-    setSitzung(gebaut);
+    if (!gestartet) return;
+    setSitzung(sitzungBauen());
     setStelle(0); setPhase("konfidenz"); setKonfidenz(null); setEingabe("");
     setErgebnisse([]); setFertig(false);
     beginn.current = Date.now();
-  }, [fachId]);
+  }, [fachId, gestartet]);
 
   const aufgabe = sitzung?.aufgaben?.[stelle] || null;
 
@@ -208,6 +218,72 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
 
   const titel = fach ? "Abrufen — " + fach.name : "Abrufen";
 
+  /* Ohne Fachwahl: erst fragen, worüber. Das ist die einzige Wahl, die der
+     Nutzer hat — welche Karten drankommen, entscheidet er nie. */
+  if (!gestartet) {
+    const bereit = gewaehlteFaecher.length > 0;
+    const umschalten = (id) => setGewaehlteFaecher((alt) =>
+      alt.includes(id) ? alt.filter((x) => x !== id) : [...alt, id]);
+
+    return (
+      <ModusRahmen titel="Abrufen" symbol="blitz" aufSchliessen={aufSchliessen}>
+        <h1>Verschachtelt abrufen</h1>
+        <p className="matt">
+          Mehrere Fächer in einer Sitzung, gemischt und ohne Ankündigung, woher
+          eine Frage kommt. Das ist mühsamer als ein Fach am Stück — und genau
+          darum wirksamer: In der Prüfung steht auch nicht dabei, welches
+          Verfahren gemeint ist.
+        </p>
+
+        {faecher.length === 0 ? (
+          <Leer symbol="buch" titel="Noch keine Fächer"
+            text="Lege zuerst Fächer an und ordne ihnen Stapel zu.">
+            <Knopf art="voll" onClick={() => gehe("/faecher")}>Zu den Fächern</Knopf>
+          </Leer>
+        ) : (
+          <>
+            <label className="beschriftung" style={{ marginTop: 20 }}>Welche Fächer?</label>
+            <div className="gitter" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
+              {faecher.map((f) => {
+                const an = gewaehlteFaecher.includes(f.id);
+                return (
+                  <button key={f.id} className={"antwort" + (an ? " richtig" : "")}
+                    onClick={() => umschalten(f.id)}>
+                    <span style={{ width: 10, height: 10, borderRadius: 3,
+                      background: f.farbe || "var(--akzent)", display: "block", flex: "none" }} />
+                    <span className="dehnen">{f.name}</span>
+                    {an && <Symbol name="haken" groesse={16} />}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="reihe" style={{ marginTop: 10 }}>
+              <Knopf art="klein leer"
+                onClick={() => setGewaehlteFaecher(faecher.map((f) => f.id))}>
+                Alle
+              </Knopf>
+              <Knopf art="klein leer" onClick={() => setGewaehlteFaecher([])}>Keins</Knopf>
+            </div>
+
+            <label className="schalter" style={{ marginTop: 16 }}>
+              <input type="checkbox" checked={herkunftVerbergen}
+                onChange={(e) => setHerkunftVerbergen(e.target.checked)} />
+              <span>Herkunft verbergen
+                <span className="klein blass"> — Fach und Stapel erst nach der Antwort</span>
+              </span>
+            </label>
+
+            <Knopf art="voll gross" symbol="blitz" style={{ marginTop: 24 }}
+              disabled={!bereit} onClick={() => setGestartet(true)}>
+              Losgehen
+            </Knopf>
+          </>
+        )}
+      </ModusRahmen>
+    );
+  }
+
   if (!sitzung) {
     return <ModusRahmen titel={titel} symbol="blitz" aufSchliessen={aufSchliessen}>
       <div className="leerer-zustand">Stelle die Sitzung zusammen …</div>
@@ -259,11 +335,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
 
           <div className="reihe" style={{ justifyContent: "center", flexWrap: "wrap" }}>
             <Knopf art="voll gross" symbol="blitz" onClick={() => {
-              const gebaut = baueSitzung({
-                karten, zustaende, stapelVon, faecherVon, fach,
-                umfang: Number(einstellungen.sitzungsUmfang) || 30,
-              });
-              setSitzung(gebaut); setStelle(0); setPhase("konfidenz");
+              setSitzung(sitzungBauen()); setStelle(0); setPhase("konfidenz");
               setKonfidenz(null); setEingabe(""); setErgebnisse([]); setFertig(false);
             }}>Weiter abrufen</Knopf>
             <Knopf art="gross" onClick={() => gehe("/kalibrierung")}>Kalibrierung ansehen</Knopf>
@@ -295,9 +367,19 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
       {/* ------------------------------ Frage ------------------------------ */}
       <div className="frage-block" style={{ position: "relative" }}>
         <div className="klein blass">
-          {aufgabe.stapel?.title}
-          {" · "}
-          {richtungName(aufgabe.richtung, aufgabe.stapel)}
+          {/* Beim Verschachteln bleibt die Herkunft verdeckt, bis geantwortet
+              ist — sonst verrät die Überschrift schon das Verfahren. */}
+          {!fachId && herkunftVerbergen && phase !== "aufgedeckt" ? (
+            <span style={{ fontStyle: "italic" }}>Woher diese Frage kommt, siehst du gleich</span>
+          ) : (
+            <>
+              {aufgabe.fachId && fachVon(aufgabe.fachId)
+                ? fachVon(aufgabe.fachId).name + " · " : ""}
+              {aufgabe.stapel?.title}
+              {" · "}
+              {richtungName(aufgabe.richtung, aufgabe.stapel)}
+            </>
+          )}
         </div>
 
         {teile.art === "cloze" ? (

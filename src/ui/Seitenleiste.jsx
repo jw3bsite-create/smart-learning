@@ -125,6 +125,12 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
           <span className="name dehnen">Fächer</span>
           {faecher.length > 0 && <span className="klein blass">{faecher.length}</span>}
         </div>
+        <div className={"baum-zeile" + (weg.startsWith("/erklaeren") ? " aktiv" : "")}
+          onClick={() => gehe("/erklaeren")}>
+          <span className="pfeil" />
+          <Symbol name="buch" groesse={16} />
+          <span className="name">Erklären</span>
+        </div>
         <div className={"baum-zeile" + (weg.startsWith("/kalibrierung") ? " aktiv" : "")}
           onClick={() => gehe("/kalibrierung")}>
           <span className="pfeil" />
