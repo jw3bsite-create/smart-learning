@@ -47,7 +47,7 @@ export default class Auffanglinie extends React.Component {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "karteikasten-notsicherung-"
+    a.download = "smart-learning-notsicherung-"
       + new Date().toISOString().slice(0, 16).replace(":", "") + ".json";
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);

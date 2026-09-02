@@ -498,7 +498,7 @@ export default function Einstellungen({ aufAbgleich }) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "karteikasten-" + new Date().toISOString().slice(0, 10) + ".json";
+    a.download = "smart-learning-" + new Date().toISOString().slice(0, 10) + ".json";
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   };
@@ -558,7 +558,7 @@ export default function Einstellungen({ aufAbgleich }) {
             style={{ width: 220 }}
             onChange={(e) => setzeEinstellung("sprechTempo", Number(e.target.value))} />
           <Knopf art="klein" symbol="laut"
-            onClick={() => sprich("Der Karteikasten liest vor.", "de", einstellungen.sprechTempo)}>
+            onClick={() => sprich("Smart Learning liest vor.", "de", einstellungen.sprechTempo)}>
             Probe
           </Knopf>
         </div>
@@ -601,7 +601,7 @@ export default function Einstellungen({ aufAbgleich }) {
 
       <Abschnitt titel="Über">
         <p className="klein matt">
-          Karteikasten läuft ganz in deinem Browser. Über den Menüpunkt „Installieren“
+          Smart Learning läuft ganz in deinem Browser. Über den Menüpunkt „Installieren“
           deines Browsers lässt er sich wie eine gewöhnliche App auf den Startbildschirm
           legen und dann auch ohne Netz benutzen.
         </p>

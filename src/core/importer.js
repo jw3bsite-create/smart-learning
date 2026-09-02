@@ -118,7 +118,7 @@ export function alsText(karten) {
  * gebauten App gefangen sein. Wer diese App eines Tages nicht mehr will, soll
  * seinen Bestand mitnehmen können.
  */
-export function alsAnkiText(karten, { stapelName = "Karteikasten" } = {}) {
+export function alsAnkiText(karten, { stapelName = "Smart Learning" } = {}) {
   const sauber = (t) => String(t || "").replace(/\t/g, " ").replace(/\r?\n/g, "<br>");
   const kopf = [
     "#separator:tab",

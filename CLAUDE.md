@@ -1,4 +1,6 @@
-# Karteikasten
+# Smart Learning
+
+*(Der Ordner und die Datenbanken heißen weiterhin `karteikasten` — siehe unten.)*
 
 Arbeitssystem für die Abiturvorbereitung 2027 (Technisches Gymnasium
 Baden-Württemberg). Läuft im Browser, Daten in IndexedDB, freiwilliger Abgleich
@@ -111,6 +113,11 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
 3. **`reviews` ist nur-anhängend** und wird nie destruktiv verändert.
 4. **Jede Schemaänderung erhöht `VERSION` in `db.js`** und legt vorher eine
    Sicherung in `karteikasten-sicherung` ab.
+15. **Die Namen der Datenbanken sind Adressen, keine Titel.** `karteikasten`
+    und `karteikasten-sicherung` bleiben, obwohl die App umbenannt wurde: Ein
+    Browser findet die abgelegten Daten allein unter diesem Namen wieder. Ein
+    neuer Name hieße eine neue, leere Datenbank. Dasselbe gilt für das
+    Browserprofil des Starters — dort wird darum umgezogen statt umbenannt.
 5. **Kein offenes Chatfenster.** `ki.frage` verlangt den *Namen* einer Anweisung
    aus `prompts/`, nie einen Text. Wer eine neue Fähigkeit will, schreibt eine
    neue Anweisung — und muss sie dabei aufschreiben.

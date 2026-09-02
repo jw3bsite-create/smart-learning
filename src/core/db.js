@@ -11,6 +11,12 @@
  * anderen Gerät wieder zurück.
  */
 
+/*
+ * Die Namen der Datenbanken bleiben, was sie waren, auch nachdem die App
+ * umbenannt wurde. Sie sind kein Titel, sondern eine Adresse: Ein Browser
+ * findet die abgelegten Daten allein unter diesem Namen wieder. Ein neuer Name
+ * hiesse eine neue, leere Datenbank — und die alte laege unerreichbar daneben.
+ */
 const DB_NAME = "karteikasten";
 const SICHERUNG_DB = "karteikasten-sicherung";
 const VERSION = 5;
