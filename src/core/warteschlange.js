@@ -11,7 +11,7 @@
  */
 
 import { istFaellig, istNeu } from "./fsrs.js";
-import { richtungenFuer } from "./model.js";
+import { richtungenFuer, istRelevant } from "./model.js";
 import { mische } from "./util.js";
 
 const TAG = 24 * 3600 * 1000;
@@ -52,7 +52,9 @@ export function baueSitzung({
   const neue = [];
 
   for (const karte of karten) {
-    if (karte.deleted) continue;
+    // Abgehaktes zählt nirgends mit — weder in der Warteschlange noch
+    // in den Zahlen darüber.
+    if (!istRelevant(karte)) continue;
     const stapel = stapelVon(karte.setId);
     if (!stapel) continue;
     const fachId = stapel.subjectId || null;
@@ -112,7 +114,9 @@ export function baueSitzung({
 export function fachZaehlung(karten, zustaende, stapelVon, fachId, zeit = Date.now()) {
   let faellig = 0, neu = 0, gesperrt = 0, gesamt = 0;
   for (const karte of karten) {
-    if (karte.deleted) continue;
+    // Abgehaktes zählt nirgends mit — weder in der Warteschlange noch
+    // in den Zahlen darüber.
+    if (!istRelevant(karte)) continue;
     const stapel = stapelVon(karte.setId);
     if (!stapel || (fachId && stapel.subjectId !== fachId)) continue;
     for (const richtung of richtungenFuer(karte, stapel)) {
@@ -259,7 +263,9 @@ export function pensumPruefen(karten, zustaende, stapelVon, fach, zeit = Date.no
 export function baueCramSitzung({ karten, zustaende, stapelVon, fach, umfang = 40 }) {
   const alle = [];
   for (const karte of karten) {
-    if (karte.deleted) continue;
+    // Abgehaktes zählt nirgends mit — weder in der Warteschlange noch
+    // in den Zahlen darüber.
+    if (!istRelevant(karte)) continue;
     const stapel = stapelVon(karte.setId);
     if (!stapel || (fach && stapel.subjectId !== fach.id)) continue;
     for (const richtung of richtungenFuer(karte, stapel)) {
@@ -291,7 +297,9 @@ export function stapelStand(karten, zustaende, stapel, zeit = Date.now()) {
   const alle = [];
 
   for (const karte of karten) {
-    if (karte.deleted) continue;
+    // Abgehaktes zählt nirgends mit — weder in der Warteschlange noch
+    // in den Zahlen darüber.
+    if (!istRelevant(karte)) continue;
     for (const richtung of richtungenFuer(karte, stapel)) {
       const z = zustaende[karte.id + ":" + richtung];
       gesamt += 1;

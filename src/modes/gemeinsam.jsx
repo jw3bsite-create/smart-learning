@@ -7,6 +7,7 @@ import React, { useEffect, useMemo } from "react";
 import { useDaten } from "../core/store.jsx";
 import { sprich, schweig } from "../core/speech.js";
 import { istUebbar } from "../core/kartenseiten.js";
+import { istRelevant } from "../core/model.js";
 import { gehe } from "../App.jsx";
 import { Symbol, SymbolKnopf, Knopf, Bild } from "../ui/basis.jsx";
 
@@ -42,7 +43,8 @@ export function useModus(setId) {
  */
 export function useBrauchbar(karten, nurMarkierte = false) {
   return useMemo(() => karten.filter((k) =>
-    (!nurMarkierte || k.starred) && istUebbar(k)), [karten, nurMarkierte]);
+    (!nurMarkierte || k.starred) && istRelevant(k) && istUebbar(k)),
+  [karten, nurMarkierte]);
 }
 
 export function ModusRahmen({ titel, symbol, aufSchliessen, anteil = null, rechts, children }) {

@@ -75,12 +75,14 @@ src/core/     Rechnender Kern, ohne React, ohne Browserfenster, vollständig pr�
   ki.js          Der einzige Weg zu einem Sprachmodell
   drift.js       Erkennt, wenn ein Tutor seine Regeln verlässt
   noten.js       Punkte der Kursstufe: Halbjahre, Leistungen, Schnitte
+  mischen.js     Der Fragemodus: Gewichtung nach Termin, Punkten, Dringlichkeit
   cloud.js       Abgleich mit Supabase
   beispiel.js    Beispielbestand: Maschinerie und durchgerechnete Historie
   beispiel-stoff.js  Der Stoff dazu (Kant, Hauptstädte) — reine Daten
   store.jsx      Gemeinsamer Datenbestand
 prompts/      Die Systemanweisungen als eigene Dateien, versioniert
-src/modes/    Abrufen, Feynman, Pretest, Tutor, Pruefung + die sieben Übungsmodi
+src/modes/    Abrufen, Fragen, Feynman, Pretest, Tutor, Pruefung + die sieben
+              Übungsmodi
 src/ui/       Bildschirme und Bausteine
 test/         169 Prüfungen (npm test)
 werkzeug/     Erzeugt die PNG-Symbole
@@ -101,6 +103,10 @@ werkzeug/     Erzeugt die PNG-Symbole
 | `explanations` | Erklärungen, versioniert | 4 |
 | `exams` | Prüfungssimulationen mit Kriterienraster | 5 |
 | `noten` | Punkte der Kursstufe, ein Satz je Fach **und** Halbjahr | 6 |
+
+Karten tragen `nichtRelevant`, Fächer `prioritaet` (1–3). Beides wirkt sich
+aus, ohne dass eine Schemafassung nötig war: Fehlt das Feld, gilt der
+Normalfall.
 
 Jeder Datensatz trägt `updatedAt` und darf `deleted: true` tragen. Gelöschtes
 bleibt als Grabstein, sonst käme es beim Abgleich zurück.
@@ -126,6 +132,20 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
 6. **Kein Multiple Choice im Abrufweg.** In den Übungsmodi ja, dort zählt es nicht.
 7. **Keine Selbstauswahl der Wiederholungskarten.** Der Nutzer wählt Fach und
    Umfang, nie einzelne Karten oder Themen.
+
+   Zwei Dinge sehen wie Ausnahmen aus und sind keine:
+
+   **Abhaken** (`nichtRelevant`) nimmt eine Karte aus allem heraus. Das ist
+   eine Aussage über den Stoff — der Lehrer sagt, das Kapitel wird nicht
+   geprüft —, keine über das eigene Können. Darum heißt der Knopf „kommt nicht
+   dran" und nicht „kann ich schon". Ob eine Karte sitzt, entscheidet weiter
+   der Planer aus dem, was beim Abrufen geschieht; das Gefühl beim Ansehen der
+   Vorderseite täuscht verlässlich und immer in dieselbe Richtung.
+
+   **Der Fragemodus** (`mischen.js`, `modes/Fragen.jsx`) stellt auf Zuruf eine
+   Runde zusammen. Er verschiebt keine Termine — seine Antworten tragen
+   `practice`. Ohne diese Trennung wäre er die Hintertür, durch die man sich
+   seine Wiederholungen selbst zusammenstellt.
 8. **Keine Note durch die KI.** Strukturfeedback ja, Punkte nein.
 9. **Die Strähne belohnt abgerufene Karten, nicht geöffnete Fenster.**
 

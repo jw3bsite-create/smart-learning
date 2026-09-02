@@ -21,6 +21,7 @@ import Papierkorb from "./ui/Papierkorb.jsx";
 import Faecher from "./ui/Faecher.jsx";
 import Kalibrierung from "./ui/Kalibrierung.jsx";
 import Noten from "./ui/Noten.jsx";
+import Fragen from "./modes/Fragen.jsx";
 import EntwuerfeAnsicht from "./ui/Entwuerfe.jsx";
 import Abrufen from "./modes/Abrufen.jsx";
 import Feynman from "./modes/Feynman.jsx";
@@ -211,6 +212,9 @@ export default function App() {
   else if (teile[0] === "faecher") inhalt = <Faecher />;
   else if (teile[0] === "kalibrierung") inhalt = <Kalibrierung />;
   else if (teile[0] === "punkte") inhalt = <Noten />;
+  else if (teile[0] === "fragen")
+    inhalt = <Fragen bereichArt={teile[1] ? "fach" : "alles"} bereichId={teile[1] || null}
+      aufSchliessen={() => gehe("/")} />;
 
   return (
     <div className="huelle">

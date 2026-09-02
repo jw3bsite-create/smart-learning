@@ -150,8 +150,42 @@ export function neuesFach(name, farbe = null) {
     pruefungsdatum: null,      // Zeitstempel oder null
     neuProTag: 15,             // Bremse gegen den Rückstau
     richtungen: ["td"],        // bei Sprachen: ["td", "dt"]
+    prioritaet: 2,             // 1 niedrig, 2 normal, 3 hoch — siehe mischen.js
     updatedAt: jetzt(), deleted: false,
   };
+}
+
+/** Die drei Stufen, in denen sich ein Fach vordrängeln darf. */
+export const PRIORITAETEN = {
+  1: { name: "Nebenbei", faktor: 0.6 },
+  2: { name: "Normal", faktor: 1 },
+  3: { name: "Vordringlich", faktor: 1.8 },
+};
+
+export function prioritaetVon(fach) {
+  const p = Number(fach?.prioritaet);
+  return PRIORITAETEN[p] ? p : 2;
+}
+
+/**
+ * Zählt diese Karte für den Plan?
+ *
+ * `nichtRelevant` schließt eine Karte aus — aus der Warteschlange, aus den
+ * Übungsmodi, aus den Zahlen. Gedacht ist das für Stoff, der nachweislich
+ * nicht drankommt: Der Lehrer sagt, dieses Kapitel wird nicht geprüft, und
+ * dann ist es Zeitverschwendung, es weiter zu wiederholen.
+ *
+ * **Nicht gedacht ist es für „das kann ich schon".** Ob eine Karte sitzt,
+ * entscheidet der Planer aus dem, was beim Abrufen tatsächlich geschieht, und
+ * nicht das Gefühl beim Ansehen der Vorderseite — das Gefühl täuscht
+ * verlässlich, und zwar immer in dieselbe Richtung. Darum steht in der
+ * Oberfläche „kommt nicht dran" und nicht „kann ich".
+ *
+ * Gelöscht wird nichts: Die Karte bleibt, ihr Lernstand bleibt, und wer den
+ * Haken wieder wegnimmt, macht dort weiter, wo er aufgehört hat.
+ */
+export function istRelevant(karte) {
+  return Boolean(karte) && !karte.deleted && karte.nichtRelevant !== true;
 }
 
 /**

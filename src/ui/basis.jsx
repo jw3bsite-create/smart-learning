@@ -56,6 +56,9 @@ const PFADE = {
   auge: "M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
   papierkorb: "M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13M10 11v6M14 11v6",
   abmelden: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9",
+  // Ein Wuerfel: Rahmen und drei Augen. Die Augen sind Strecken der Laenge
+  // null — mit runden Enden zeichnet der Browser daraus Punkte.
+  wuerfel: "M5 5h14v14H5zM8.5 8.5h.01M12 12h.01M15.5 15.5h.01",
 };
 
 export function Symbol({ name, groesse = 18, fuell = false, ...rest }) {

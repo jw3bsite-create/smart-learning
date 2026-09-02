@@ -218,9 +218,13 @@ export default function Stapelansicht({ setId }) {
               const s = (derStapel.richtungen || ["td"]).includes("dt")
                 ? Math.min(stufe(zTd), stufe(zDt)) : stufe(zTd);
               return (
-                <div key={k.id} className="karten-zeile">
+                <div key={k.id} className="karten-zeile"
+                  style={k.nichtRelevant ? { opacity: 0.45 } : undefined}>
                   <div className="seite">
-                    <div className="inhalt">{k.term}</div>
+                    <div className="inhalt"
+                      style={k.nichtRelevant ? { textDecoration: "line-through" } : undefined}>
+                      {k.term}
+                    </div>
                     {k.termImage && <Bild kennung={k.termImage} klasse="" stil={{ maxHeight: 90, borderRadius: 8, marginTop: 8 }} />}
                   </div>
                   <div className="seite">
@@ -236,6 +240,15 @@ export default function Stapelansicht({ setId }) {
                     <SymbolKnopf symbol="laut" titel="Vorlesen"
                       onClick={() => sprich(k.term, derStapel.termLang)} />
                     <Stern an={k.starred} aufKlick={() => karteAendern(k.id, { starred: !k.starred })} />
+                    {/* Abhaken heisst: kommt nicht dran. Nicht: kann ich schon —
+                        darueber entscheidet der Planer aus dem, was beim Abrufen
+                        wirklich geschieht. */}
+                    <SymbolKnopf symbol={k.nichtRelevant ? "zurueckSetzen" : "haken"}
+                      titel={k.nichtRelevant
+                        ? "Wieder mitlernen"
+                        : "Abhaken — kommt nicht dran"}
+                      style={k.nichtRelevant ? undefined : { opacity: 0.55 }}
+                      onClick={() => karteAendern(k.id, { nichtRelevant: !k.nichtRelevant })} />
                     <SymbolKnopf symbol="stift" titel="Bearbeiten"
                       onClick={() => gehe("/stapel/" + setId + "/bearbeiten")} />
                   </div>

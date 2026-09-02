@@ -15,6 +15,15 @@ import {
 } from "../core/warteschlange.js";
 import { kalibrierungJeFach, kalibrierungInWorten } from "../core/kalibrierung.js";
 import { anzahl, datumKurz } from "../core/util.js";
+import { prioritaetVon, PRIORITAETEN } from "../core/model.js";
+import { punkteText, punkteStufe } from "../core/noten.js";
+import { punkteZuLernfach } from "./Noten.jsx";
+
+/* Dieselben Farben wie auf der Punkteseite — fuenf Punkte sind die Schwelle. */
+const PUNKTFARBE = {
+  gut: "var(--gruen)", solide: "var(--akzent)",
+  wacklig: "var(--gelb)", schlecht: "var(--rot)", leer: "var(--schrift-blass)",
+};
 import { gehe } from "../App.jsx";
 import {
   Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Leer, Dialog, Rueckfrage,
@@ -31,7 +40,8 @@ const VORSCHLAG = [
 ];
 
 function FachEinstellungen({ fach, aufSchliessen }) {
-  const { fachAendern } = useDaten();
+  const { fachAendern, notenfaecher } = useDaten();
+  const punkte = punkteZuLernfach(notenfaecher, fach.id);
   const termin = fach.pruefungsdatum
     ? new Date(fach.pruefungsdatum).toISOString().slice(0, 10) : "";
 
@@ -70,6 +80,55 @@ function FachEinstellungen({ fach, aufSchliessen }) {
         onChange={(e) => fachAendern(fach.id, {
           pruefungsdatum: e.target.value ? new Date(e.target.value).getTime() : null,
         })} />
+      <p className="klein matt" style={{ marginTop: 4 }}>
+        Je näher er rückt, desto dichter rücken die Wiederholungen zusammen —
+        und desto häufiger kommt das Fach im Fragemodus dran.
+      </p>
+
+      <label className="beschriftung" style={{ marginTop: 16 }}>Dringlichkeit</label>
+      <div className="reihe umbruch">
+        {[1, 2, 3].map((stufe) => (
+          <Knopf key={stufe}
+            art={"klein" + (prioritaetVon(fach) === stufe ? " voll" : "")}
+            onClick={() => fachAendern(fach.id, { prioritaet: stufe })}>
+            {PRIORITAETEN[stufe].name}
+          </Knopf>
+        ))}
+      </div>
+      <p className="klein matt" style={{ marginTop: 4 }}>
+        Wirkt nur im Fragemodus, nicht auf den Plan: Was wann wiederkommt,
+        entscheidet weiter das Abrufen. Hier sagst du bloß, worauf du gerade
+        deine freien Minuten verwenden willst.
+      </p>
+
+      {/* Die Punkte stehen hier und nicht in jeder Übersicht: Wer ein Fach
+          aufmacht, um daran zu arbeiten, darf daran erinnert werden. Überall
+          sonst wäre es Buchhaltung, die nur Druck macht. */}
+      {punkte && (
+        <div className="zahl-kachel" style={{ marginTop: 16 }}>
+          <div className="reihe">
+            <div className="dehnen">
+              <div className="klein matt">Deine Punkte in diesem Fach</div>
+              <div className="klein blass">
+                zuletzt {punkte.juengste.halbjahr} · Schnitt aus{" "}
+                {anzahl(punkte.anzahl, "Halbjahr", "Halbjahren")}
+              </div>
+            </div>
+            <span style={{
+              fontFamily: "var(--schrift-karten)", fontSize: 24, fontWeight: 600,
+              color: PUNKTFARBE[punkteStufe(punkte.juengste.punkte)],
+            }}>
+              {punkteText(punkte.juengste.punkte)}
+            </span>
+          </div>
+          {punkte.juengste.punkte < 8 && (
+            <p className="klein" style={{ marginTop: 8, marginBottom: 0 }}>
+              Hier ist am meisten zu holen. Im Fragemodus kommt dieses Fach
+              deshalb von allein häufiger dran.
+            </p>
+          )}
+        </div>
+      )}
 
       <label className="schalter" style={{ marginTop: 16 }}>
         <input type="checkbox" checked={(fach.richtungen || ["td"]).includes("dt")}
