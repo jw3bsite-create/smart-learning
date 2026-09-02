@@ -21,12 +21,32 @@ import { bildBlob, bildAblegen } from "./media.js";
 const TABELLE = "karteikasten";
 const EIMER = "bilder";
 
-/** Ablage im Browser ↔ Art in der Tabelle. */
-const ARTEN = {
+/**
+ * Ablage im Browser ↔ Art in der Tabelle.
+ *
+ * **Diese Liste muss `db.SYNCED` vollständig abdecken.** Sie tat es lange
+ * nicht: Nur Ordner, Stapel, Karten und der alte Fortschritt standen hier,
+ * während der Abgleich über alle zehn Ablagen läuft. Für die übrigen sechs
+ * wäre `art` leer geblieben — die Spalte ist `not null`, der Abgleich also mit
+ * einem Datenbankfehler abgebrochen. Gefehlt hätte ausgerechnet der Lernstand:
+ * Fächer, Kartenzustände, die ganze Abrufhistorie, Entwürfe, Erklärungen,
+ * Prüfungen.
+ *
+ * Die Namen rechts stehen in der Wolke und dürfen sich nicht mehr ändern —
+ * ein neuer Name macht die alten Zeilen unauffindbar. Eine Prüfung in
+ * `test/wolke.test.js` hält beides fest.
+ */
+export const ARTEN = {
   folders: "ordner",
   sets: "stapel",
   cards: "karte",
   progress: "stand",
+  subjects: "fach",
+  cardstates: "zustand",
+  reviews: "abruf",
+  drafts: "entwurf",
+  explanations: "erklaerung",
+  exams: "pruefung",
 };
 const ZURUECK = Object.fromEntries(Object.entries(ARTEN).map(([a, b]) => [b, a]));
 
