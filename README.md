@@ -18,6 +18,29 @@ wird er still gestartet; läuft er schon, geht bloß das Fenster auf. Der Server
 liegt in einem kleingelegten Fenster namens „Smart Learning – Server" — wer es
 schließt, beendet ihn.
 
+## Im Netz — Handy und Tablet
+
+Die App liegt auf GitHub Pages. Jeder Push auf `master` baut sie neu und stellt
+sie online; vorher laufen Lint und die Prüfungen, damit nie eine Fassung
+hochgeht, die auf dem eigenen Rechner nicht durchgelaufen wäre.
+
+```
+git push
+```
+
+**Auf dem iPhone:** Adresse in Safari öffnen, Teilen → „Zum Home-Bildschirm".
+Danach ist es ein Symbol wie jede andere App, ohne Adresszeile — und weil die
+Dateien im Browser abgelegt werden, läuft sie auch ohne Netz. Nur so, vom
+Home-Bildschirm aus, kann sie später auch Benachrichtigungen schicken; als
+Lesezeichen in Safari nicht.
+
+**Auf dem Schul-Tablet:** dieselbe Adresse. Reicht der Browser allein, genügt
+das Lesezeichen.
+
+Die Karten liegen dabei in der Datenbank des jeweiligen Geräts, nicht auf dem
+Server — wer die Adresse aufruft, sieht eine leere App. Damit die Stände
+zwischen Geräten wandern, braucht es den Abgleich (Einstellungen → Wolke).
+
 Von Hand geht es weiterhin so:
 
 ```

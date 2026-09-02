@@ -31,8 +31,10 @@ function dienstArbeiter() {
       const dateien = sammeln(wurzel)
         .map((pfad) => relative(wurzel, pfad).split("\\").join("/"))
         // Der Dienst-Arbeiter selbst gehoert nicht in seinen eigenen Vorrat,
-        // und die Startseite steht schon fest darin.
-        .filter((d) => d !== "sw.js" && d !== "index.html");
+        // die Startseite steht schon fest darin, und Dateien mit einem Punkt
+        // vorn (etwa .nojekyll fuer GitHub Pages) sind Anweisungen an den
+        // Anbieter, nicht Teil der App.
+        .filter((d) => d !== "sw.js" && d !== "index.html" && !d.startsWith("."));
 
       const ziel = join(wurzel, "sw.js");
       const stand = Date.now().toString(36);
