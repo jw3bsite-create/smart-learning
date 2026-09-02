@@ -25,7 +25,7 @@ Sprache, soweit sie die Sache benennen (`karten`, `zustaende`, `abrufVerbuchen`)
 ```
 npm install
 npm run dev      # http://localhost:5180
-npm test         # 122 Prüfungen für den Kern
+npm test         # 161 Prüfungen für den Kern
 npm run lint
 ```
 
@@ -67,11 +67,12 @@ src/core/     Rechnender Kern, ohne React, ohne Browserfenster, vollständig pr�
   ki.js          Der einzige Weg zu einem Sprachmodell
   drift.js       Erkennt, wenn ein Tutor seine Regeln verlässt
   cloud.js       Abgleich mit Supabase
+  beispiel.js    Beispielbestand samt durchgerechneter Historie
   store.jsx      Gemeinsamer Datenbestand
 prompts/      Die Systemanweisungen als eigene Dateien, versioniert
 src/modes/    Abrufen, Feynman, Pretest, Tutor, Pruefung + die sieben Übungsmodi
 src/ui/       Bildschirme und Bausteine
-test/         122 Prüfungen (npm test)
+test/         161 Prüfungen (npm test)
 werkzeug/     Erzeugt die PNG-Symbole
 ```
 
@@ -126,7 +127,16 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
    besteht, findet in einer Zeichenkette ohne Zwischenräume nichts und schluckt
    den Text (`hartTeilen` in `generator.js`).
 7. **Ruhetage gelten erst, wenn danach wieder ein Lerntag kommt** — sonst
-   verbraucht das Ende der Aufzeichnung sie.
+   verbraucht das Ende der Aufzeichnung sie. Und sie werden je Kalendermonat
+   gezählt: Eine Lücke über den Monatswechsel bekäme sonst das doppelte
+   Kontingent. Wie lang eine Unterbrechung sein darf, darf nicht vom Kalender
+   abhängen.
+8. **Karte und Abfragerichtung sind nicht dasselbe.** `cardstates` zählt je
+   Richtung. Eine Zahl von dort neben „Karten" zu schreiben ergibt Sätze wie
+   „30 Karten · 33 beherrscht".
+9. **Fortschritt kommt aus `cardstates`, nicht aus `progress`.** Der alte
+   Fächerplan lebt nur noch für die Übungsmodi. Wer ihn für eine Anzeige
+   heranzieht, lässt dieselbe Karte an zwei Stellen zwei Wahrheiten haben.
 
 ## Was ausdrücklich nicht gebaut wird
 

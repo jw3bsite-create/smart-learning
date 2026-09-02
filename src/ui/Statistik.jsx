@@ -9,6 +9,7 @@ import { anteileNachStufe } from "../core/fsrs.js";
 import { fachZaehlung, stapelStand } from "../core/warteschlange.js";
 import { tagesSchluessel, anzahl, datumKurz, zeitLang } from "../core/util.js";
 import { behaltenskurve } from "../core/kalibrierung.js";
+import { abrufeJeTag } from "../core/straehne.js";
 import { eigenleistung } from "../core/generator.js";
 import { gehe } from "../App.jsx";
 import { Symbol, Balken, Leer, Knopf } from "./basis.jsx";
@@ -22,14 +23,11 @@ const MODUS_NAME = {
 export default function Statistik() {
   const { stapel, karten, kartenNachStapel, zustaende, stapelVon, sitzungen, reviews } = useDaten();
 
-  const tage = useMemo(() => {
-    const nach = new Map();
-    for (const s of sitzungen) {
-      const t = s.tag || tagesSchluessel(s.zeit);
-      nach.set(t, (nach.get(t) || 0) + (s.gesamt || 0));
-    }
-    return nach;
-  }, [sitzungen]);
+  /* Gezählt wird aus den Reviews, nicht aus den Sitzungen: Eine Sitzung wird
+     erst am Ende festgehalten, ein abgebrochener Durchgang taucht also nie
+     auf. Die Strähne rechnet ohnehin aus den Reviews — stünden hier andere
+     Zahlen, widerspräche sich die Seite selbst. */
+  const tage = useMemo(() => abrufeJeTag(reviews), [reviews]);
 
 
 
@@ -80,7 +78,10 @@ export default function Statistik() {
         <div className="zahl-kachel">
           <div className="reihe klein matt"><Symbol name="haken" groesse={15} /> Beherrscht</div>
           <div className="zahl">{gesamt.beherrscht}</div>
-          <div className="klein blass">von {karten.length} Karten</div>
+          {/* Gezählt wird je Abfragerichtung, nicht je Karte: Land → Hauptstadt
+              kann sitzen, während der Rückweg hakt. „von 102 Karten“ wäre
+              darum falsch — die Zahl kann die Kartenzahl übersteigen. */}
+          <div className="klein blass">von {gesamt.gesamt} Abfragen</div>
         </div>
         <div className="zahl-kachel">
           <div className="reihe klein matt"><Symbol name="uhr" groesse={15} /> Heute fällig</div>
@@ -121,8 +122,9 @@ export default function Statistik() {
                   <span className="dehnen">
                     {k.tage === 1 ? "nach einem Tag"
                       : k.tage < 30 ? "nach " + k.tage + " Tagen"
-                        : k.tage < 365 ? "nach " + Math.round(k.tage / 30) + " Monaten"
-                          : "nach einem Jahr"}
+                        : k.tage < 60 ? "nach einem Monat"
+                          : k.tage < 365 ? "nach " + Math.round(k.tage / 30) + " Monaten"
+                            : "nach einem Jahr"}
                   </span>
                   <span className="mono">
                     {k.quote === null ? "—" : Math.round(k.quote * 100) + " %"}
@@ -197,7 +199,9 @@ export default function Statistik() {
               </div>
               <Balken anteile={anteile} />
               <div className="klein blass" style={{ marginTop: 6 }}>
-                {anzahl(eigene.length, "Karte", "Karten")} · {anteile[3]} beherrscht
+                {anzahl(eigene.length, "Karte", "Karten")}
+                {stand.gesamt !== eigene.length && " in " + stand.gesamt + " Abfragen"}
+                {" · " + anteile[3] + " beherrscht"}
               </div>
             </div>
           );

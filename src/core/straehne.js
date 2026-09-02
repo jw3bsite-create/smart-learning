@@ -81,10 +81,18 @@ export function straehne(reviews, { pensum = TAGESPENSUM, jetzt = Date.now() } =
      seit gestern lernt, stünde schon mit leerem Konto da. */
   let schwebend = [];
 
+  /* Wie viele Tage die laufende Lücke schon zählt. Das Monatskontingent allein
+     genügt nicht: Eine Lücke über den Monatswechsel läge in zwei Monaten und
+     bekäme das Kontingent doppelt — vier ausgelassene Tage am Stück hätten die
+     Strähne dann überstanden, dieselben vier Tage in der Monatsmitte nicht.
+     Wie lang eine Unterbrechung sein darf, kann nicht vom Kalender abhängen. */
+  let luecke = 0;
+
   for (let schritte = 0; schritte < 400; schritte++) {
     const zahl = jeTag.get(tag) || 0;
     if (istLerntag(zahl, pensum)) {
       laenge += 1;
+      luecke = 0;
       // Alles, was seit dem letzten Lerntag übersprungen wurde, gilt jetzt.
       for (const monat of schwebend) {
         ruhetageJeMonat.set(monat, (ruhetageJeMonat.get(monat) || 0) + 1);
@@ -98,8 +106,10 @@ export function straehne(reviews, { pensum = TAGESPENSUM, jetzt = Date.now() } =
     const monat = tag.slice(0, 7);
     const schonVerbraucht = (ruhetageJeMonat.get(monat) || 0)
       + schwebend.filter((m) => m === monat).length;
-    if (schonVerbraucht < RUHETAGE_JE_MONAT && laenge > 0) {
+    if (schonVerbraucht < RUHETAGE_JE_MONAT && luecke < RUHETAGE_JE_MONAT
+      && laenge > 0) {
       schwebend.push(monat);
+      luecke += 1;
       tag = tagVor(tag, 1);
       continue;
     }
