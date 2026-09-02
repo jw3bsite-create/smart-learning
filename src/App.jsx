@@ -150,7 +150,7 @@ export default function App() {
     return (
       <div style={{ display: "grid", placeItems: "center", height: "100vh", gap: 10 }}>
         <Symbol name="stapel" groesse={34} />
-        <div className="matt">Karteikasten wird geöffnet …</div>
+        <div className="matt">Smart Learning wird geöffnet …</div>
       </div>
     );
   }

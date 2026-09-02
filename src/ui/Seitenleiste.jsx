@@ -94,7 +94,7 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
     <aside className={"leiste" + (offen ? " offen" : "")}>
       <div className="leiste-kopf">
         <Symbol name="stapel" groesse={22} />
-        <span style={{ flex: 1 }}>Karteikasten</span>
+        <span style={{ flex: 1 }}>Smart Learning</span>
         <SymbolKnopf symbol="kreuz" titel="Menü schließen" art="leer klein nur-schmal"
           onClick={aufSchliessen} />
       </div>

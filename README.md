@@ -1,4 +1,4 @@
-# Karteikasten
+# Smart Learning
 
 Lern- und Arbeitssystem für das Abitur 2027. Karteikarten mit sieben
 Übungsmodi, dazu ein Abrufsystem mit verteilter Wiederholung, Fachtutoren mit
@@ -13,9 +13,9 @@ Einmalig eine Verknüpfung auf dem Schreibtisch anlegen:
 powershell -ExecutionPolicy Bypass -File werkzeug\verknuepfung.ps1
 ```
 
-Danach genügt ein Doppelklick auf „Karteikasten". Läuft der Server noch nicht,
+Danach genügt ein Doppelklick auf „Smart Learning". Läuft der Server noch nicht,
 wird er still gestartet; läuft er schon, geht bloß das Fenster auf. Der Server
-liegt in einem kleingelegten Fenster namens „Karteikasten – Server" — wer es
+liegt in einem kleingelegten Fenster namens „Smart Learning – Server" — wer es
 schließt, beendet ihn.
 
 Von Hand geht es weiterhin so:

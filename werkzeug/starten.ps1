@@ -1,5 +1,5 @@
 ﻿# =====================================================================
-#  Startet den Karteikasten und öffnet ihn in einem eigenen Fenster.
+#  Startet Smart Learning und öffnet die App in einem eigenen Fenster.
 #
 #  Läuft der Server schon, wird er nicht noch einmal gestartet — dann geht
 #  bloß das Fenster auf. Der Server selbst liegt in einem zweiten,
@@ -22,7 +22,7 @@ $NodePfad = "C:\Program Files\nodejs"
 
 function Melde($text, $art = "Information") {
   Add-Type -AssemblyName System.Windows.Forms
-  [System.Windows.Forms.MessageBox]::Show($text, "Karteikasten",
+  [System.Windows.Forms.MessageBox]::Show($text, "Smart Learning",
     [System.Windows.Forms.MessageBoxButtons]::OK, $art) | Out-Null
 }
 
@@ -99,7 +99,7 @@ if (Test-Path (Join-Path $NodePfad "node.exe")) {
 }
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
   Melde ("Node.js wurde nicht gefunden.`n`nErwartet wird es unter:`n$NodePfad`n`n" +
-    "Ohne Node kann der Karteikasten nicht starten. Node gibt es unter " +
+    "Ohne Node kann Smart Learning nicht starten. Node gibt es unter " +
     "https://nodejs.org — die Fassung mit LTS im Namen genügt.") "Error"
   exit 1
 }
@@ -126,13 +126,13 @@ if (-not (Antwortet)) {
   while (-not (Antwortet)) {
     if ((Get-Date) -gt $bis) {
       Melde ("Der Server ist nach einer Minute noch nicht bereit.`n`n" +
-        "Sieh im kleingelegten Fenster nach — es heißt Karteikasten – Server.") "Warning"
+        "Sieh im kleingelegten Fenster nach — es heißt Smart Learning – Server.") "Warning"
       exit 1
     }
     Start-Sleep -Milliseconds 400
   }
 
-  Benenne $serverfenster.Id "Karteikasten – Server (schliessen beendet ihn)"
+  Benenne $serverfenster.Id "Smart Learning – Server (schliessen beendet ihn)"
 }
 
 # --------------------------- Fenster öffnen ---------------------------
@@ -146,9 +146,17 @@ $browser = @(
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 
 if ($browser) {
-  # Ein eigenes Fenstermerkmal, damit der Karteikasten eine eigene Schaltfläche
-  # in der Leiste bekommt und nicht unter den übrigen Seiten verschwindet.
+  # Ein eigenes Fenstermerkmal, damit die App eine eigene Schaltflaeche in der
+  # Leiste bekommt und nicht unter den uebrigen Seiten verschwindet.
+  #
+  # Der Ordner heisst weiter nach dem alten Namen der App, und das bleibt so.
+  # In ihm liegt die Datenbank des Browserprofils — saemtliche Karten und der
+  # ganze Lernstand. Ein Umzug war hier schon eingebaut und ist beim Pruefen
+  # gescheitert: Der neue Ordner entstand, die Daten blieben im alten liegen.
+  # In der Hand des Nutzers haette das ausgesehen, als sei alles weg. Ein
+  # unsichtbarer Ordnername ist diesen Preis nicht wert.
   $eigen = Join-Path $env:LOCALAPPDATA "Karteikasten\Browser"
+
   Start-Process $browser -ArgumentList "--app=$Adresse", "--user-data-dir=`"$eigen`""
 } else {
   Start-Process $Adresse
