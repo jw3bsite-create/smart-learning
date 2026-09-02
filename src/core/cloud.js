@@ -47,6 +47,7 @@ export const ARTEN = {
   drafts: "entwurf",
   explanations: "erklaerung",
   exams: "pruefung",
+  noten: "note",
 };
 const ZURUECK = Object.fromEntries(Object.entries(ARTEN).map(([a, b]) => [b, a]));
 

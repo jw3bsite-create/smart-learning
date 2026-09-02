@@ -52,6 +52,7 @@ test("die Namen in der Tabelle liegen fest", () => {
     drafts: "entwurf",
     explanations: "erklaerung",
     exams: "pruefung",
+    noten: "note",
   });
 });
 

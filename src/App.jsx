@@ -20,6 +20,7 @@ import Statistik from "./ui/Statistik.jsx";
 import Papierkorb from "./ui/Papierkorb.jsx";
 import Faecher from "./ui/Faecher.jsx";
 import Kalibrierung from "./ui/Kalibrierung.jsx";
+import Noten from "./ui/Noten.jsx";
 import EntwuerfeAnsicht from "./ui/Entwuerfe.jsx";
 import Abrufen from "./modes/Abrufen.jsx";
 import Feynman from "./modes/Feynman.jsx";
@@ -209,6 +210,7 @@ export default function App() {
   else if (teile[0] === "papierkorb") inhalt = <Papierkorb />;
   else if (teile[0] === "faecher") inhalt = <Faecher />;
   else if (teile[0] === "kalibrierung") inhalt = <Kalibrierung />;
+  else if (teile[0] === "punkte") inhalt = <Noten />;
 
   return (
     <div className="huelle">

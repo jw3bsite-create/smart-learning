@@ -74,6 +74,7 @@ src/core/     Rechnender Kern, ohne React, ohne Browserfenster, vollständig pr�
   generator.js   Sieb für KI-Vorschläge
   ki.js          Der einzige Weg zu einem Sprachmodell
   drift.js       Erkennt, wenn ein Tutor seine Regeln verlässt
+  noten.js       Punkte der Kursstufe: Halbjahre, Leistungen, Schnitte
   cloud.js       Abgleich mit Supabase
   beispiel.js    Beispielbestand: Maschinerie und durchgerechnete Historie
   beispiel-stoff.js  Der Stoff dazu (Kant, Hauptstädte) — reine Daten
@@ -99,6 +100,7 @@ werkzeug/     Erzeugt die PNG-Symbole
 | `kilog` | Protokoll der Modellaufrufe (bleibt lokal) | 3 |
 | `explanations` | Erklärungen, versioniert | 4 |
 | `exams` | Prüfungssimulationen mit Kriterienraster | 5 |
+| `noten` | Punkte der Kursstufe, ein Satz je Fach **und** Halbjahr | 6 |
 
 Jeder Datensatz trägt `updatedAt` und darf `deleted: true` tragen. Gelöschtes
 bleibt als Grabstein, sonst käme es beim Abgleich zurück.
@@ -203,6 +205,10 @@ Spezifikation gerade erodiert — dann Rückfrage, kein Alleingang.
 ## Offen
 
 - Prüfungszeiten und Pflichtlektüren sind leer und werden nicht geraten.
+- Die Abiturnote wird nicht gerechnet. Block I und Block II, Einbringungs-
+  pflichten und doppelt gewichtete Kurse stehen in der Verordnung des
+  Jahrgangs; `noten.js` liefert bewusst nur den Durchschnitt der erfassten
+  Halbjahresleistungen und sagt in der Oberfläche, dass er das ist.
 
 
 - FSRS-Parameteroptimierung aus der eigenen Historie — dafür braucht es erst

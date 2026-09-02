@@ -730,7 +730,8 @@ export async function beispieldatenAnlegen({ jetzt = Date.now() } = {}) {
 
 /** Ablagen, in denen Beispieldaten liegen können. */
 const ABLAGEN = ["subjects", "folders", "sets", "cards", "media", "cardstates",
-  "reviews", "sessions", "drafts", "explanations", "exams", "kilog", "progress"];
+  "reviews", "sessions", "drafts", "explanations", "exams", "kilog", "progress",
+  "noten"];
 
 /**
  * Entfernt alles Angelegte wieder — endgültig, ohne Grabstein.

@@ -12,6 +12,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback, useRef } from "react";
 import * as db from "./db.js";
 import * as model from "./model.js";
+import * as noten from "./noten.js";
 import { bewerte } from "./scheduler.js";
 import { neuerZustand, bewerteKarte } from "./fsrs.js";
 import { aufschlagFuer, istPlausibel } from "./kalibrierung.js";
@@ -60,17 +61,18 @@ export function DatenSpeicher({ children }) {
   const [erklaerungen, setErklaerungen] = useState([]);
   // Fassung 5: Prüfungssimulationen.
   const [pruefungen, setPruefungen] = useState([]);
+  const [notenfaecher, setNotenfaecher] = useState([]);
   const merkeAenderung = useRef(() => {});
 
   /* ------------------------------ Laden ------------------------------ */
   useEffect(() => {
     (async () => {
-      const [o, s, k, f, si, e, fa, cs, rv, en, xk, pr] = await Promise.all([
+      const [o, s, k, f, si, e, fa, cs, rv, en, xk, pr, nt] = await Promise.all([
         db.all("folders"), db.all("sets"), db.all("cards"),
         db.all("progress"), db.all("sessions"),
         db.getSetting("einstellungen", null),
         db.all("subjects"), db.all("cardstates"), db.all("reviews"), db.all("drafts"),
-        db.all("explanations"), db.all("exams"),
+        db.all("explanations"), db.all("exams"), db.all("noten"),
       ]);
       setOrdner(o); setStapel(s); setKarten(k);
       setStaende(Object.fromEntries(f.map((x) => [x.id, x])));
@@ -85,7 +87,7 @@ export function DatenSpeicher({ children }) {
       setFaecher(fa);
       setZustaende(Object.fromEntries(cs.map((x) => [x.id, x])));
       setReviews(rv);
-      setEntwuerfe(en); setErklaerungen(xk); setPruefungen(pr);
+      setEntwuerfe(en); setErklaerungen(xk); setPruefungen(pr); setNotenfaecher(nt);
       setBereit(true);
       db.pruneTombstones().catch(() => {});
     })();
@@ -421,6 +423,85 @@ export function DatenSpeicher({ children }) {
     merkeAenderung.current();
   }, []);
 
+  /* ----------------------------- Punkte (Noten) ------------------------- */
+
+  /*
+   * Ein Datensatz je Fach und Halbjahr. Die Leistungen liegen als Liste
+   * darin — sie gehoeren untrennbar zum Fach, und einzeln abgelegt waeren sie
+   * beim Abgleich eine Quelle halber Zustaende.
+   */
+  const notenfachAnlegen = useCallback(async (angaben) => {
+    const n = noten.neuesNotenfach(angaben);
+    await db.put("noten", n);
+    setNotenfaecher((alt) => [...alt, n]);
+    merkeAenderung.current();
+    return n;
+  }, []);
+
+  const notenfachAendern = useCallback(async (kennung, aenderung) => {
+    let ergebnis = null;
+    setNotenfaecher((alt) => alt.map((n) => {
+      if (n.id !== kennung) return n;
+      ergebnis = { ...n, ...aenderung, updatedAt: Date.now() };
+      db.put("noten", ergebnis);
+      return ergebnis;
+    }));
+    merkeAenderung.current();
+    return ergebnis;
+  }, []);
+
+  const notenfachLoeschen = useCallback(async (kennung) => {
+    setNotenfaecher((alt) => alt.filter((n) => {
+      if (n.id !== kennung) return true;
+      db.put("noten", { ...n, deleted: true, updatedAt: Date.now() });
+      return false;
+    }));
+    merkeAenderung.current();
+  }, []);
+
+  /** Eine Leistung anhaengen, aendern oder entfernen. */
+  const leistungAnlegen = useCallback(async (fachId, angaben) => {
+    const l = noten.neueLeistung(angaben);
+    let ergebnis = null;
+    setNotenfaecher((alt) => alt.map((n) => {
+      if (n.id !== fachId) return n;
+      ergebnis = { ...n, leistungen: [...(n.leistungen || []), l], updatedAt: Date.now() };
+      db.put("noten", ergebnis);
+      return ergebnis;
+    }));
+    merkeAenderung.current();
+    return l;
+  }, []);
+
+  const leistungAendern = useCallback(async (fachId, leistungId, aenderung) => {
+    setNotenfaecher((alt) => alt.map((n) => {
+      if (n.id !== fachId) return n;
+      const neu = {
+        ...n,
+        leistungen: (n.leistungen || []).map((l) =>
+          (l.id === leistungId ? { ...l, ...aenderung } : l)),
+        updatedAt: Date.now(),
+      };
+      db.put("noten", neu);
+      return neu;
+    }));
+    merkeAenderung.current();
+  }, []);
+
+  const leistungLoeschen = useCallback(async (fachId, leistungId) => {
+    setNotenfaecher((alt) => alt.map((n) => {
+      if (n.id !== fachId) return n;
+      const neu = {
+        ...n,
+        leistungen: (n.leistungen || []).filter((l) => l.id !== leistungId),
+        updatedAt: Date.now(),
+      };
+      db.put("noten", neu);
+      return neu;
+    }));
+    merkeAenderung.current();
+  }, []);
+
   /* ------------------------------- Fächer ------------------------------- */
 
   const fachAnlegen = useCallback(async (name, farbe = null, zusatz = {}) => {
@@ -640,31 +721,31 @@ export function DatenSpeicher({ children }) {
         await db.put("media", { id: b.id, blob, type: b.type, updatedAt: Date.now() });
       } catch (e) { /* einzelnes Bild überspringen */ }
     }
-    const [o, s, k, f, fa, cs, rv, en, xk, pr] = await Promise.all([
+    const [o, s, k, f, fa, cs, rv, en, xk, pr, nt] = await Promise.all([
       db.all("folders"), db.all("sets"), db.all("cards"), db.all("progress"),
       db.all("subjects"), db.all("cardstates"), db.all("reviews"), db.all("drafts"),
-      db.all("explanations"), db.all("exams"),
+      db.all("explanations"), db.all("exams"), db.all("noten"),
     ]);
     setOrdner(o); setStapel(s); setKarten(k);
     setStaende(Object.fromEntries(f.map((x) => [x.id, x])));
     setFaecher(fa);
     setZustaende(Object.fromEntries(cs.map((x) => [x.id, x])));
     setReviews(rv);
-    setEntwuerfe(en); setErklaerungen(xk); setPruefungen(pr);
+    setEntwuerfe(en); setErklaerungen(xk); setPruefungen(pr); setNotenfaecher(nt);
   }, []);
 
   const neuLaden = useCallback(async () => {
-    const [o, s, k, f, fa, cs, rv, en, xk, pr] = await Promise.all([
+    const [o, s, k, f, fa, cs, rv, en, xk, pr, nt] = await Promise.all([
       db.all("folders"), db.all("sets"), db.all("cards"), db.all("progress"),
       db.all("subjects"), db.all("cardstates"), db.all("reviews"), db.all("drafts"),
-      db.all("explanations"), db.all("exams"),
+      db.all("explanations"), db.all("exams"), db.all("noten"),
     ]);
     setOrdner(o); setStapel(s); setKarten(k);
     setStaende(Object.fromEntries(f.map((x) => [x.id, x])));
     setFaecher(fa);
     setZustaende(Object.fromEntries(cs.map((x) => [x.id, x])));
     setReviews(rv);
-    setEntwuerfe(en); setErklaerungen(xk); setPruefungen(pr);
+    setEntwuerfe(en); setErklaerungen(xk); setPruefungen(pr); setNotenfaecher(nt);
   }, []);
 
   /* ------------------------------ Ableitungen ------------------------- */
@@ -724,6 +805,9 @@ export function DatenSpeicher({ children }) {
     erklaerungen, erklaerungAnlegen, erklaerungFortschreiben, erklaerungLoeschen,
     // Fassung 5
     pruefungen, pruefungAnlegen, pruefungAendern, pruefungLoeschen,
+    // Fassung 6
+    notenfaecher, notenfachAnlegen, notenfachAendern, notenfachLoeschen,
+    leistungAnlegen, leistungAendern, leistungLoeschen,
   };
 
   return <Zusammenhang.Provider value={wert}>{children}</Zusammenhang.Provider>;

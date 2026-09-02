@@ -150,6 +150,12 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
           <Symbol name="auge" groesse={16} />
           <span className="name">Kalibrierung</span>
         </div>
+        <div className={"baum-zeile" + (weg.startsWith("/punkte") ? " aktiv" : "")}
+          onClick={() => gehe("/punkte")}>
+          <span className="pfeil" />
+          <Symbol name="statistik" groesse={16} />
+          <span className="name">Punkte</span>
+        </div>
 
         <Flamme knapp />
 

@@ -11,6 +11,8 @@ import { tagesSchluessel, anzahl, datumKurz, zeitLang } from "../core/util.js";
 import { behaltenskurve } from "../core/kalibrierung.js";
 import { abrufeJeTag } from "../core/straehne.js";
 import { eigenleistung } from "../core/generator.js";
+import { uebersicht, punkteText, noteText, punkteStufe } from "../core/noten.js";
+import { punkteZuLernfach } from "./Noten.jsx";
 import { gehe } from "../App.jsx";
 import { Symbol, Balken, Leer, Knopf } from "./basis.jsx";
 import Flamme from "./Flamme.jsx";
@@ -20,8 +22,89 @@ const MODUS_NAME = {
   buchstabieren: "Buchstabieren", test: "Test", zuordnen: "Zuordnen", meteor: "Meteor",
 };
 
+/*
+ * Punkte neben dem Lernstand.
+ *
+ * Die eine Zahl sagt, wie gut die Karten sitzen; die andere, ob es ankommt.
+ * Erst nebeneinander sieht man den Fall, auf den es ankommt: ein Fach, das
+ * fleißig geübt wird und trotzdem abrutscht.
+ */
+function Punktestand({ faecher, notenfaecher }) {
+  const alles = useMemo(() => uebersicht(notenfaecher), [notenfaecher]);
+  const jeFach = useMemo(() => faecher
+    .map((f) => ({ fach: f, punkte: punkteZuLernfach(notenfaecher, f.id) }))
+    .filter((x) => x.punkte), [faecher, notenfaecher]);
+
+  if (!alles.gesamt) return null;
+
+  const farbe = {
+    gut: "var(--gruen)", solide: "var(--akzent)",
+    wacklig: "var(--gelb)", schlecht: "var(--rot)", leer: "var(--schrift-blass)",
+  };
+
+  return (
+    <>
+      <h3 style={{ marginBottom: 4 }}>Wie es ankommt</h3>
+      <p className="klein matt" style={{ marginTop: 0, marginBottom: 12 }}>
+        Der Lernstand oben sagt, wie gut die Karten sitzen. Diese Zahl sagt,
+        ob es ankommt. Sie stammt aus deinen eingetragenen Punkten, nicht aus
+        dem Lernen — die App rechnet sie nicht schön.
+      </p>
+      <div className="zahl-kachel" style={{ marginBottom: 26 }}>
+        <div className="reihe" style={{ marginBottom: 12 }}>
+          <div className="dehnen">
+            <div className="klein matt">Schnitt aller Halbjahresleistungen</div>
+            <div className="zahl" style={{ color: farbe[punkteStufe(alles.gesamt.punkte)] }}>
+              {punkteText(alles.gesamt.punkte)} <span style={{ fontSize: 15 }}>Punkte</span>
+            </div>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div className="klein matt">umgerechnet</div>
+            <div className="zahl">{noteText(alles.gesamt.punkte)}</div>
+          </div>
+        </div>
+
+        {alles.halbjahre.some((h) => h.schnitt !== null) && (
+          <div className="reihe klein" style={{ gap: 16, flexWrap: "wrap", marginBottom: 6 }}>
+            {alles.halbjahre.filter((h) => h.schnitt !== null).map((h) => (
+              <span key={h.id} className="matt">
+                {h.id}: <strong style={{ color: farbe[punkteStufe(h.schnitt)] }}>
+                  {punkteText(h.schnitt)}
+                </strong>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {jeFach.length > 0 && (
+          <div style={{ marginTop: 12, display: "grid", gap: 6 }}>
+            <div className="klein matt">Fächer, in denen du auch lernst:</div>
+            {jeFach.map(({ fach, punkte }) => (
+              <div key={fach.id} className="reihe klein">
+                <span className="dehnen">{fach.name}</span>
+                <span className="blass">zuletzt {punkte.juengste.halbjahr}</span>
+                <strong style={{ color: farbe[punkteStufe(punkte.juengste.punkte)] }}>
+                  {punkteText(punkte.juengste.punkte)} P
+                </strong>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <p className="klein blass" style={{ marginTop: 12, marginBottom: 0 }}>
+          Nicht die Abiturnote — der schlichte Durchschnitt der erfassten
+          Halbjahresleistungen. Mehr unter „Punkte“.
+        </p>
+      </div>
+    </>
+  );
+}
+
 export default function Statistik() {
-  const { stapel, karten, kartenNachStapel, zustaende, stapelVon, sitzungen, reviews } = useDaten();
+  const {
+    stapel, karten, kartenNachStapel, zustaende, stapelVon, sitzungen, reviews,
+    faecher, notenfaecher,
+  } = useDaten();
 
   /* Gezählt wird aus den Reviews, nicht aus den Sitzungen: Eine Sitzung wird
      erst am Ende festgehalten, ein abgebrochener Durchgang taucht also nie
@@ -146,6 +229,9 @@ export default function Statistik() {
           </div>
         </>
       )}
+
+      {/* ----------------------------- Punkte ----------------------------- */}
+      <Punktestand faecher={faecher} notenfaecher={notenfaecher} />
 
       {/* -------------------------- Eigenleistung ------------------------- */}
       {eigen.gesamt > 0 && (eigen.ki_uebernommen > 0 || eigen.ki_vorderseite > 0) && (
