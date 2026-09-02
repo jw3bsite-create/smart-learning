@@ -7,6 +7,19 @@ Kosten.
 
 ## Starten
 
+Einmalig eine Verknüpfung auf dem Schreibtisch anlegen:
+
+```
+powershell -ExecutionPolicy Bypass -File werkzeug\verknuepfung.ps1
+```
+
+Danach genügt ein Doppelklick auf „Karteikasten". Läuft der Server noch nicht,
+wird er still gestartet; läuft er schon, geht bloß das Fenster auf. Der Server
+liegt in einem kleingelegten Fenster namens „Karteikasten – Server" — wer es
+schließt, beendet ihn.
+
+Von Hand geht es weiterhin so:
+
 ```
 npm install
 npm run dev

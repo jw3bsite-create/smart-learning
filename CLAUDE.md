@@ -27,7 +27,13 @@ npm install
 npm run dev      # http://localhost:5180
 npm test         # 161 Prüfungen für den Kern
 npm run lint
+npm run symbole  # Symbole neu erzeugen (PNG fürs Handy, ICO für Windows)
 ```
+
+Für den Alltag liegt eine Verknüpfung auf dem Schreibtisch; angelegt wird sie
+mit `werkzeug\verknuepfung.ps1`. Sie ruft `werkzeug\starten.ps1` auf: prüft den
+Port, startet bei Bedarf `werkzeug\server.cmd` kleingelegt und öffnet Edge
+ohne Adresszeile.
 
 Node liegt unter `C:\Program Files\nodejs` und ist weder in der Git-Bash noch in
 PowerShell im Pfad. Vorher setzen:
@@ -137,6 +143,21 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
 9. **Fortschritt kommt aus `cardstates`, nicht aus `progress`.** Der alte
    Fächerplan lebt nur noch für die Übungsmodi. Wer ihn für eine Anzeige
    heranzieht, lässt dieselbe Karte an zwei Stellen zwei Wahrheiten haben.
+
+### Beim Starter unter Windows
+
+10. **Keine Ausgabe von Systembefehlen auswerten.** Der erste Starter suchte in
+    `netstat` nach `LISTENING` — auf diesem deutschen Windows steht dort
+    `ABHÖREN`. Ein Verbindungsversuch antwortet in jeder Sprache gleich.
+11. **`.ps1` braucht eine Byte-Marke.** Windows PowerShell 5.1 liest eine Datei
+    ohne BOM als ANSI; die Umlaute werden zu Kauderwelsch und die Datei ist
+    syntaktisch kaputt.
+12. **Keine deutschen Anführungszeichen in PowerShell-Zeichenketten.**
+    PowerShell nimmt `„` und `“` selbst als Begrenzer und bricht mitten im Satz ab.
+13. **`title` in einer Stapeldatei gehört vor jeden Klammerblock** — eine
+    schließende Klammer im Titeltext beendet sonst den Block.
+14. **Vite setzt den Fenstertitel der Konsole zurück.** Er wird darum von außen
+    gesetzt, nachdem der Server antwortet (`Benenne` in `starten.ps1`).
 
 ## Was ausdrücklich nicht gebaut wird
 
