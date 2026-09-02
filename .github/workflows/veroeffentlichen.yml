@@ -1,0 +1,61 @@
+# Baut Smart Learning und stellt es auf GitHub Pages.
+#
+# Läuft bei jedem Push auf master. Wichtig ist die Reihenfolge: Erst Lint und
+# Prüfungen, dann der Bau. Schlägt eine Prüfung fehl, wird nichts
+# veröffentlicht — es soll nie eine Fassung online gehen, die auf dem eigenen
+# Rechner nicht durchgelaufen wäre.
+
+name: Veröffentlichen
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:      # von Hand auslösbar, ohne etwas zu ändern
+
+# Die Rechte, die das Veröffentlichen auf Pages verlangt.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Zwei Läufe gleichzeitig würden einander überschreiben.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  bauen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Pakete laden
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Prüfungen
+        run: npm test
+
+      - name: Bauen
+        run: npm run build
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  veroeffentlichen:
+    needs: bauen
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.page_url }}
+    steps:
+      - id: pages
+        uses: actions/deploy-pages@v4
