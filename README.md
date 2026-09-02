@@ -20,7 +20,7 @@ schließt, beendet ihn.
 
 ## Im Netz — Handy und Tablet
 
-Die App liegt auf GitHub Pages. Jeder Push auf `master` baut sie neu und stellt
+Die App liegt auf GitHub Pages. Jeder Push auf `main` baut sie neu und stellt
 sie online; vorher laufen Lint und die Prüfungen, damit nie eine Fassung
 hochgeht, die auf dem eigenen Rechner nicht durchgelaufen wäre.
 

@@ -1,6 +1,6 @@
 # Baut Smart Learning und stellt es auf GitHub Pages.
 #
-# Läuft bei jedem Push auf master. Wichtig ist die Reihenfolge: Erst Lint und
+# Läuft bei jedem Push auf main. Wichtig ist die Reihenfolge: Erst Lint und
 # Prüfungen, dann der Bau. Schlägt eine Prüfung fehl, wird nichts
 # veröffentlicht — es soll nie eine Fassung online gehen, die auf dem eigenen
 # Rechner nicht durchgelaufen wäre.
@@ -9,7 +9,7 @@ name: Veröffentlichen
 
 on:
   push:
-    branches: [master, main]
+    branches: [main, master]
   workflow_dispatch:      # von Hand auslösbar, ohne etwas zu ändern
 
 # Die Rechte, die das Veröffentlichen auf Pages verlangt.
