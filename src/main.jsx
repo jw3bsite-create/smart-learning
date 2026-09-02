@@ -17,9 +17,19 @@ createRoot(document.getElementById("wurzel")).render(
   </React.StrictMode>
 );
 
-// Dienst-Arbeiter für den Betrieb ohne Netz. Im Entwicklungslauf stört er nur.
+/*
+ * Dienst-Arbeiter für den Betrieb ohne Netz. Im Entwicklungslauf stört er nur.
+ *
+ * Der Pfad wird aus der Adresse der Seite abgeleitet, nicht fest verdrahtet:
+ * Liegt die App in einem Unterordner, zeigt `/sw.js` sonst ins Leere — und ein
+ * Dienst-Arbeiter, der nicht gefunden wird, nimmt die Offline-Fähigkeit mit
+ * sich, ohne dass es jemand merkt.
+ */
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
+    const wurzel = new URL(".", window.location.href);
+    navigator.serviceWorker
+      .register(new URL("sw.js", wurzel), { scope: wurzel.pathname })
+      .catch(() => {});
   });
 }
