@@ -140,11 +140,19 @@ export default function Statistik() {
   const eigen = useMemo(() => eigenleistung(karten), [karten]);
   const heute = tage.get(tagesSchluessel()) || 0;
 
+  /*
+   * Ohne Karten gibt es keinen Lernstand — Punkte aber schon. Wer seine
+   * Zeugnisnoten fuehrt und noch keine Karteikarten angelegt hat, bekaeme
+   * sonst „Noch nichts zu zeigen" zu sehen, obwohl er gerade etwas eingetragen
+   * hat. Genau das waere mir mit dem neuen Abschnitt beinahe passiert.
+   */
   if (!karten.length) {
     return (
       <div className="mitte">
-        <Leer symbol="statistik" titel="Noch nichts zu zeigen"
-          text="Sobald du lernst, sammeln sich hier Zahlen an.">
+        <div className="kopfzeile"><h1>Fortschritt</h1></div>
+        <Punktestand faecher={faecher} notenfaecher={notenfaecher} />
+        <Leer symbol="statistik" titel="Noch nichts gelernt"
+          text="Sobald du Karten anlegst und abrufst, sammeln sich hier Zahlen an.">
           <Knopf art="voll" onClick={() => gehe("/")}>Zur Übersicht</Knopf>
         </Leer>
       </div>

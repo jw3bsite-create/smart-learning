@@ -676,13 +676,13 @@ export function DatenSpeicher({ children }) {
 
   /* ------------------------- Sicherung als Datei ---------------------- */
   const alsSicherung = useCallback(async () => {
-    const [o, s, k, f, fa, cs, rv, en, xk, pr] = await Promise.all([
-      db.all("folders", { mitGeloeschten: true }), db.all("sets", { mitGeloeschten: true }),
-      db.all("cards", { mitGeloeschten: true }), db.all("progress", { mitGeloeschten: true }),
-      db.all("subjects", { mitGeloeschten: true }), db.all("cardstates", { mitGeloeschten: true }),
-      db.all("reviews", { mitGeloeschten: true }), db.all("drafts", { mitGeloeschten: true }),
-      db.all("explanations", { mitGeloeschten: true }), db.all("exams", { mitGeloeschten: true }),
-    ]);
+    /* Ueber die Liste in db.js, nicht ueber eine eigene: Eine neue Ablage darf
+       nicht deshalb aus der Sicherung fallen, weil jemand hier das Nachtragen
+       vergisst. Genau so ist es beim Hinzufuegen von `noten` beinahe
+       geschehen. */
+    const eintraege = {};
+    for (const [ablage, feld] of Object.entries(db.SICHERUNG_FELDER))
+      eintraege[feld] = await db.all(ablage, { mitGeloeschten: true });
     const bilder = await db.all("media", { mitGeloeschten: true });
     const eingepackt = await Promise.all(bilder.map(async (b) => ({
       id: b.id, type: b.type,
@@ -693,27 +693,22 @@ export function DatenSpeicher({ children }) {
         leser.readAsDataURL(b.blob);
       }),
     })));
-    return { fassung: 5, erzeugt: Date.now(), ordner: o, stapel: s, karten: k,
-      staende: f, faecher: fa, zustaende: cs, reviews: rv, entwuerfe: en,
-      erklaerungen: xk, pruefungen: pr,
-      bilder: eingepackt.filter((b) => b.daten), einstellungen };
+    return {
+      fassung: 6, erzeugt: Date.now(), ...eintraege,
+      bilder: eingepackt.filter((b) => b.daten), einstellungen,
+    };
   }, [einstellungen]);
 
   const ausSicherung = useCallback(async (daten, ersetzen = false) => {
     if (!daten || !Array.isArray(daten.stapel)) throw new Error("Unbekanntes Format");
-    if (ersetzen)
-      for (const s of ["folders", "sets", "cards", "progress", "media",
-        "subjects", "cardstates", "reviews", "drafts", "explanations", "exams"]) await db.clear(s);
-    await db.putMany("folders", daten.ordner || []);
-    await db.putMany("sets", daten.stapel || []);
-    await db.putMany("cards", daten.karten || []);
-    await db.putMany("progress", daten.staende || []);
-    await db.putMany("subjects", daten.faecher || []);
-    await db.putMany("cardstates", daten.zustaende || []);
-    await db.putMany("reviews", daten.reviews || []);
-    await db.putMany("drafts", daten.entwuerfe || []);
-    await db.putMany("explanations", daten.erklaerungen || []);
-    await db.putMany("exams", daten.pruefungen || []);
+    if (ersetzen) {
+      for (const ablage of Object.keys(db.SICHERUNG_FELDER)) await db.clear(ablage);
+      await db.clear("media");
+    }
+    /* Fehlt ein Feld — etwa, weil die Sicherung aelter ist als die Ablage —,
+       bleibt es leer, statt dass das Einlesen darueber stolpert. */
+    for (const [ablage, feld] of Object.entries(db.SICHERUNG_FELDER))
+      await db.putMany(ablage, daten[feld] || []);
     for (const b of daten.bilder || []) {
       try {
         const antwort = await fetch(b.daten);

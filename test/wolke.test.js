@@ -15,7 +15,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-import { SYNCED, STORES } from "../src/core/db.js";
+import { SYNCED, STORES, SICHERUNG_FELDER } from "../src/core/db.js";
 import {
   ARTEN, normalisiereUrl, saeubereSchluessel, schluesselFehler, adressFehler,
 } from "../src/core/cloud.js";
@@ -194,4 +194,48 @@ test("die Adresse wird auf Brauchbarkeit geprüft", () => {
   assert.match(adressFehler(""), /fehlt/i);
   assert.match(adressFehler("supabase"), /Adresse aus/i);
   assert.match(adressFehler("https://beispiel….supabase.co"), /…/);
+});
+
+/* ============================ Die Sicherungsdatei ======================= */
+
+/*
+ * Dieselbe Sorte Fehler wie oben, nur an anderer Stelle: Beim Hinzufuegen der
+ * Ablage `noten` fehlte sie in der Sicherung, im Einlesen und in der
+ * Auffanglinie — drei von Hand gefuehrte Listen, alle drei vergessen. Eine
+ * heruntergeladene Sicherung haette die Punkte kommentarlos nicht enthalten,
+ * und gemerkt haette man es erst beim Wiederherstellen.
+ */
+test("die Sicherung deckt jede abzugleichende Ablage ab", () => {
+  for (const ablage of SYNCED)
+    assert.ok(SICHERUNG_FELDER[ablage],
+      `"${ablage}" wird abgeglichen, steht aber in keiner Sicherung`);
+});
+
+test("kein Feld in der Sicherung ohne zugehörige Ablage", () => {
+  for (const ablage of Object.keys(SICHERUNG_FELDER))
+    assert.ok(STORES.includes(ablage), `Sicherung nennt "${ablage}", das es nicht gibt`);
+});
+
+/* Die Feldnamen stehen in jeder je geschriebenen Datei. Ein neuer Name macht
+   alte Sicherungen unlesbar — lautlos, denn fehlende Felder werden übergangen. */
+test("die Feldnamen der Sicherung liegen fest", () => {
+  assert.deepEqual(SICHERUNG_FELDER, {
+    folders: "ordner",
+    sets: "stapel",
+    cards: "karten",
+    progress: "staende",
+    subjects: "faecher",
+    cardstates: "zustaende",
+    reviews: "reviews",
+    drafts: "entwuerfe",
+    explanations: "erklaerungen",
+    exams: "pruefungen",
+    noten: "notenfaecher",
+  });
+});
+
+test("die Feldnamen sind untereinander verschieden", () => {
+  const felder = Object.values(SICHERUNG_FELDER);
+  assert.equal(new Set(felder).size, felder.length,
+    "zwei Ablagen unter demselben Feld würden einander in der Datei überschreiben");
 });

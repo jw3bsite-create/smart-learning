@@ -32,13 +32,12 @@ export default class Auffanglinie extends React.Component {
     // Bewusst unmittelbar über IndexedDB: Der Datenspeicher der App könnte
     // gerade der sein, der abgestürzt ist.
     const db = await import("../core/db.js");
-    const ablagen = ["folders", "sets", "cards", "progress", "subjects",
-      "cardstates", "reviews", "drafts", "explanations", "exams"];
-    const daten = { fassung: 5, erzeugt: Date.now(), notsicherung: true };
-    const namen = { folders: "ordner", sets: "stapel", cards: "karten",
-      progress: "staende", subjects: "faecher", cardstates: "zustaende",
-      reviews: "reviews", drafts: "entwuerfe", explanations: "erklaerungen",
-      exams: "pruefungen" };
+    /* Die Liste kommt aus db.js — dieselbe, mit der die gewöhnliche Sicherung
+       geschrieben wird. Sie hier noch einmal von Hand zu führen hieße, dass
+       eine neue Ablage in der Rettung fehlt, gerade wenn man sie braucht. */
+    const ablagen = Object.keys(db.SICHERUNG_FELDER);
+    const daten = { fassung: 6, erzeugt: Date.now(), notsicherung: true };
+    const namen = db.SICHERUNG_FELDER;
     for (const ablage of ablagen) {
       try { daten[namen[ablage]] = await db.all(ablage, { mitGeloeschten: true }); }
       catch (e) { daten[namen[ablage]] = []; }

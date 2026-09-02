@@ -64,6 +64,32 @@ export const STORES = Object.keys(SCHEMA);
 export const SYNCED = ["folders", "sets", "cards", "progress", "subjects",
   "cardstates", "reviews", "drafts", "explanations", "exams", "noten"];
 
+/**
+ * Wie die Ablagen in einer Sicherungsdatei heissen.
+ *
+ * Diese Liste steht hier und nicht dort, wo gesichert wird, weil sie an drei
+ * Stellen gebraucht wird: beim Schreiben der Sicherung, beim Einlesen und in
+ * der Auffanglinie. Dreimal dieselbe Liste von Hand zu fuehren ist genau die
+ * Art Buchhaltung, die stillschweigend auseinanderlaeuft — als die Ablage
+ * `noten` dazukam, fehlte sie prompt in allen dreien, und eine Sicherung
+ * haette die Punkte kommentarlos nicht enthalten.
+ *
+ * Die Namen sind Teil des Dateiformats und duerfen sich nicht mehr aendern.
+ */
+export const SICHERUNG_FELDER = {
+  folders: "ordner",
+  sets: "stapel",
+  cards: "karten",
+  progress: "staende",
+  subjects: "faecher",
+  cardstates: "zustaende",
+  reviews: "reviews",
+  drafts: "entwuerfe",
+  explanations: "erklaerungen",
+  exams: "pruefungen",
+  noten: "notenfaecher",
+};
+
 let dbPromise = null;
 
 /**

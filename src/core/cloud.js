@@ -303,6 +303,20 @@ export async function abgleichen(melde = () => {}) {
   /* --- Schicken --- */
   melde("Schicke Änderungen …");
   const gesendet = Number(await db.getSetting("wolkeGesendet", 0)) || 0;
+
+  /*
+   * Der neue Stand wird **jetzt** genommen, nicht am Ende des Abgleichs.
+   *
+   * Vorher stand hier Date.now() erst hinter dem Hochladen und dem Abgleich
+   * der Bilder — also Sekunden spaeter. Alles, was der Nutzer in dieser
+   * Zeitspanne aenderte, bekam einen Zeitstempel davor, galt beim naechsten
+   * Mal als laengst geschickt und ging nie hinaus. Still, dauerhaft, und nur
+   * auf dem Geraet, an dem man gerade gearbeitet hat.
+   *
+   * Frueher genommen kann es hoechstens geschehen, dass ein Datensatz zweimal
+   * geschickt wird. Das ist folgenlos: Es ist ein upsert.
+   */
+  const sendeStand = Date.now();
   const hinaus = [];
   for (const ablage of db.SYNCED) {
     const alle = await db.all(ablage, { mitGeloeschten: true });
@@ -323,7 +337,7 @@ export async function abgleichen(melde = () => {}) {
 
   const jetzt = Date.now();
   await db.setSetting("wolkeMarke", Math.max(neueMarke, marke));
-  await db.setSetting("wolkeGesendet", jetzt);
+  await db.setSetting("wolkeGesendet", sendeStand);
   await db.setSetting("wolkeZuletzt", jetzt);
 
   return { geholt, geschickt, bilder: bilderZahl, zeit: jetzt };
