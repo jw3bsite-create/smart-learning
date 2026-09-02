@@ -6,6 +6,8 @@ import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { anteileNachStufe } from "../core/fsrs.js";
 import { stapelStand } from "../core/warteschlange.js";
+import { ordnerZweig } from "../core/model.js";
+import * as beispiel from "../core/beispiel.js";
 import { anzahl } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import {
@@ -108,6 +110,33 @@ function Suchergebnis({ begriff }) {
           text="Kein Stapel und keine Karte enthält diesen Text." />
       )}
     </div>
+  );
+}
+
+/* --------------------------- Zum Ausprobieren --------------------------- */
+
+/*
+ * Auf einem leeren Bestand steht dieser Knopf neben dem ersten Stapel.
+ *
+ * Er stand zuerst nur in den Einstellungen — und war damit genau dort
+ * versteckt, wo niemand nachsieht, der die App zum ersten Mal öffnet. Wer
+ * nichts hat, will als Erstes sehen, was das Ding kann; wer schon Karten hat,
+ * sieht diesen Knopf nie wieder.
+ */
+function BeispielKnopf() {
+  const { neuLaden } = useDaten();
+  const [laeuft, setLaeuft] = useState(false);
+  return (
+    <Knopf art="gross" symbol="stapel" disabled={laeuft}
+      onClick={async () => {
+        setLaeuft(true);
+        try {
+          await beispiel.beispieldatenAnlegen();
+          await neuLaden();
+        } finally { setLaeuft(false); }
+      }}>
+      {laeuft ? "Wird angelegt …" : "Beispieldaten zum Ausprobieren"}
+    </Knopf>
   );
 }
 
@@ -231,7 +260,11 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
       {unterordner.length > 0 && (
         <div className="gitter" style={{ marginBottom: 22 }}>
           {unterordner.map((o) => {
-            const drin = stapel.filter((s) => s.folderId === o.id).length;
+            /* Auch die Stapel in Unterordnern zählen: Ein Ordner, der nur
+               weitere Ordner enthält, meldete sonst „0 Stapel“ und sah aus wie
+               ein Irrtum. */
+            const zweig = ordnerZweig(ordner, o.id);
+            const drin = stapel.filter((s) => zweig.has(s.folderId)).length;
             return (
               <div key={o.id} className="kachel" style={{ minHeight: 90 }}
                 onClick={() => gehe("/ordner/" + o.id)}
@@ -254,7 +287,10 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
       {sichtbareStapel.length === 0 ? (
         <Leer titel="Noch nichts hier"
           text="Lege einen Stapel an und fülle ihn mit Karten — von Hand, aus einer Liste zum Einfügen oder aus einem Foto.">
-          <Knopf art="voll gross" symbol="plus" onClick={neuerStapel}>Ersten Stapel anlegen</Knopf>
+          <div className="reihe" style={{ justifyContent: "center", flexWrap: "wrap" }}>
+            <Knopf art="voll gross" symbol="plus" onClick={neuerStapel}>Ersten Stapel anlegen</Knopf>
+            {!ordnerId && <BeispielKnopf />}
+          </div>
         </Leer>
       ) : (
         <div className="gitter">
