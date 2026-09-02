@@ -167,6 +167,25 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
 14. **Vite setzt den Fenstertitel der Konsole zurück.** Er wird darum von außen
     gesetzt, nachdem der Server antwortet (`Benenne` in `starten.ps1`).
 
+### Bei Telefon und Tablet
+
+16. **Eingabefelder nie unter 16 Punkten.** Safari auf dem iPhone zoomt sonst
+    bei jedem Fokus die ganze Seite heran.
+17. **`env(safe-area-inset-*)` gehört zu `viewport-fit=cover`.** Ohne den
+    Ausgleich läuft der Inhalt im App-Betrieb unter Statusleiste und Balken.
+18. **Keine Pfade ab der Wurzel.** `base: "./"`, relative Verweise im Kopf der
+    Seite, `start_url` und `scope` relativ, der Dienst-Arbeiter aus
+    `self.registration.scope` abgeleitet — sonst trägt der Bau nur, wenn er
+    zufällig ganz oben liegt.
+19. **Der Dienst-Arbeiter muss beim Einrichten einlagern, nicht nebenbei.**
+    Die Bausteine werden geladen, ehe er die Aufsicht übernimmt. Die Liste
+    setzt das Bauwerkzeug ein (`dienstArbeiter` in `vite.config.js`).
+20. **`caches.match` braucht `ignoreVary: true`.** Setzt ein Anbieter
+    `Vary: Origin`, findet der Browser nichts, obwohl alles im Speicher liegt —
+    denn ein `crossorigin`-Skript schickt eine Origin-Kopfzeile mit, das
+    Einlagern nicht. Der Fehler zeigt sich nur ohne Netz und nur bei den
+    Anfragen des Browsers, nicht bei denen aus dem Programm.
+
 ## Was ausdrücklich nicht gebaut wird
 
 Kein offenes Chatfenster · kein „Lösung anzeigen" im Tutormodus · kein Multiple

@@ -2,28 +2,34 @@
   "name": "Smart Learning",
   "short_name": "Smart Learning",
   "description": "Karteikarten, Lernmodi und Tests für die Abiturvorbereitung.",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0f1115",
   "theme_color": "#0f1115",
   "lang": "de",
   "icons": [
     {
-      "src": "/symbol.svg",
+      "src": "./symbol.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/symbol-192.png",
+      "src": "./symbol-192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/symbol-512.png",
+      "src": "./symbol-512.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "./symbol-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

@@ -414,6 +414,46 @@ select.feld { appearance: none; padding-right: 30px;
   h1 { font-size: 24px; }
   .karten-zeile { grid-template-columns: 1fr; }
   .karte-text { font-size: 23px; }
+
+  /*
+   * Sechzehn Punkte, keinen weniger.
+   *
+   * Safari auf dem iPhone zoomt die ganze Seite heran, sobald ein Eingabefeld
+   * den Fokus bekommt und kleiner als sechzehn Punkte gesetzt ist. Beim Abrufen
+   * hiesse das: Bei jeder Karte springt die Ansicht. Die Schriftgroesse der
+   * Oberflaeche darf der Nutzer einstellen — die der Eingabefelder auf dem
+   * Telefon nicht unter diese Schwelle.
+   */
+  .feld, input, textarea, select { font-size: max(16px, var(--schriftgroesse)); }
+}
+
+/* ---------------------------- Sichere Raender --------------------------- */
+/*
+ * Auf dem iPhone laeuft der Inhalt im App-Betrieb unter die Statusleiste und
+ * unter den Balken am unteren Rand — das ist die Folge von `viewport-fit=cover`
+ * im Kopf der Seite, und die will man, weil der Hintergrund sonst an den Kanten
+ * abbricht. Der Ausgleich muss dann aber von Hand kommen.
+ */
+.leiste { padding-top: env(safe-area-inset-top); }
+.modus-kopf { padding-top: calc(12px + env(safe-area-inset-top)); }
+
+.mitte {
+  padding-left: max(24px, env(safe-area-inset-left));
+  padding-right: max(24px, env(safe-area-inset-right));
+  padding-bottom: calc(90px + env(safe-area-inset-bottom));
+}
+
+@media (max-width: 860px) {
+  .mitte {
+    padding-top: calc(18px + env(safe-area-inset-top));
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+  }
+  .modus-flaeche {
+    padding-left: max(20px, env(safe-area-inset-left));
+    padding-right: max(20px, env(safe-area-inset-right));
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
+  }
 }
 
 /* -------------------------------- Druck ------------------------------- */
