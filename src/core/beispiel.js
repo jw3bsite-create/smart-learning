@@ -742,19 +742,44 @@ const ABLAGEN = ["subjects", "folders", "sets", "cards", "media", "cardstates",
 export async function beispieldatenEntfernen({ trocken = false } = {}) {
   let anzahl = 0;
   const jeAblage = {};
+  const zeit = Date.now();
+
   for (const ablage of ABLAGEN) {
     const alle = await db.all(ablage, { mitGeloeschten: true });
-    const treffer = alle.filter((r) => r && r[MARKE] === true);
+    // Was schon einen Grabstein hat, ist weg — es noch einmal zu zaehlen
+    // ergaebe die Meldung, es sei etwas entfernt worden, wo nichts mehr war.
+    const treffer = alle.filter((r) => r && r[MARKE] === true && !r.deleted);
     jeAblage[ablage] = treffer.length;
     anzahl += treffer.length;
     if (trocken) continue;
-    for (const rec of treffer) await db.remove(ablage, rec.id ?? rec.key);
+
+    /*
+     * Abzugleichende Ablagen bekommen einen Grabstein statt einer Loeschung.
+     *
+     * Der Grund ist derselbe wie ueberall sonst in dieser App: Wer auf einem
+     * Geraet ersatzlos loescht, hat es beim naechsten Abgleich wieder da —
+     * das andere Geraet kennt die Zeile ja noch und schickt sie zurueck. Beim
+     * Beispielbestand faellt das besonders auf, weil es dreitausend Zeilen
+     * sind und niemand versteht, warum sie wiederkommen.
+     *
+     * Was nicht abgeglichen wird — Bilder, das Protokoll, Sitzungen —, kann
+     * ersatzlos weg. Die Grabsteine selbst raeumt `pruneTombstones` nach
+     * sechzig Tagen fort.
+     */
+    const abgeglichen = db.SYNCED.includes(ablage);
+    for (const rec of treffer) {
+      if (abgeglichen)
+        await db.put(ablage, { ...rec, deleted: true, updatedAt: zeit });
+      else
+        await db.remove(ablage, rec.id ?? rec.key);
+    }
   }
   return { anzahl, jeAblage };
 }
 
 /** Liegt schon ein Beispielbestand vor? */
 export async function beispieldatenVorhanden() {
-  const stapel = await db.all("sets", { mitGeloeschten: true });
+  // Ohne `mitGeloeschten` — ein Grabstein ist kein vorhandener Bestand.
+  const stapel = await db.all("sets");
   return stapel.some((s) => s[MARKE] === true);
 }

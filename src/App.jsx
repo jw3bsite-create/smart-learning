@@ -219,7 +219,10 @@ export default function App() {
           onClick={() => setLeisteOffen(false)} />
       )}
       <main className="buehne">
-        <div className="nur-schmal" style={{ padding: "10px 12px 0" }}>
+        {/* Der Abstand steht im Stilblatt, nicht hier: Auf dem iPhone muss
+            oben die Statusleiste ausgeglichen werden, und ein fest
+            eingetragener Wert kann das nicht. */}
+        <div className="menue-streifen nur-schmal">
           <SymbolKnopf symbol="balken" titel="Menü" art="leer" groesse={22}
             onClick={() => setLeisteOffen(true)} />
         </div>

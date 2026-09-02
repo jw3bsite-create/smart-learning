@@ -437,6 +437,30 @@ select.feld { appearance: none; padding-right: 30px;
 .leiste { padding-top: env(safe-area-inset-top); }
 .modus-kopf { padding-top: calc(12px + env(safe-area-inset-top)); }
 
+/*
+ * Der Streifen mit dem Menüknopf auf schmalen Schirmen.
+ *
+ * Er stand mit fest eingetragenem Abstand in App.jsx — und lag damit auf dem
+ * iPhone im App-Betrieb unter der Statusleiste: Der Knopf war sichtbar, aber
+ * nicht zu treffen. Das ist die Kehrseite von `viewport-fit=cover`: Man
+ * bekommt die ganze Fläche und muss jede Stelle selbst ausgleichen, an der
+ * etwas ganz oben sitzt.
+ */
+/* Dialoge sitzen mittig, koennen auf kleinen Schirmen aber bis an den Rand
+   reichen. Auch hier erst schlicht, dann mit Ausgleich. */
+.schleier {
+  padding-top: max(20px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+}
+
+.menue-streifen {
+  /* Erst schlicht, dann mit Ausgleich. Kennt ein Browser `env()` nicht, wirft
+     er die zweite Zeile weg — und ohne die erste stünde der Knopf dann ganz
+     ohne Abstand da. */
+  padding: 10px 12px 0;
+  padding-top: calc(10px + env(safe-area-inset-top, 0px));
+}
+
 .mitte {
   padding-left: max(24px, env(safe-area-inset-left));
   padding-right: max(24px, env(safe-area-inset-right));
