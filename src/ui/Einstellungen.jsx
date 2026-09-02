@@ -75,7 +75,11 @@ function Wolkenteil({ aufAbgleich }) {
       await wolke.zugangSchreiben(zugang);
       if (neu) {
         const s = await wolke.registrieren(kennung.trim(), passwort);
-        if (!s) setHinweis("Bestätige die Kennung über den Verweis in deiner Post, dann melde dich an.");
+        if (!s) setHinweis("Das Konto ist angelegt. Supabase will die Kennung noch "
+          + "bestätigt haben und schickt dafür eine Mail — in der kostenlosen "
+          + "Fassung kommt die oft nicht an. Einfacher: im eigenen Projekt unter "
+          + "Authentication → Sign In / Providers → Email die Option Confirm "
+          + "email abschalten und hier auf Anmelden wechseln.");
         setSitz(s);
       } else {
         setSitz(await wolke.anmelden(kennung.trim(), passwort));

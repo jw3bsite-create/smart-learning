@@ -180,7 +180,11 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
 19. **Der Dienst-Arbeiter muss beim Einrichten einlagern, nicht nebenbei.**
     Die Bausteine werden geladen, ehe er die Aufsicht übernimmt. Die Liste
     setzt das Bauwerkzeug ein (`dienstArbeiter` in `vite.config.js`).
-20. **`caches.match` braucht `ignoreVary: true`.** Setzt ein Anbieter
+20. **Deutsche Anführungszeichen brechen Zeichenketten.** Das schließende ist
+    ein anderes Zeichen als das öffnende; wer `„…"` schreibt, beendet die
+    Zeichenkette mitten im Satz. Gilt in JavaScript wie in PowerShell — beides
+    ist hier schon passiert. Im Zweifel ohne Anführungszeichen formulieren.
+21. **`caches.match` braucht `ignoreVary: true`.** Setzt ein Anbieter
     `Vary: Origin`, findet der Browser nichts, obwohl alles im Speicher liegt —
     denn ein `crossorigin`-Skript schickt eine Origin-Kopfzeile mit, das
     Einlagern nicht. Der Fehler zeigt sich nur ohne Netz und nur bei den

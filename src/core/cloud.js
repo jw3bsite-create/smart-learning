@@ -200,9 +200,28 @@ export async function anmelden(kennung, passwort) {
 export async function registrieren(kennung, passwort) {
   const k = await verbinde();
   if (!k) throw new Error("Keine Zugangsdaten hinterlegt.");
-  const { data, error } = await k.auth.signUp({ email: kennung, password: passwort });
+  const { data, error } = await k.auth.signUp({
+    email: kennung,
+    password: passwort,
+    /*
+     * Wohin der Verweis aus der Bestaetigungsmail fuehren soll.
+     *
+     * Ohne diese Angabe nimmt Supabase die Site URL des Projekts, und die
+     * steht ab Werk auf http://localhost:3000 — einen Server, den niemand
+     * hat. Der Verweis fuehrt dann ins Leere, und der Fehler steht in der
+     * Adresszeile statt in der App. Die App weiss selbst am besten, wo sie
+     * liegt; also sagt sie es.
+     */
+    options: { emailRedirectTo: eigeneAdresse() },
+  });
   if (error) throw new Error(uebersetze(error.message));
   return data.session;
+}
+
+/** Die Adresse, unter der diese App gerade laeuft. */
+function eigeneAdresse() {
+  if (typeof window === "undefined") return undefined;
+  return new URL(".", window.location.href).href;
 }
 
 export async function abmelden() {
@@ -213,7 +232,11 @@ export async function abmelden() {
 function uebersetze(text) {
   const t = String(text || "");
   if (/invalid login/i.test(t)) return "Kennung oder Passwort stimmen nicht.";
-  if (/email not confirmed/i.test(t)) return "Die Kennung ist noch nicht bestätigt — sieh in dein Postfach.";
+  if (/email not confirmed/i.test(t))
+    return "Die Kennung ist noch nicht bestätigt. Supabase verschickt in der "
+      + "kostenlosen Fassung nur wenige Mails am Tag, oft kommt keine an. Du "
+      + "kannst die Bestätigung im eigenen Projekt abschalten: Authentication "
+      + "→ Sign In / Providers → Email → Confirm email abschalten.";
   if (/already registered/i.test(t)) return "Diese Kennung gibt es bereits.";
   if (/password/i.test(t) && /least/i.test(t)) return "Das Passwort ist zu kurz (mindestens sechs Zeichen).";
   if (/failed to fetch/i.test(t)) return "Kein Anschluss — Adresse falsch oder keine Verbindung.";
