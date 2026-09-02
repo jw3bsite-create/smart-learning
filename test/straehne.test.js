@@ -229,3 +229,41 @@ test("die Endspurt-Warteschlange lässt gesperrte Karten aus", () => {
   assert.equal(s.aufgaben.length, 0);
   assert.ok(CRAM_AB_TAGEN > 0);
 });
+
+/*
+ * Der Monatswechsel.
+ *
+ * Die Ruhetage werden je Kalendermonat gezählt. Eine Lücke, die über den
+ * Monatswechsel läuft, verteilte sich früher auf zwei Kontingente — vier
+ * ausgelassene Tage am Stück überstanden die Strähne, dieselben vier Tage
+ * mitten im Monat nicht. Der Fehler zeigte sich nur an den ersten Tagen eines
+ * Monats und blieb darum lange unentdeckt.
+ */
+test("eine Lücke über den Monatswechsel bekommt kein doppeltes Kontingent", () => {
+  const zweiterSeptember = new Date(2026, 8, 2, 12, 0, 0).getTime();
+  const amTag = (versatz, anzahl = TAGESPENSUM) => {
+    const zeit = zweiterSeptember - versatz * TAG;
+    return Array.from({ length: anzahl }, (_, i) => ({
+      cardId: "k" + i, zeit: zeit + i * 1000, bewertung: 3, flag: "normal",
+    }));
+  };
+  // Heute gelernt, dann 1. September, 31. und 30. August ausgelassen.
+  const reviews = [...amTag(0), ...amTag(4)];
+  const s = straehne(reviews, { jetzt: zweiterSeptember });
+  assert.equal(s.laenge, 1, "drei Tage am Stück ausgelassen — die Strähne reißt");
+});
+
+test("zwei Tage am Stück werden auch über den Monatswechsel überbrückt", () => {
+  const zweiterSeptember = new Date(2026, 8, 2, 12, 0, 0).getTime();
+  const amTag = (versatz) => {
+    const zeit = zweiterSeptember - versatz * TAG;
+    return Array.from({ length: TAGESPENSUM }, (_, i) => ({
+      cardId: "k" + i, zeit: zeit + i * 1000, bewertung: 3, flag: "normal",
+    }));
+  };
+  // 1. September und 31. August ausgelassen — zwei Tage, das ist erlaubt.
+  const reviews = [...amTag(0), ...amTag(3)];
+  const s = straehne(reviews, { jetzt: zweiterSeptember });
+  assert.equal(s.laenge, 2);
+  assert.equal(s.verbrauchteRuhetage, 2);
+});

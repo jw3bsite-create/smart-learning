@@ -244,7 +244,9 @@ export function pensumPruefen(karten, zustaende, stapelVon, fach, zeit = Date.no
       : offen === 0
         ? "Alles steht — es geht nur noch ums Halten."
         : jeTag <= 30
-          ? `${Math.ceil(jeTag)} Karten am Tag, dann steht bis dahin alles.`
+          ? (Math.ceil(jeTag) === 1
+            ? "Eine Karte am Tag, dann steht bis dahin alles."
+            : `${Math.ceil(jeTag)} Karten am Tag, dann steht bis dahin alles.`)
           : `${offen} Karten in ${tage} Tagen wären ${Math.ceil(jeTag)} am Tag — das geht `
             + "sich nicht aus. Kürze den Stoff oder fang bei dem an, was am meisten zählt.",
   };

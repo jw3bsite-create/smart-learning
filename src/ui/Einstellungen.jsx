@@ -10,6 +10,7 @@ import * as ki from "../core/ki.js";
 import * as erinnerung from "../core/erinnerung.js";
 import { stimmen, beiStimmen, sprich } from "../core/speech.js";
 import { verwaisteBilderAufraeumen } from "../core/media.js";
+import * as beispiel from "../core/beispiel.js";
 import { datumKurz } from "../core/util.js";
 import { Symbol, Knopf, SymbolKnopf, Dialog } from "./basis.jsx";
 import Gestaltung from "./Gestaltung.jsx";
@@ -391,6 +392,91 @@ function Erinnerungsteil() {
 
 /* ------------------------------ Die Ansicht ---------------------------- */
 
+/**
+ * Ein vollständiger Beispielbestand zum Ausprobieren.
+ *
+ * Der Zweck ist nicht Bequemlichkeit, sondern Prüfbarkeit: Fast alles in
+ * dieser App — Strähne, Behaltenskurve, Kalibrierung, Fälligkeitsplan,
+ * Verdichtung vor der Prüfung — wird erst sichtbar, wenn Wochen an Historie
+ * dahinterliegen. Ohne Beispielbestand kann man diese Ansichten erst in
+ * Monaten zu Gesicht bekommen und bis dahin nicht wissen, ob sie stimmen.
+ */
+function Beispielteil() {
+  const { neuLaden } = useDaten();
+  const [da, setDa] = useState(null);
+  const [laeuft, setLaeuft] = useState("");
+  const [meldung, setMeldung] = useState("");
+
+  useEffect(() => { beispiel.beispieldatenVorhanden().then(setDa); }, []);
+
+  const anlegen = async () => {
+    setLaeuft("anlegen"); setMeldung("");
+    try {
+      const z = await beispiel.beispieldatenAnlegen();
+      await neuLaden();
+      setDa(true);
+      setMeldung(`${z.stapel} Stapel mit ${z.karten} Karten, ${z.reviews} `
+        + `Antworten aus zwölf Wochen, ${z.entwuerfe} Entwürfe, `
+        + `${z.erklaerungen} Erklärungen und ${z.pruefungen} Prüfungen angelegt.`);
+    } catch (e) {
+      setMeldung("Das ist schiefgegangen: " + String(e?.message || e));
+    } finally { setLaeuft(""); }
+  };
+
+  const entfernen = async () => {
+    const vorab = await beispiel.beispieldatenEntfernen({ trocken: true });
+    if (!vorab.anzahl) { setMeldung("Es liegt nichts Beispielhaftes herum."); return; }
+    if (!window.confirm(
+      `${vorab.anzahl} Beispieldatensätze werden endgültig entfernt. `
+      + "Alles, was du selbst angelegt hast, bleibt unangetastet. Fortfahren?"))
+      return;
+    setLaeuft("entfernen"); setMeldung("");
+    try {
+      const weg = await beispiel.beispieldatenEntfernen();
+      await neuLaden();
+      setDa(false);
+      setMeldung(`${weg.anzahl} Datensätze entfernt.`);
+    } catch (e) {
+      setMeldung("Das ist schiefgegangen: " + String(e?.message || e));
+    } finally { setLaeuft(""); }
+  };
+
+  return (
+    <Abschnitt titel="Beispieldaten"
+      hinweis="Ein erfundener Bestand mit zwölf Wochen Lernhistorie — damit sich jede Ansicht ansehen lässt, ehe eigener Stoff da ist.">
+      <div className="reihe umbruch">
+        <Knopf art="voll" symbol="plus" disabled={Boolean(laeuft)} onClick={anlegen}>
+          {laeuft === "anlegen" ? "Wird angelegt …" : "Beispieldaten anlegen"}
+        </Knopf>
+        {da && (
+          <Knopf symbol="muell" disabled={Boolean(laeuft)} onClick={entfernen}>
+            {laeuft === "entfernen" ? "Wird entfernt …" : "Beispieldaten entfernen"}
+          </Knopf>
+        )}
+      </div>
+      <p className="klein matt">
+        Drei Fächer (Philosophie, Erdkunde, Mathematik), fünf Stapel mit allen
+        vier Kartenarten samt Bildkarten, dazu Entwürfe, zwei Erklärungen und
+        zwei Prüfungssimulationen. Die Lernhistorie ist nicht hingeschrieben,
+        sondern durchgerechnet: Derselbe Planer, der im Betrieb die Termine
+        setzt, ist über eine erfundene Vergangenheit gelaufen. Darum stimmen
+        Fortschritt, Behaltenskurve und Warteschlange untereinander überein.
+      </p>
+      <p className="klein blass">
+        Alles Angelegte ist als Beispiel gekennzeichnet und lässt sich mit einem
+        Griff wieder entfernen — eigene Karten bleiben dabei unberührt. Vor dem
+        ersten Abgleich mit der Wolke solltest du es entfernen, sonst wandert es
+        auf deine anderen Geräte.
+      </p>
+      {meldung && (
+        <div className={"rueckmeldung klein "
+          + (meldung.startsWith("Das ist schief") ? "schlecht" : "gut")}
+        style={{ marginTop: 10 }}>{meldung}</div>
+      )}
+    </Abschnitt>
+  );
+}
+
 export default function Einstellungen({ aufAbgleich }) {
   const { einstellungen, setzeEinstellung, alsSicherung, ausSicherung, stapel, karten } = useDaten();
   const [stimmenListe, setStimmenListe] = useState(stimmen());
@@ -510,6 +596,8 @@ export default function Einstellungen({ aufAbgleich }) {
         </p>
         {meldung && <div className="rueckmeldung schlecht klein">{meldung}</div>}
       </Abschnitt>
+
+      <Beispielteil />
 
       <Abschnitt titel="Über">
         <p className="klein matt">

@@ -4,8 +4,8 @@
 
 import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
-import { anteileNachStufe } from "../core/model.js";
-import { faelligZaehlen } from "../core/scheduler.js";
+import { anteileNachStufe } from "../core/fsrs.js";
+import { stapelStand } from "../core/warteschlange.js";
 import { anzahl } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import {
@@ -14,9 +14,16 @@ import {
 
 /* ---------------------------- Eine Stapelkachel ------------------------ */
 
-function StapelKachel({ stapel, karten, staende, aufMenue }) {
-  const anteile = anteileNachStufe(karten, staende);
-  const { faellige, neu } = faelligZaehlen(karten, staende);
+/*
+ * Die Kachel zeigt denselben Stand wie die Warteschlange, nicht den alten
+ * Fächerplan: Sonst stünde auf der Startseite „30 neu“, während das Abrufen
+ * dieselben Karten längst geplant hat. Dieselbe Karte darf nicht an zwei
+ * Stellen zwei Wahrheiten haben.
+ */
+function StapelKachel({ stapel, karten, zustaende, aufMenue }) {
+  const stand = stapelStand(karten, zustaende, stapel);
+  const anteile = anteileNachStufe(stand.zustaende);
+  const { faellig: faellige, neu } = stand;
   return (
     <div className="kachel" draggable
       onDragStart={(e) => { e.dataTransfer.setData("text/kk", stapel.id); }}
@@ -109,7 +116,7 @@ function Suchergebnis({ begriff }) {
 export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
   const daten = useDaten();
   const {
-    ordner, stapel, kartenNachStapel, staende,
+    ordner, stapel, kartenNachStapel, zustaende,
     ordnerAnlegen, ordnerAendern, ordnerLoeschen,
     stapelAnlegen, stapelAendern, stapelLoeschen, stapelVervielfaeltigen,
   } = daten;
@@ -136,7 +143,8 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
 
   const zuLernen = !ordnerId ? stapel.map((s) => {
     const karten = kartenNachStapel.get(s.id) || [];
-    return { stapel: s, ...faelligZaehlen(karten, staende), karten };
+    const stand = stapelStand(karten, zustaende, s);
+    return { stapel: s, karten, stand, faellige: stand.faellig, neu: stand.neu };
   }).filter((x) => x.karten.length && (x.faellige > 0 || x.neu > 0))
     .sort((a, b) => b.faellige - a.faellige).slice(0, 4) : [];
 
@@ -213,7 +221,7 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
                   {x.neu > 0 ? x.neu + " noch nie gesehen" : ""}
                 </div>
                 <div className="dehnen" />
-                <Balken anteile={anteileNachStufe(x.karten, staende)} />
+                <Balken anteile={anteileNachStufe(x.stand.zustaende)} />
               </div>
             ))}
           </div>
@@ -252,7 +260,7 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
         <div className="gitter">
           {sichtbareStapel.map((s) => (
             <StapelKachel key={s.id} stapel={s} karten={kartenNachStapel.get(s.id) || []}
-              staende={staende} aufMenue={menuePunkte} />
+              zustaende={zustaende} aufMenue={menuePunkte} />
           ))}
         </div>
       )}

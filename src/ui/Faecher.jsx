@@ -174,7 +174,9 @@ export default function Faecher() {
             <div className="zahl">{gesamt.neu}</div>
           </div>
           <div>
-            <div className="klein matt">Karten im Plan</div>
+            {/* Gezählt wird je Abfragerichtung — bei zwei Richtungen sind aus
+                einer Karte zwei Aufgaben geworden. */}
+            <div className="klein matt">Abfragen im Plan</div>
             <div className="zahl">{gesamt.gesamt}</div>
           </div>
           {gesamt.gesperrt > 0 && (
@@ -246,7 +248,7 @@ export default function Faecher() {
               <div className="dehnen" />
               <Balken anteile={anteile} />
               <div className="klein blass">
-                {anzahl(z.gesamt, "Karte", "Karten")}
+                {anzahl(z.gesamt, "Abfrage", "Abfragen")}
                 {k && k.ueberschaetzung !== null &&
                   " · " + kalibrierungInWorten(k)}
                 {restTage !== null && (
