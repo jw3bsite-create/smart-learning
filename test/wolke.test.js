@@ -16,7 +16,9 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { SYNCED, STORES } from "../src/core/db.js";
-import { ARTEN, normalisiereUrl } from "../src/core/cloud.js";
+import {
+  ARTEN, normalisiereUrl, saeubereSchluessel, schluesselFehler, adressFehler,
+} from "../src/core/cloud.js";
 
 test("jede abzugleichende Ablage hat einen Namen in der Tabelle", () => {
   for (const ablage of SYNCED)
@@ -136,4 +138,59 @@ test("ein eigener Pfad bleibt erhalten", () => {
     "https://eigene.example/supabase");
   assert.equal(normalisiereUrl("https://eigene.example/supabase"),
     "https://eigene.example/supabase");
+});
+
+/* ========================= Schlüssel und Meldungen ======================= */
+
+/*
+ * Der Browser wirft beim Abgleich eine Meldung, die niemand deuten kann:
+ * „String contains non ISO-8859-1 code point". Sie bedeutet, dass im
+ * Schlüssel ein Zeichen steht, das nicht in eine Kopfzeile passt — beim
+ * Kopieren aus einem Fließtext mitgekommen. Der Browser nennt weder das Feld
+ * noch die Stelle; die App muss das tun.
+ */
+test("ein tauglicher Schlüssel wird nicht beanstandet", () => {
+  assert.equal(schluesselFehler("sb_publishable_mosruqnhrDJKUJpQu5aKVg_FQy8D-oe"), "");
+  assert.equal(schluesselFehler("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.abc-_.def"), "");
+});
+
+test("ein fremdes Zeichen wird mit seiner Stelle genannt", () => {
+  for (const zeichen of ["—", "…", "„", "ä", " "]) {
+    const fehler = schluesselFehler("sb_publishable_abc" + zeichen + "defghijklmnop");
+    assert.match(fehler, /Stelle 19/, "Stelle fehlt bei " + JSON.stringify(zeichen));
+    assert.ok(fehler.includes(zeichen), "das Zeichen selbst wird nicht gezeigt");
+  }
+});
+
+/*
+ * Unsichtbares wird stillschweigend entfernt statt beanstandet: Man kann es
+ * nicht sehen und darum auch nicht von Hand wegnehmen.
+ */
+test("unsichtbare Zeichen werden entfernt, nicht beanstandet", () => {
+  const sauber = "sb_publishable_mosruqnhrDJKUJpQu5aKVg";
+  for (const code of [0x200b, 0x200c, 0x200d, 0x2060, 0xfeff, 0x00ad]) {
+    const verunreinigt = "sb_publishable_mosruq" + String.fromCodePoint(code)
+      + "nhrDJKUJpQu5aKVg";
+    assert.equal(saeubereSchluessel(verunreinigt), sauber,
+      "nicht entfernt: U+" + code.toString(16));
+    assert.equal(schluesselFehler(verunreinigt), "");
+  }
+});
+
+test("Leerzeichen davor und dahinter stören nicht", () => {
+  assert.equal(saeubereSchluessel("  sb_publishable_mosruqnhrDJKUJpQu5aKVg\n"),
+    "sb_publishable_mosruqnhrDJKUJpQu5aKVg");
+});
+
+test("fehlender oder abgeschnittener Schlüssel wird erkannt", () => {
+  assert.match(schluesselFehler(""), /fehlt/i);
+  assert.match(schluesselFehler("sb_pub"), /zu kurz/i);
+});
+
+test("die Adresse wird auf Brauchbarkeit geprüft", () => {
+  assert.equal(adressFehler("https://sqytpfqezmobqhrkwgdo.supabase.co/rest/v1/"), "");
+  assert.equal(adressFehler("sqytpfqezmobqhrkwgdo.supabase.co"), "");
+  assert.match(adressFehler(""), /fehlt/i);
+  assert.match(adressFehler("supabase"), /Adresse aus/i);
+  assert.match(adressFehler("https://beispiel….supabase.co"), /…/);
 });

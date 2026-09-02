@@ -50,15 +50,27 @@ function Wolkenteil({ aufAbgleich }) {
     })();
   }, [wolkeStand.zeit]);
 
+  /*
+   * Beim Speichern prüfen, nicht erst beim Verbinden. Sonst kommt der Fehler
+   * erst als Meldung des Browsers zurück, und die lautet „String contains non
+   * ISO-8859-1 code point" — sie nennt weder das Feld noch die Stelle.
+   */
   const zugangSichern = async () => {
+    setFehler(""); setHinweis("");
+    const beanstandung = wolke.adressFehler(zugang.url) || wolke.schluesselFehler(zugang.key);
+    if (beanstandung) { setFehler(beanstandung); return; }
     await wolke.zugangSchreiben(zugang);
+    setZugang(await wolke.zugangLesen());   // zeigt die geradegezogene Adresse
     setHinweis("Zugangsdaten gespeichert.");
     setSitz(await wolke.sitzung().catch(() => null));
   };
 
   const anmelden = async (e) => {
     e.preventDefault();
-    setFehler(""); setHinweis(""); setLaeuft(true);
+    setFehler(""); setHinweis("");
+    const beanstandung = wolke.adressFehler(zugang.url) || wolke.schluesselFehler(zugang.key);
+    if (beanstandung) { setFehler(beanstandung); return; }
+    setLaeuft(true);
     try {
       await wolke.zugangSchreiben(zugang);
       if (neu) {

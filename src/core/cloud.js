@@ -83,6 +83,66 @@ export function normalisiereUrl(roh) {
   return adresse.origin + pfad;
 }
 
+/*
+ * Unsichtbares Beiwerk, das beim Kopieren mitkommt: Nullbreiten-Zeichen,
+ * Wortverbinder, weiches Trennzeichen, Byte-Marke. Man sieht es nicht, man
+ * bekommt es von Hand nicht weg, und es macht den Schluessel unbrauchbar.
+ *
+ * Als Liste von Codepunkten und nicht als Suchmuster: Ein Suchmuster mit
+ * diesen Zeichen enthielte sie selbst, waere also im Quelltext ebenso
+ * unsichtbar und beim naechsten Bearbeiten verloren.
+ */
+const UNSICHTBAR = new Set([0x200b, 0x200c, 0x200d, 0x2060, 0xfeff, 0x00ad]);
+
+/** Raeumt aus einem eingefuegten Schluessel weg, was man ohnehin nicht sieht. */
+export function saeubereSchluessel(roh) {
+  return [...String(roh || "")]
+    .filter((z) => !UNSICHTBAR.has(z.codePointAt(0)))
+    .join("")
+    .trim();
+}
+
+/** Zeichen, die in einem Schluessel vorkommen duerfen. */
+const ERLAUBT = /[A-Za-z0-9._-]/;
+
+/**
+ * Sagt, was mit einem Schluessel nicht stimmt - oder nichts, wenn er taugt.
+ *
+ * Der Grund fuer diese Pruefung ist eine Meldung, die der Browser wirft und
+ * die niemand deuten kann: "String contains non ISO-8859-1 code point". Sie
+ * bedeutet, dass ein Zeichen nicht in eine Kopfzeile passt - etwa ein
+ * Gedankenstrich oder ein Auslassungszeichen, das beim Kopieren aus einem
+ * Fliesstext mitgekommen ist. Der Browser nennt weder das Feld noch die
+ * Stelle. Also nennen wir sie.
+ */
+export function schluesselFehler(roh) {
+  const schluessel = saeubereSchluessel(roh);
+  if (!schluessel) return "Es fehlt der Schlüssel.";
+  const zeichen = [...schluessel];
+  const stelle = zeichen.findIndex((z) => !ERLAUBT.test(z));
+  if (stelle >= 0)
+    return "An Stelle " + (stelle + 1) + " steht \u201e" + zeichen[stelle]
+      + "\u201c \u2014 ein Zeichen, das in einem Schl\u00fcssel nicht vorkommt. "
+      + "Beim Kopieren ist etwas mitgekommen; kopiere ihn noch einmal frisch "
+      + "aus Supabase.";
+  if (zeichen.length < 20)
+    return "Der Schl\u00fcssel ist zu kurz \u2014 das sieht nach einem Ausschnitt aus.";
+  return "";
+}
+
+/** Dasselbe fuer die Adresse. */
+export function adressFehler(roh) {
+  const adresse = normalisiereUrl(roh);
+  if (!adresse) return "Es fehlt die Adresse des Projekts.";
+  const fremd = [...adresse].find((z) => z.codePointAt(0) > 0x7e);
+  if (fremd)
+    return "In der Adresse steht \u201e" + fremd + "\u201c. Kopiere sie noch einmal frisch.";
+  if (!/^https?:[/][/][^/]+[.]/i.test(adresse))
+    return "Das sieht nicht nach einer Adresse aus \u2014 erwartet wird etwas wie "
+      + "https://abcdefg.supabase.co";
+  return "";
+}
+
 export async function zugangLesen() {
   return (await db.getSetting("wolke", null)) || { url: "", key: "" };
 }
@@ -93,7 +153,7 @@ export async function zugangSchreiben(zugang) {
   await db.setSetting("wolke", {
     ...zugang,
     url: normalisiereUrl(zugang?.url),
-    key: String(zugang?.key || "").trim(),
+    key: saeubereSchluessel(zugang?.key),
   });
   klient = null; klientSchluessel = "";
 }
@@ -105,7 +165,11 @@ export async function verbinde() {
   const zugang = await zugangLesen();
   if (!eingerichtet(zugang)) return null;
   const adresse = normalisiereUrl(zugang.url);
-  const schluessel = String(zugang.key || "").trim();
+  const schluessel = saeubereSchluessel(zugang.key);
+  // Lieber hier mit einem verständlichen Satz abbrechen als später mit der
+  // Meldung des Browsers, die niemandem hilft.
+  const fehler = adressFehler(adresse) || schluesselFehler(schluessel);
+  if (fehler) throw new Error(fehler);
   const kennzeichen = adresse + "|" + schluessel;
   if (klient && klientSchluessel === kennzeichen) return klient;
   const { createClient } = await import("@supabase/supabase-js");
