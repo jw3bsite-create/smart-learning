@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 import { SYNCED, STORES } from "../src/core/db.js";
-import { ARTEN } from "../src/core/cloud.js";
+import { ARTEN, normalisiereUrl } from "../src/core/cloud.js";
 
 test("jede abzugleichende Ablage hat einen Namen in der Tabelle", () => {
   for (const ablage of SYNCED)
@@ -91,4 +91,49 @@ test("die Bilder liegen nicht öffentlich", () => {
 test("der Schlüssel der Tabelle ist Kennung und Datensatz zusammen", () => {
   assert.match(sql, /primary key\s*\(\s*user_id\s*,\s*id\s*\)/i,
     "sonst schlägt das Zusammenführen beim Abgleich fehl (onConflict user_id,id)");
+});
+
+/* ============================ Die Projektadresse ========================= */
+
+/*
+ * Supabase zeigt im Verwaltungsbereich die REST-Adresse groß an —
+ * `https://…supabase.co/rest/v1/`. Genau die trägt man ein, und dann geht
+ * nichts: Die Bibliothek hängt ihre eigenen Wege hinten an. Zurück kommt ein
+ * schlichtes „kein Anschluss", und man sucht den Fehler beim Schlüssel, bei
+ * der Tabelle, bei den Schutzregeln — überall, nur nicht dort.
+ */
+test("die REST-Adresse wird auf die Projektadresse gekürzt", () => {
+  const ziel = "https://beispiel.supabase.co";
+  for (const eingabe of [
+    "https://beispiel.supabase.co/rest/v1/",
+    "https://beispiel.supabase.co/rest/v1",
+    "https://beispiel.supabase.co/auth/v1/",
+    "https://beispiel.supabase.co/storage/v1/",
+    "https://beispiel.supabase.co/realtime/v1",
+    "https://beispiel.supabase.co/",
+    "https://beispiel.supabase.co",
+    "  https://beispiel.supabase.co/rest/v1/  ",
+  ])
+    assert.equal(normalisiereUrl(eingabe), ziel, "nicht gekürzt: " + eingabe);
+});
+
+test("eine Adresse ohne Vorsatz bekommt https", () => {
+  assert.equal(normalisiereUrl("beispiel.supabase.co"), "https://beispiel.supabase.co");
+  assert.equal(normalisiereUrl("beispiel.supabase.co/rest/v1/"), "https://beispiel.supabase.co");
+});
+
+test("nichts bleibt nichts", () => {
+  for (const leer of ["", "   ", null, undefined])
+    assert.equal(normalisiereUrl(leer), "");
+});
+
+/*
+ * Nur der letzte Wegabschnitt wird abgeschnitten. Läge ein Projekt hinter
+ * einem eigenen Namen mit Unterpfad, dürfte der nicht verlorengehen.
+ */
+test("ein eigener Pfad bleibt erhalten", () => {
+  assert.equal(normalisiereUrl("https://eigene.example/supabase/rest/v1/"),
+    "https://eigene.example/supabase");
+  assert.equal(normalisiereUrl("https://eigene.example/supabase"),
+    "https://eigene.example/supabase");
 });

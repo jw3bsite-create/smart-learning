@@ -111,11 +111,24 @@ function Wolkenteil({ aufAbgleich }) {
               <label className="beschriftung">Adresse des Projekts (Project URL)</label>
               <input className="feld" placeholder="https://xxxx.supabase.co" value={zugang.url}
                 onChange={(e) => setZugang({ ...zugang, url: e.target.value })} />
+              {/* Supabase zeigt die REST-Adresse groß an. Wer sie einträgt,
+                  bekommt nur „kein Anschluss" und sucht den Fehler beim
+                  Schlüssel. Die App schneidet das ab — hier steht, dass sie
+                  es tut. */}
+              <div className="klein blass" style={{ marginTop: 4 }}>
+                Der Anhang <span className="mono">/rest/v1/</span> darf dranbleiben,
+                er wird beim Speichern abgeschnitten.
+              </div>
             </div>
             <div>
-              <label className="beschriftung">Öffentlicher Schlüssel (anon key)</label>
-              <input className="feld" placeholder="eyJhbGciOi…" value={zugang.key}
+              <label className="beschriftung">Öffentlicher Schlüssel</label>
+              <input className="feld" placeholder="sb_publishable_… oder eyJ…" value={zugang.key}
                 onChange={(e) => setZugang({ ...zugang, key: e.target.value })} />
+              <div className="klein blass" style={{ marginTop: 4 }}>
+                Der <span className="mono">publishable</span> beziehungsweise
+                <span className="mono"> anon</span> key. Niemals der
+                <span className="mono"> service_role</span> key — der umgeht jeden Schutz.
+              </div>
             </div>
           </div>
           <div className="reihe" style={{ marginTop: 10 }}>

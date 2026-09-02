@@ -53,12 +53,48 @@ const ZURUECK = Object.fromEntries(Object.entries(ARTEN).map(([a, b]) => [b, a])
 let klient = null;
 let klientSchluessel = "";
 
+/**
+ * Zieht eine eingetippte Projektadresse gerade.
+ *
+ * Supabase zeigt im Verwaltungsbereich die REST-Adresse groß an —
+ * `https://…supabase.co/rest/v1/`. Die trägt man dann ein, und nichts geht:
+ * Die Bibliothek hängt ihre eigenen Wege hinten an und landet bei
+ * `/rest/v1/rest/v1/…`. Der Fehler kommt als schlichtes „kein Anschluss"
+ * zurück, und man sucht ihn beim Schlüssel oder bei der Tabelle.
+ *
+ * Darum wird hier abgeschnitten, was Supabase anhängt, statt dem Nutzer das
+ * Aufpassen zu überlassen.
+ */
+export function normalisiereUrl(roh) {
+  let text = String(roh || "").trim();
+  if (!text) return "";
+  if (!/^https?:\/\//i.test(text)) text = "https://" + text;
+  let adresse;
+  try {
+    adresse = new URL(text);
+  } catch {
+    return text.replace(/\/+$/, "");
+  }
+  // rest, auth, storage, realtime — die vier Wege, die im Verwaltungsbereich
+  // stehen. Alles davon gehört der Bibliothek, nicht der Adresse.
+  const pfad = adresse.pathname
+    .replace(/\/+(rest|auth|storage|realtime)\/v\d+\/?$/i, "/")
+    .replace(/\/+$/, "");
+  return adresse.origin + pfad;
+}
+
 export async function zugangLesen() {
   return (await db.getSetting("wolke", null)) || { url: "", key: "" };
 }
 
 export async function zugangSchreiben(zugang) {
-  await db.setSetting("wolke", zugang);
+  // Beim Speichern geradeziehen, damit im Feld steht, was tatsächlich benutzt
+  // wird — und nicht etwas, das nur zufällig noch funktioniert.
+  await db.setSetting("wolke", {
+    ...zugang,
+    url: normalisiereUrl(zugang?.url),
+    key: String(zugang?.key || "").trim(),
+  });
   klient = null; klientSchluessel = "";
 }
 
@@ -68,10 +104,12 @@ export const eingerichtet = (zugang) => Boolean(zugang && zugang.url && zugang.k
 export async function verbinde() {
   const zugang = await zugangLesen();
   if (!eingerichtet(zugang)) return null;
-  const kennzeichen = zugang.url + "|" + zugang.key;
+  const adresse = normalisiereUrl(zugang.url);
+  const schluessel = String(zugang.key || "").trim();
+  const kennzeichen = adresse + "|" + schluessel;
   if (klient && klientSchluessel === kennzeichen) return klient;
   const { createClient } = await import("@supabase/supabase-js");
-  klient = createClient(zugang.url.replace(/\/+$/, ""), zugang.key, {
+  klient = createClient(adresse, schluessel, {
     auth: { persistSession: true, autoRefreshToken: true, storageKey: "karteikasten-anmeldung" },
   });
   klientSchluessel = kennzeichen;
