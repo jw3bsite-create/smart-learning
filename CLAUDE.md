@@ -25,7 +25,7 @@ Sprache, soweit sie die Sache benennen (`karten`, `zustaende`, `abrufVerbuchen`)
 ```
 npm install
 npm run dev      # http://localhost:5180
-npm test         # 161 Prüfungen für den Kern
+npm test         # 169 Prüfungen für den Kern
 npm run lint
 npm run symbole  # Symbole neu erzeugen (PNG fürs Handy, ICO für Windows)
 ```
@@ -73,12 +73,13 @@ src/core/     Rechnender Kern, ohne React, ohne Browserfenster, vollständig pr�
   ki.js          Der einzige Weg zu einem Sprachmodell
   drift.js       Erkennt, wenn ein Tutor seine Regeln verlässt
   cloud.js       Abgleich mit Supabase
-  beispiel.js    Beispielbestand samt durchgerechneter Historie
+  beispiel.js    Beispielbestand: Maschinerie und durchgerechnete Historie
+  beispiel-stoff.js  Der Stoff dazu (Kant, Hauptstädte) — reine Daten
   store.jsx      Gemeinsamer Datenbestand
 prompts/      Die Systemanweisungen als eigene Dateien, versioniert
 src/modes/    Abrufen, Feynman, Pretest, Tutor, Pruefung + die sieben Übungsmodi
 src/ui/       Bildschirme und Bausteine
-test/         161 Prüfungen (npm test)
+test/         169 Prüfungen (npm test)
 werkzeug/     Erzeugt die PNG-Symbole
 ```
 

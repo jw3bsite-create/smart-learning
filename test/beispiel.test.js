@@ -175,3 +175,92 @@ test("derselbe Startwert ergibt denselben Bestand", () => {
     bestand.cardstates.map((z) => Math.round(z.stability * 100)),
     "der Zufall muss reproduzierbar bleiben, sonst ist kein Fehler zweimal zu sehen");
 });
+
+/* ===================================================================== */
+/*  Was der Bestand zeigen können muss                                   */
+/* ===================================================================== */
+
+test("alle fünf Erdteile sind vertreten, Afrika vollständig", () => {
+  const titel = bestand.sets.filter((s) => !s.deleted).map((s) => s.title);
+  for (const teil of ["Europas", "Südamerikas", "Afrikas", "Asiens", "Nord- und Mittelamerikas"])
+    assert.ok(titel.some((t) => t.includes(teil)), "kein Stapel für " + teil);
+
+  const afrika = bestand.sets.find((s) => s.title.includes("Afrikas"));
+  const drin = bestand.cards.filter((k) => k.setId === afrika.id && !k.deleted);
+  assert.equal(drin.length, 54,
+    "die Afrikanische Union hat 54 Mitglieder — es sind " + drin.length);
+  const doppelt = drin.length - new Set(drin.map((k) => k.term)).size;
+  assert.equal(doppelt, 0, "ein Land steht doppelt im Stapel");
+});
+
+test("die Kritik ist nach ihren Abschnitten geteilt", () => {
+  const titel = bestand.sets.map((s) => s.title);
+  for (const teil of ["Grundbegriffe", "Ästhetik", "Analytik", "Dialektik", "Zitate"])
+    assert.ok(titel.some((t) => t.startsWith("KrV") && t.includes(teil)),
+      "kein Kant-Stapel für " + teil);
+});
+
+/*
+ * Die Sperre nach sechsmal „Nochmal" ist eine der nützlichsten Vorrichtungen
+ * des Systems — sie sagt, dass eine Karte zu groß geschnitten ist. Am Beispiel
+ * muss sie zu sehen sein, aber sie darf nicht um sich greifen: Wer im Mittel
+ * gut zurechtkommt, hat keine zehn Prozent stillgelegter Karten.
+ */
+test("es gibt stillgelegte Karten, aber nicht zu viele", () => {
+  const gesperrt = bestand.cardstates.filter((z) => z.gesperrt);
+  assert.ok(gesperrt.length >= 3, "keine stillgelegte Karte — die Sperre bliebe unsichtbar");
+  const anteil = gesperrt.length / bestand.cardstates.length;
+  assert.ok(anteil < 0.08,
+    Math.round(anteil * 100) + " % stillgelegt — das wäre kein gelungener Verlauf mehr");
+});
+
+test("im Papierkorb liegt etwas zum Zurückholen", () => {
+  assert.ok(bestand.sets.some((s) => s.deleted), "kein verworfener Stapel");
+  assert.ok(bestand.cards.filter((k) => k.deleted).length >= 2, "keine verworfenen Karten");
+  // Grabsteine bekommen keinen Lernstand — sie sind gelöscht, nicht verborgen.
+  const weg = new Set(bestand.cards.filter((k) => k.deleted).map((k) => k.id));
+  for (const z of bestand.cardstates)
+    assert.ok(!weg.has(z.cardId), "eine gelöschte Karte hat einen Lernstand");
+});
+
+/*
+ * Der Endspurt greift erst, wenn ein Termin näher als fünf Tage ist, die
+ * Verdichtung ab sechzig. Ohne je ein Fach in beiden Lagen bekäme man diese
+ * zwei Rechnungen am Beispielbestand nie zu Gesicht.
+ */
+test("ein Fach steht im Endspurt, eines in der Verdichtung", () => {
+  const tage = (f) => (f.pruefungsdatum - JETZT) / 86400000;
+  const mitTermin = bestand.subjects.filter((f) => f.pruefungsdatum);
+  assert.ok(mitTermin.some((f) => tage(f) > 0 && tage(f) <= 5), "kein Fach im Endspurt");
+  assert.ok(mitTermin.some((f) => tage(f) > 5 && tage(f) <= 60), "kein Fach in der Verdichtung");
+});
+
+/*
+ * Die Strähne hing beim ersten Anlauf unbemerkt daran, wie groß der Bestand
+ * war: Die Übung füllte nur auf, was das Abrufen liegen ließ — und als der
+ * Bestand von hundert auf zweihundertachtzig Karten wuchs, ließ es nichts mehr
+ * liegen, und die Strähne fiel von achtundfünfzig auf drei Tage. Diese Prüfung
+ * hält fest, dass sie am Verlauf hängt und nicht an der Menge.
+ */
+test("die Strähne hängt nicht an der Menge des Stoffs", () => {
+  const s = straehne(bestand.reviews, { jetzt: JETZT, pensum: TAGESPENSUM });
+  assert.ok(s.laenge >= 40,
+    "nur " + s.laenge + " Tage — das Tagespensum wird nicht verlässlich erreicht");
+});
+
+test("jeder Übungsmodus kommt im Verlauf wenigstens einmal vor", () => {
+  const modi = new Set(bestand.sessions.map((s) => s.modus));
+  assert.ok(modi.size >= 5,
+    "nur " + modi.size + " Modi in den Sitzungen — „Zuletzt gelernt“ sähe eintönig aus");
+});
+
+test("die Hinweise stehen dort, wo die Antwort strittig ist", () => {
+  const mitHinweis = bestand.cards.filter((k) => (k.hint || "").trim());
+  assert.ok(mitHinweis.length >= 25, "zu wenige Karten tragen einen Hinweis");
+  // Die Fälle, an denen man sonst etwas Falsches lernt.
+  for (const land of ["Bolivien", "Südafrika", "Tansania", "Elfenbeinküste", "Sri Lanka"]) {
+    const k = bestand.cards.find((x) => x.term === land);
+    assert.ok(k, "Land fehlt: " + land);
+    assert.ok((k.hint || "").length > 10, "ohne Hinweis lehrt diese Karte etwas Falsches: " + land);
+  }
+});

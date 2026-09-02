@@ -21,117 +21,17 @@
 import * as db from "./db.js";
 import * as model from "./model.js";
 import { neuerZustand, bewerteKarte, NOTEN, KONFIDENZ } from "./fsrs.js";
+import {
+  KANT_GRUND, KANT_AESTHETIK, KANT_ANALYTIK, KANT_DIALEKTIK,
+  KANT_LUECKEN, KANT_SCHRITTE,
+  EUROPA, SUEDAMERIKA, AFRIKA, ASIEN, NORDAMERIKA, VORGEMERKT, FLAGGEN,
+} from "./beispiel-stoff.js";
 
-const TAG = 24 * 3600 * 1000;
-
-/** Die Marke, an der Beispieldaten erkannt werden. */
-export const MARKE = "beispiel";
-
-/* ===================================================================== */
-/*  Zufall mit Gedächtnis                                                */
-/* ===================================================================== */
-
-/**
- * Ein kleiner Zufallsgenerator mit festem Startwert (mulberry32).
- *
- * `Math.random` wäre einfacher, aber dann sähe jeder Durchlauf anders aus.
- * Mit festem Startwert bleiben Verlauf, Noten und Termine reproduzierbar — ein
- * Fehler in der Anzeige lässt sich zweimal hintereinander gleich hervorrufen.
- * Die Kennungen selbst sind es nicht: Sie kommen aus `id()` und müssen bei
- * jedem Anlegen neu sein, sonst überschriebe ein zweiter Bestand den ersten.
+/*
+ * Mathematik bleibt hier stehen und wandert nicht in die Stoffdatei: Es sind
+ * drei Handvoll Karten, die nur dazu da sind, die Kartenart Mehrschritt auch
+ * dort zu zeigen, wo man sie erwartet - beim Rechnen.
  */
-function zufall(startwert = 20270601) {
-  let a = startwert >>> 0;
-  return function naechste() {
-    a = (a + 0x6d2b79f5) >>> 0;
-    let t = a;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-/* ===================================================================== */
-/*  Der Stoff                                                            */
-/* ===================================================================== */
-
-/** Kant, Kritik der reinen Vernunft — Begriff und Erklärung. */
-const KANT = [
-  ["transzendental", "Nicht die Erkenntnis von Gegenständen, sondern die Erkenntnis unserer Erkenntnisart von Gegenständen, sofern diese a priori möglich sein soll."],
-  ["a priori", "Von aller Erfahrung unabhängig — und darum notwendig und allgemein gültig."],
-  ["a posteriori", "Aus Erfahrung gewonnen; darum immer nur bedingt allgemein."],
-  ["analytisches Urteil", "Das Prädikat ist im Begriff des Subjekts bereits enthalten. Es erläutert, erweitert die Erkenntnis aber nicht."],
-  ["synthetisches Urteil", "Das Prädikat fügt dem Subjektbegriff etwas hinzu, was nicht in ihm lag. Es erweitert die Erkenntnis."],
-  ["synthetische Urteile a priori", "Urteile, die die Erkenntnis erweitern und dennoch notwendig gelten. Wie sie möglich sind, ist die Leitfrage der ganzen Kritik."],
-  ["Ding an sich", "Der Gegenstand, wie er unabhängig von den Bedingungen unserer Anschauung wäre. Denkbar, aber nicht erkennbar."],
-  ["Erscheinung", "Der Gegenstand, sofern er unter den Bedingungen von Raum, Zeit und Kategorien vorgestellt wird."],
-  ["Anschauung", "Die unmittelbare Beziehung einer Erkenntnis auf einzelne Gegenstände. Beim Menschen stets sinnlich."],
-  ["Begriff", "Eine mittelbare Vorstellung, die vieles unter sich fasst. Sache des Verstandes, nicht der Sinne."],
-  ["Sinnlichkeit", "Das Vermögen, Vorstellungen zu empfangen — Rezeptivität."],
-  ["Verstand", "Das Vermögen, Vorstellungen selbsttätig hervorzubringen — Spontaneität. Kant nennt ihn das Vermögen der Regeln."],
-  ["Vernunft", "Das Vermögen der Prinzipien. Sie sucht zu jedem Bedingten das Unbedingte und gerät dabei über die Erfahrung hinaus."],
-  ["transzendentale Ästhetik", "Die Lehre von Raum und Zeit als den reinen Formen der sinnlichen Anschauung."],
-  ["transzendentale Analytik", "Die Zergliederung des Verstandes: Kategorien, transzendentale Deduktion, Grundsätze."],
-  ["transzendentale Dialektik", "Die Kritik des Scheins, der entsteht, wenn die Vernunft ihre Begriffe über mögliche Erfahrung hinaus gebraucht."],
-  ["Kategorien", "Die zwölf reinen Verstandesbegriffe, geordnet nach Quantität, Qualität, Relation und Modalität."],
-  ["transzendentale Deduktion", "Der Nachweis, dass die Kategorien auf Gegenstände möglicher Erfahrung notwendig anwendbar sind."],
-  ["transzendentale Apperzeption", "Das „Ich denke“, das alle meine Vorstellungen muss begleiten können — die Einheit des Selbstbewusstseins."],
-  ["Schematismus", "Die Vermittlung zwischen Kategorie und Anschauung durch Zeitbestimmungen der Einbildungskraft."],
-  ["Antinomien", "Vier Paare von Sätzen, für die sich beide Seiten beweisen lassen. Ihr Auftreten zeigt an, dass die Grenze der Erfahrung überschritten wurde."],
-  ["kopernikanische Wende", "Nicht die Erkenntnis richtet sich nach den Gegenständen, sondern die Gegenstände nach den Bedingungen unserer Erkenntnis."],
-  ["Noumenon", "Gegenstand einer nichtsinnlichen Anschauung — bei Kant ein bloßer Grenzbegriff."],
-  ["Paralogismus", "Der Fehlschluss der rationalen Seelenlehre, die aus dem denkenden Ich auf eine Substanz schließt."],
-];
-
-/** Lückentexte zu Kant. Zwei Lücken je Satz werden getrennt geplant. */
-const KANT_LUECKEN = [
-  ["Gedanken ohne {{Inhalt}} sind leer, Anschauungen ohne {{Begriffe}} sind blind.", "Der berühmteste Satz der Analytik, B 75."],
-  ["Raum ist die Form des {{äußeren}} Sinnes, Zeit die Form des {{inneren}} Sinnes.", "Transzendentale Ästhetik."],
-  ["Kants Leitfrage der Kritik lautet: Wie sind {{synthetische Urteile a priori}} möglich?", "Einleitung, B 19."],
-  ["{{Anschauungen}} und {{Begriffe}} sind die beiden Stämme der menschlichen Erkenntnis.", "Sie entspringen vielleicht aus einer gemeinsamen, uns unbekannten Wurzel."],
-  ["Der transzendentale Idealismus behauptet: Erscheinungen sind empirisch {{real}} und transzendental {{ideal}}.", "Kein Zweifel an der Wirklichkeit der Dinge, sondern eine Aussage über ihren Status."],
-];
-
-/** Hauptstädte Europas. Drittes Feld: Anmerkung. */
-const EUROPA = [
-  ["Frankreich", "Paris"], ["Italien", "Rom"], ["Spanien", "Madrid"],
-  ["Portugal", "Lissabon"], ["Griechenland", "Athen"], ["Polen", "Warschau"],
-  ["Tschechien", "Prag"], ["Slowakei", "Bratislava"], ["Ungarn", "Budapest"],
-  ["Österreich", "Wien"],
-  ["Schweiz", "Bern", "Kein förmlicher Hauptstadttitel — Bern ist Bundesstadt."],
-  ["Belgien", "Brüssel"],
-  ["Niederlande", "Amsterdam", "Regierungssitz ist Den Haag; Hauptstadt der Verfassung nach bleibt Amsterdam."],
-  ["Dänemark", "Kopenhagen"], ["Schweden", "Stockholm"], ["Norwegen", "Oslo"],
-  ["Finnland", "Helsinki"], ["Island", "Reykjavík"], ["Irland", "Dublin"],
-  ["Kroatien", "Zagreb"], ["Slowenien", "Ljubljana"], ["Serbien", "Belgrad"],
-  ["Bulgarien", "Sofia"], ["Rumänien", "Bukarest"], ["Estland", "Tallinn"],
-  ["Lettland", "Riga"], ["Litauen", "Vilnius"], ["Ukraine", "Kiew"],
-  ["Albanien", "Tirana"], ["Nordmazedonien", "Skopje"],
-];
-
-/** Hauptstädte außerhalb Europas. */
-const WELT = [
-  ["Japan", "Tokio"], ["China", "Peking"], ["Indien", "Neu-Delhi"],
-  ["Indonesien", "Jakarta", "Ein Umzug nach Nusantara ist beschlossen, aber noch nicht vollzogen."],
-  ["Südkorea", "Seoul"], ["Vietnam", "Hanoi"], ["Thailand", "Bangkok"],
-  ["Kasachstan", "Astana", "Zwischen 2019 und 2022 hieß die Stadt Nur-Sultan."],
-  ["Türkei", "Ankara", "Nicht Istanbul — das ist die größte Stadt, nicht die Hauptstadt."],
-  ["Saudi-Arabien", "Riad"], ["Iran", "Teheran"], ["Ägypten", "Kairo"],
-  ["Marokko", "Rabat"], ["Nigeria", "Abuja", "Seit 1991; vorher Lagos."],
-  ["Kenia", "Nairobi"],
-  ["Südafrika", "Pretoria", "Regierungssitz. Das Parlament tagt in Kapstadt, das oberste Gericht sitzt in Bloemfontein."],
-  ["Äthiopien", "Addis Abeba"], ["Brasilien", "Brasília", "Seit 1960; vorher Rio de Janeiro."],
-  ["Argentinien", "Buenos Aires"], ["Chile", "Santiago de Chile"],
-  ["Peru", "Lima"], ["Kanada", "Ottawa", "Nicht Toronto und nicht Montreal."],
-  ["Mexiko", "Mexiko-Stadt"], ["Australien", "Canberra", "Ein Kompromiss zwischen Sydney und Melbourne."],
-  ["Neuseeland", "Wellington"], ["Vereinigte Staaten", "Washington, D. C."],
-];
-
-/** Die Länder, die erfahrungsgemäß verwechselt werden — vorgemerkt. */
-const VORGEMERKT = new Set(["Schweiz", "Niederlande", "Türkei", "Kasachstan",
-  "Nigeria", "Südafrika", "Brasilien", "Kanada", "Australien", "Indonesien"]);
-
-/** Rechenwege. Jeder Schritt wird einzeln abgefragt. */
 const MATHE_SCHRITTE = [
   ["Leite f(x) = (3x² + 1)⁵ ab.", [
     { frage: "Welche Regel greift hier?", antwort: "Die Kettenregel — äußere Ableitung mal innere Ableitung." },
@@ -174,30 +74,49 @@ const MATHE_FREI = [
   ["Produktregel", "(u · v)' = u' · v + u · v'"],
   ["Quotientenregel", "(u / v)' = (u' · v − u · v') / v²"],
   ["Hauptsatz der Differential- und Integralrechnung", "Ist F eine Stammfunktion von f, so ist das bestimmte Integral von a bis b gleich F(b) − F(a)."],
-  ["Wendestelle — notwendig und hinreichend", "Notwendig: f''(x) = 0. Hinreichend: f'''(x) ≠ 0, oder ein Vorzeichenwechsel von f''."],
+  ["Wendestelle — notwendig und hinreichend", "Notwendig: die zweite Ableitung ist null. Hinreichend: die dritte ist es nicht, oder die zweite wechselt das Vorzeichen."],
 ];
-
-/* ------------------------------- Flaggen -------------------------------- */
 
 /**
- * Ein paar Flaggen als SVG.
+ * Eine Flagge als Blob.
  *
- * Sie werden im Browser erzeugt und als Blob abgelegt — wie ein hochgeladenes
- * Bild auch. Das ist der einzige Weg, Bildkarten ohne Dateiauswahl zu prüfen.
+ * Wird im Browser erzeugt und abgelegt wie ein hochgeladenes Bild auch — der
+ * einzige Weg, Bildkarten ohne Dateiauswahl zu prüfen.
  */
-const FLAGGEN = [
-  ["Frankreich", "Paris", '<rect width="30" height="60" fill="#002654"/><rect x="30" width="30" height="60" fill="#fff"/><rect x="60" width="30" height="60" fill="#ce1126"/>'],
-  ["Italien", "Rom", '<rect width="30" height="60" fill="#009246"/><rect x="30" width="30" height="60" fill="#fff"/><rect x="60" width="30" height="60" fill="#ce2b37"/>'],
-  ["Belgien", "Brüssel", '<rect width="30" height="60" fill="#000"/><rect x="30" width="30" height="60" fill="#fae042"/><rect x="60" width="30" height="60" fill="#ed2939"/>'],
-  ["Japan", "Tokio", '<rect width="90" height="60" fill="#fff"/><circle cx="45" cy="30" r="17" fill="#bc002d"/>'],
-  ["Schweden", "Stockholm", '<rect width="90" height="60" fill="#006aa7"/><rect y="25" width="90" height="10" fill="#fecc00"/><rect x="28" width="10" height="60" fill="#fecc00"/>'],
-];
-
 function flaggenBlob(inhalt) {
   const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 60" width="270" height="180">'
     + '<rect width="90" height="60" fill="#fff"/>' + inhalt
     + '<rect width="90" height="60" fill="none" stroke="#00000022" stroke-width="1"/></svg>';
   return new Blob([svg], { type: "image/svg+xml" });
+}
+
+const TAG = 24 * 3600 * 1000;
+
+/** Die Marke, an der Beispieldaten erkannt werden. */
+export const MARKE = "beispiel";
+
+/* ===================================================================== */
+/*  Zufall mit Gedächtnis                                                */
+/* ===================================================================== */
+
+/**
+ * Ein kleiner Zufallsgenerator mit festem Startwert (mulberry32).
+ *
+ * `Math.random` wäre einfacher, aber dann sähe jeder Durchlauf anders aus.
+ * Mit festem Startwert bleiben Verlauf, Noten und Termine reproduzierbar — ein
+ * Fehler in der Anzeige lässt sich zweimal hintereinander gleich hervorrufen.
+ * Die Kennungen selbst sind es nicht: Sie kommen aus `id()` und müssen bei
+ * jedem Anlegen neu sein, sonst überschriebe ein zweiter Bestand den ersten.
+ */
+function zufall(startwert = 20270601) {
+  let a = startwert >>> 0;
+  return function naechste() {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
 /* ===================================================================== */
@@ -235,7 +154,10 @@ function historieFuer({ karte, richtung, setId, subjectId, fach, beginn, ende, k
        als es die Trefferquote hergibt. */
     const s = wuerfel();
     let konfidenz;
-    if (note >= NOTEN.GUT) konfidenz = s < 0.78 ? KONFIDENZ.SICHER : KONFIDENZ.UNSICHER;
+    if (note >= NOTEN.GUT)
+      konfidenz = s < 0.78 ? KONFIDENZ.SICHER
+        : s < 0.96 ? KONFIDENZ.UNSICHER
+          : KONFIDENZ.KEINE_AHNUNG;   // geraten und getroffen — kommt vor
     else if (ueberschaetzt) konfidenz = s < 0.45 ? KONFIDENZ.SICHER
       : s < 0.85 ? KONFIDENZ.UNSICHER : KONFIDENZ.KEINE_AHNUNG;
     else konfidenz = s < 0.12 ? KONFIDENZ.SICHER
@@ -286,6 +208,19 @@ function historieFuer({ karte, richtung, setId, subjectId, fach, beginn, ende, k
 const mitMarke = (rec) => ({ ...rec, [MARKE]: true });
 
 /**
+ * Karten, die im Beispielverlauf immer wieder danebengehen.
+ *
+ * Sie erreichen dadurch die Leech-Schwelle und werden von der App
+ * stillgelegt. Das ist Absicht: Die Sperre ist eine der nützlichsten
+ * Vorrichtungen des Systems — sie sagt, dass eine Karte zu groß geschnitten
+ * ist — und wäre sonst am Beispielbestand nie zu sehen.
+ */
+const ZAEH = new Set([
+  "Benin", "Eswatini", "Elfenbeinküste", "Äquatorialguinea",
+  "Amphibolie der Reflexionsbegriffe", "quid facti und quid juris",
+]);
+
+/**
  * Baut den ganzen Beispielbestand — ohne ihn zu schreiben.
  *
  * Getrennt vom Schreiben, damit sich das Ergebnis ohne Browser prüfen lässt.
@@ -300,9 +235,14 @@ export function baueBeispieldaten({ jetzt = Date.now() } = {}) {
   const bilder = [];
 
   /* ------------------------------ Fächer ------------------------------- */
+  /* Der Termin liegt in vier Tagen. Damit steht dieses Fach im Endspurt: Die
+     App bietet dann die Cram-Warteschlange an — alles quer durch, ohne
+     Rücksicht auf Termine, ohne Wirkung auf den Lernstand. Ohne einen nahen
+     Termin bekäme man diesen Modus nie zu Gesicht. */
   const philosophie = mitMarke({
     ...model.neuesFach("Philosophie", "#8b6bb1"),
     zielRetention: 0.9, neuProTag: 8,
+    pruefungsdatum: jetzt + 4 * TAG,
   });
   const geographie = mitMarke({
     ...model.neuesFach("Geographie", "#3a8f5f"),
@@ -320,9 +260,10 @@ export function baueBeispieldaten({ jetzt = Date.now() } = {}) {
   /* ------------------------------ Ordner ------------------------------- */
   const wurzel = mitMarke(model.neuerOrdner("Beispiele"));
   const oPhil = mitMarke(model.neuerOrdner("Philosophie", wurzel.id));
+  const oKant = mitMarke(model.neuerOrdner("Kant — Kritik der reinen Vernunft", oPhil.id));
   const oGeo = mitMarke(model.neuerOrdner("Erdkunde", wurzel.id));
   const oMathe = mitMarke(model.neuerOrdner("Mathematik", wurzel.id));
-  const ordner = [wurzel, oPhil, oGeo, oMathe];
+  const ordner = [wurzel, oPhil, oKant, oGeo, oMathe];
 
   /** Legt einen Stapel an und merkt ihn vor. */
   const neuerStapel = (titel, ordnerId, fach, zusatz = {}) => {
@@ -346,38 +287,73 @@ export function baueBeispieldaten({ jetzt = Date.now() } = {}) {
     return k;
   };
 
-  /* ---------------------------- Kant: Begriffe -------------------------- */
-  const sKant = neuerStapel("Kritik der reinen Vernunft — Grundbegriffe", oPhil.id, philosophie, {
-    description: "Die Begriffe, ohne die kein Satz der Kritik verständlich wird.",
-    termLabel: "Begriff", defLabel: "Bedeutung",
+  /* ------------------------------- Kant --------------------------------- */
+  /*
+   * Vier Stapel statt eines einzigen, den Abschnitten der Kritik nach. Das ist
+   * keine Ordnungsliebe: Die Warteschlange mischt innerhalb eines Fachs
+   * ohnehin, aber ein Stapel ist die Einheit, in der man übt, sucht und einen
+   * Test schreibt. Wer die Dialektik nachholen will, will nicht die Ästhetik
+   * mitgeliefert bekommen.
+   */
+  const kantStapel = [
+    ["Grundbegriffe", "Die Begriffe, ohne die kein Satz der Kritik verständlich wird.", KANT_GRUND],
+    ["Transzendentale Ästhetik", "Raum und Zeit als Formen der Anschauung — der erste Hauptteil.", KANT_AESTHETIK],
+    ["Transzendentale Analytik", "Kategorien, Deduktion, Schematismus, Grundsätze.", KANT_ANALYTIK],
+    ["Transzendentale Dialektik", "Schein, Ideen, Paralogismen, Antinomien, Gottesbeweise.", KANT_DIALEKTIK],
+  ].map(([name, beschreibung, stoff]) => {
+    const st = neuerStapel("KrV — " + name, oKant.id, philosophie, {
+      description: beschreibung,
+      termLabel: "Begriff", defLabel: "Bedeutung",
+    });
+    for (const [begriff, erklaerung] of stoff)
+      neueKarte(st, {
+        term: begriff, definition: erklaerung,
+        quelle: "Kritik der reinen Vernunft",
+      });
+    return st;
   });
-  for (const [begriff, erklaerung] of KANT)
-    neueKarte(sKant, { term: begriff, definition: erklaerung, quelle: "Kritik der reinen Vernunft" });
+  const sKant = kantStapel[0];
+
+  /* Zitate und Argumentgänge in einen eigenen Stapel: Sie gehören zu allen
+     Abschnitten und wären in jedem einzelnen falsch aufgehoben. */
+  const sKantZitate = neuerStapel("KrV — Zitate und Argumentgänge", oKant.id, philosophie, {
+    description: "Die Sätze, die man wörtlich können sollte, und die Gedankengänge Schritt für Schritt.",
+    termLabel: "Stelle", defLabel: "Nachweis",
+  });
   for (const [text, anmerkung] of KANT_LUECKEN)
-    neueKarte(sKant, { term: text, definition: anmerkung, art: "cloze" });
+    neueKarte(sKantZitate, { term: text, definition: anmerkung, art: "cloze" });
+  for (const [frage, schritte] of KANT_SCHRITTE)
+    neueKarte(sKantZitate, {
+      term: frage, definition: "", art: "mehrschritt", schritte,
+    });
 
   /* --------------------------- Hauptstädte ------------------------------ */
-  const sEuropa = neuerStapel("Hauptstädte Europas", oGeo.id, geographie, {
-    description: "In beide Richtungen abgefragt — Land nennen ist schwerer als Hauptstadt nennen.",
-    termLabel: "Land", defLabel: "Hauptstadt",
-    richtungen: ["td", "dt"],
-  });
-  for (const [land, stadt, anmerkung] of EUROPA)
-    neueKarte(sEuropa, {
-      term: land, definition: stadt, hint: anmerkung || "",
-      starred: VORGEMERKT.has(land),
+  /*
+   * Fünf Stapel nach Erdteilen. Afrika ist mit vierundfünfzig Staaten der
+   * größte — und darum der eigentliche Prüfstein: An ihm zeigt sich, ob
+   * Zuordnen, Meteor und die Warteschlange auch dann noch brauchbar sind,
+   * wenn ein Stapel nicht mehr an einem Abend durchzugehen ist.
+   */
+  const geoStapel = [
+    ["Hauptstädte Europas", "Achtunddreißig Staaten. Die strittigen Fälle stehen im Hinweisfeld.", EUROPA],
+    ["Hauptstädte Südamerikas", "Zwölf Staaten — überschaubar genug für einen Abend.", SUEDAMERIKA],
+    ["Hauptstädte Afrikas", "Alle vierundfünfzig Staaten der Afrikanischen Union. Der größte Stapel des Bestands.", AFRIKA],
+    ["Hauptstädte Asiens und Ozeaniens", "Von der Türkei bis Fidschi.", ASIEN],
+    ["Hauptstädte Nord- und Mittelamerikas", "Festland und Inseln.", NORDAMERIKA],
+  ].map(([name, beschreibung, stoff]) => {
+    const st = neuerStapel(name, oGeo.id, geographie, {
+      description: beschreibung,
+      termLabel: "Land", defLabel: "Hauptstadt",
+      richtungen: ["td", "dt"],
     });
-
-  const sWelt = neuerStapel("Hauptstädte der Welt", oGeo.id, geographie, {
-    description: "Außerhalb Europas. Die Anmerkungen stehen im Hinweisfeld.",
-    termLabel: "Land", defLabel: "Hauptstadt",
-    richtungen: ["td", "dt"],
+    for (const [land, stadt, anmerkung] of stoff)
+      neueKarte(st, {
+        term: land, definition: stadt, hint: anmerkung || "",
+        starred: VORGEMERKT.has(land),
+      });
+    return st;
   });
-  for (const [land, stadt, anmerkung] of WELT)
-    neueKarte(sWelt, {
-      term: land, definition: stadt, hint: anmerkung || "",
-      starred: VORGEMERKT.has(land),
-    });
+  const sAfrika = geoStapel[2];
 
   /* ----------------------------- Flaggen -------------------------------- */
   const sFlaggen = neuerStapel("Flaggen erkennen", oGeo.id, geographie, {
@@ -393,6 +369,33 @@ export function baueBeispieldaten({ jetzt = Date.now() } = {}) {
       termImage: kennung, art: "bild",
     });
   }
+
+  /* ----------------------------- Papierkorb ----------------------------- */
+  /*
+   * Auch der Papierkorb soll etwas enthalten. Gelöschtes bleibt vierzehn Tage
+   * als Grabstein liegen und lässt sich zurückholen — das kann man nur
+   * ausprobieren, wenn etwas darin liegt. Die Grabsteine bekommen keinen
+   * Lernstand: Sie sind gelöscht, nicht bloß verborgen.
+   */
+  const verworfen = neuerStapel("Hauptstädte Ozeaniens", oGeo.id, geographie, {
+    description: "Versehentlich gelöscht — liegt im Papierkorb und lässt sich zurückholen.",
+    termLabel: "Land", defLabel: "Hauptstadt",
+    deleted: true, updatedAt: jetzt - 2 * TAG,
+  });
+  for (const [land, stadt] of [["Samoa", "Apia"], ["Tonga", "Nukuʻalofa"],
+    ["Vanuatu", "Port Vila"], ["Salomonen", "Honiara"]])
+    neueKarte(verworfen, {
+      term: land, definition: stadt,
+      deleted: true, updatedAt: jetzt - 2 * TAG,
+    });
+
+  // Dazu zwei einzeln verworfene Karten aus einem lebenden Stapel.
+  for (const [land, stadt] of [["Westsahara", "El Aaiún"], ["Somaliland", "Hargeysa"]])
+    neueKarte(sAfrika, {
+      term: land, definition: stadt,
+      hint: "Kein Mitglied der Afrikanischen Union in eigenem Recht — darum verworfen.",
+      deleted: true, updatedAt: jetzt - 5 * TAG,
+    });
 
   /* ----------------------------- Mathematik ----------------------------- */
   const sMathe = neuerStapel("Analysis — Ableiten und Integrieren", oMathe.id, mathe, {
@@ -410,18 +413,28 @@ export function baueBeispieldaten({ jetzt = Date.now() } = {}) {
 
   const zustaende = [];
   const reviews = [];
-  const fachNach = { [sKant.id]: philosophie, [sEuropa.id]: geographie,
-    [sWelt.id]: geographie, [sFlaggen.id]: geographie, [sMathe.id]: mathe };
-  const stapelNach = Object.fromEntries(stapelListe.map((s) => [s.id, s]));
+  /* Welches Fach zu welchem Stapel gehört — aus den Stapeln selbst gelesen,
+     damit ein neuer Stapel nicht vergessen werden kann. */
+  const fachNachId = Object.fromEntries(faecher.map((f) => [f.id, f]));
+  const fachNach = Object.fromEntries(
+    stapelListe.map((st) => [st.id, fachNachId[st.subjectId]]));
+  const stapelNach = Object.fromEntries(
+    stapelListe.filter((st) => !st.deleted).map((st) => [st.id, st]));
 
   for (const karte of kartenListe) {
+    // Verworfenes bekommt keinen Lernstand — es ist gelöscht, nicht verborgen.
+    if (karte.deleted) continue;
     const stapel = stapelNach[karte.setId];
     const fach = fachNach[karte.setId];
+    if (!stapel || !fach) continue;
 
     // Ein Sechstel bleibt unangetastet: In jedem Fach soll auch Neues warten.
     if (wuerfel() < 0.17) continue;
 
-    const koennen = 0.55 + wuerfel() * 0.4;
+    /* Ein paar Karten sind ausdrücklich zäh angelegt. Nach sechsmal „Nochmal"
+       legt die App eine Karte still — die Sperre und das Entsperren lassen
+       sich sonst nicht ansehen, weil man dafür wochenlang scheitern müsste. */
+    const koennen = ZAEH.has(karte.term) ? 0.12 : 0.66 + wuerfel() * 0.3;
     // Wie weit die Karte zurückliegt — verteilt über zwölf Wochen.
     const beginn = jetzt - Math.round((10 + wuerfel() * 74) * TAG);
     /* Vier von zehn Karten wurden zuletzt vor einigen Tagen gesehen. Dadurch
@@ -451,7 +464,8 @@ export function baueBeispieldaten({ jetzt = Date.now() } = {}) {
    * Ruhetagsregel ansehen lässt.
    */
   const sitzungen = [];
-  const uebbar = kartenListe.filter((k) => model.kartenArt(k) !== "cloze");
+  const uebbar = kartenListe.filter((k) =>
+    !k.deleted && model.kartenArt(k) !== "cloze");
   const proTag = new Map();
   for (const r of reviews) {
     const tag = new Date(r.zeit); tag.setHours(0, 0, 0, 0);
@@ -459,7 +473,12 @@ export function baueBeispieldaten({ jetzt = Date.now() } = {}) {
     proTag.set(s, (proTag.get(s) || 0) + 1);
   }
 
-  const MODI = ["lernen", "schreiben", "zuordnen", "karten", "meteor", "test"];
+  const MODI = ["lernen", "schreiben", "zuordnen", "karten", "meteor", "test",
+    "buchstabieren"];
+  /* Das Tagespensum der Strähne. Steht auch in straehne.js; hier noch einmal,
+     damit der Bestand nicht von einer Einstellung abhängt, die der Nutzer
+     später verstellen kann. */
+  const PENSUM = 15;
   const heute = new Date(jetzt); heute.setHours(0, 0, 0, 0);
   const lueckenTage = new Set([9, 23]);      // zwei Ruhetage
 
@@ -467,34 +486,62 @@ export function baueBeispieldaten({ jetzt = Date.now() } = {}) {
     if (lueckenTage.has(vor)) continue;
     const tag = heute.getTime() - vor * TAG;
     const vorhanden = proTag.get(tag) || 0;
-    if (vorhanden === 0 && wuerfel() < 0.45) continue;   // nicht jeden Tag gelernt
-    const ziel = 17 + Math.round(wuerfel() * 9);
-    const fehlen = ziel - vorhanden;
+
+    /*
+     * Zwei Gründe, an einem Tag zu üben, und sie sind verschieden:
+     *
+     * Der eine ist Neigung — an gut der Hälfte der Tage wird zusätzlich geübt,
+     * gleichgültig ob das Abrufen schon genug hergab. Ohne das stünde in
+     * „Zuletzt gelernt" und unter „Nur geübt" nichts.
+     *
+     * Der andere ist das Pensum: An einem Tag, den die Strähne zählen soll,
+     * müssen genug Karten zusammenkommen. Diese Bedingung ausdrücklich
+     * hinzuschreiben ist besser, als sie aus dem Auffüllen hervorgehen zu
+     * lassen — beim ersten Anlauf hing die Strähne unbemerkt daran, wie viele
+     * Karten der Bestand gerade hatte, und fiel von achtundfünfzig auf drei
+     * Tage, als er wuchs.
+     */
+    const geuebt = wuerfel() < 0.55;
+    const untermPensum = vorhanden < PENSUM + 2;
+    if (!geuebt && !untermPensum) continue;
+
+    const ziel = Math.max(PENSUM + 3,
+      vorhanden + (geuebt ? 12 + Math.round(wuerfel() * 14) : 0));
+    const fehlen = Math.max(0, ziel - vorhanden);
     if (fehlen <= 0) continue;
 
     const modus = MODI[Math.floor(wuerfel() * MODI.length)];
-    const stapelWahl = stapelListe[Math.floor(wuerfel() * stapelListe.length)];
+    const lebende = stapelListe.filter((st) => !st.deleted);
+    const stapelWahl = lebende[Math.floor(wuerfel() * lebende.length)];
     const auswahl = uebbar.filter((k) => k.setId === stapelWahl.id);
     if (!auswahl.length) continue;
+
+    /* Die Uhrzeit muss beim heutigen Tag an der jetzigen enden. Vorher lag
+       die Übung fest zwischen sechzehn und einundzwanzig Uhr — wer den
+       Bestand am Vormittag anlegte, bekam Antworten aus der Zukunft, und die
+       Behaltenskurve rechnete mit negativen Abständen. */
+    const frueh = tag + 8 * 3600 * 1000;
+    const spaet = Math.min(jetzt, tag + 21 * 3600 * 1000);
+    const spanne = Math.max(60000, spaet - frueh);
+    const wann = () => frueh + Math.round(wuerfel() * spanne);
 
     let richtig = 0;
     for (let i = 0; i < fehlen; i++) {
       const karte = auswahl[Math.floor(wuerfel() * auswahl.length)];
       const gewusst = wuerfel() < 0.76;
       if (gewusst) richtig += 1;
-      const stunde = 16 + Math.floor(wuerfel() * 5);
       reviews.push(mitMarke(model.neuesReview({
         cardId: karte.id, richtung: "td", setId: karte.setId,
         subjectId: fachNach[karte.setId].id,
         bewertung: gewusst ? NOTEN.GUT : NOTEN.NOCHMAL,
         antwortzeit: Math.round(2000 + wuerfel() * 7000),
         konfidenz: null, flag: "practice", modus,
-        zeit: tag + stunde * 3600 * 1000 + Math.round(wuerfel() * 3000000),
+        zeit: wann(),
       })));
     }
     sitzungen.push(mitMarke({
       id: model.id("z"), setId: stapelWahl.id, modus,
-      zeit: tag + 17 * 3600 * 1000,
+      zeit: spaet,
       tag: new Date(tag).toISOString().slice(0, 10),
       gesamt: fehlen, richtig, dauer: fehlen * 9000,
       ...(modus === "meteor" ? { punkte: richtig * 12 } : {}),
@@ -502,19 +549,36 @@ export function baueBeispieldaten({ jetzt = Date.now() } = {}) {
   }
 
   /* ------------------------------ Entwürfe ------------------------------ */
+  /*
+   * Entwürfe sind Karten ohne Rückseite. Der Vorschlag bleibt verborgen, bis
+   * der Nutzer seine eigene Fassung geschrieben hat — wer ihn sich vorher
+   * zeigen lässt, kann das, es wird nur vermerkt. Ohne diesen Umweg wäre der
+   * Generator eine Maschine, die Stapel füllt und nichts lernt.
+   */
   const entwuerfe = [
-    ["Ideal der reinen Vernunft", "Der Begriff eines durchgängig bestimmten einzelnen Wesens, gedacht aus der Idee — bei Kant Grundlage der Gottesbeweise, die er anschließend verwirft."],
-    ["regulativer Gebrauch der Ideen", "Ideen der Vernunft leiten die Forschung als Aufgabe, ohne einen Gegenstand zu bezeichnen. Der konstitutive Gebrauch wäre der Fehler."],
-    ["Amphibolie der Reflexionsbegriffe", "Die Verwechslung von Gegenständen des Verstandes mit Erscheinungen — Kants Vorwurf an Leibniz."],
-    ["transzendentaler Schein", "Ein Schein, der nicht verschwindet, wenn man ihn durchschaut, weil er in der Natur der Vernunft selbst liegt."],
-    ["Postulate des empirischen Denkens", "Die Grundsätze zur Modalität: möglich, wirklich, notwendig — jeweils in Bezug auf die Bedingungen der Erfahrung."],
-  ].map(([term, vorschlag], i) => mitMarke({
+    [sKant, "Ideal der reinen Vernunft",
+      "Kritik der reinen Vernunft, Transzendentale Dialektik",
+      "Der Begriff eines durchgängig bestimmten einzelnen Wesens, gedacht aus der bloßen Idee — bei Kant die Wurzel der Gottesbeweise, die er anschließend verwirft."],
+    [sKant, "regulativer Gebrauch der Ideen",
+      "Kritik der reinen Vernunft, Anhang zur Dialektik",
+      "Ideen leiten die Forschung als Aufgabe, ohne einen Gegenstand zu bezeichnen. Der konstitutive Gebrauch wäre der Fehler."],
+    [sKant, "Postulate des empirischen Denkens",
+      "Kritik der reinen Vernunft, Analytik der Grundsätze",
+      "Die Grundsätze zur Modalität: möglich, wirklich, notwendig — jeweils in Bezug auf die Bedingungen der Erfahrung, nie auf das Ding selbst."],
+    [sKant, "Architektonik der reinen Vernunft",
+      "Kritik der reinen Vernunft, Methodenlehre",
+      "Die Kunst der Systeme: Erkenntnis wird erst durch die Idee des Ganzen zur Wissenschaft, nicht durch Anhäufung."],
+    [sAfrika, "Sahelzone",
+      "Erdkunde, Klimazonen",
+      "Der Übergangsgürtel zwischen Sahara und Feuchtsavanne — von Mauretanien bis in den Sudan."],
+    [sAfrika, "Afrikanische Union",
+      "Erdkunde, Staatenbünde",
+      "Zusammenschluss von 55 Mitgliedern mit Sitz in Addis Abeba, 2002 aus der Organisation für Afrikanische Einheit hervorgegangen."],
+  ].map(([stapel, term, quelle, vorschlag], i) => mitMarke({
     ...model.neuerEntwurf({
-      setId: sKant.id, term,
-      quelle: "Kritik der reinen Vernunft, Transzendentale Dialektik",
-      vorschlag, herkunft: "ki_vorderseite",
+      setId: stapel.id, term, quelle, vorschlag, herkunft: "ki_vorderseite",
     }),
-    createdAt: jetzt - (5 - i) * 3600 * 1000,
+    createdAt: jetzt - (6 - i) * 3600 * 1000,
   }));
 
   /* ----------------------------- Erklärungen ---------------------------- */
