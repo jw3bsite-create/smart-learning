@@ -1,5 +1,6 @@
 /*
- * Erzeugt die Symbole der App als PNG (für den Startbildschirm des Handys).
+ * Erzeugt die Symbole der App: PNG für den Startbildschirm des Handys,
+ * ICO für die Verknüpfung auf dem Schreibtisch.
  *
  * Aufruf: npm run symbole
  *
@@ -109,7 +110,7 @@ const GRUND = [15, 17, 21];
 const BLAU = [59, 110, 246];
 const HELL = [91, 139, 255];
 
-function symbol(groesse) {
+function zeichne(groesse) {
   const f = flaeche(groesse, groesse);
   const e = groesse / 64;                       // Maßstab, Vorlage ist 64 Punkte
   rechteck(f, 0, 0, groesse, groesse, 14 * e, GRUND, 1);
@@ -118,7 +119,82 @@ function symbol(groesse) {
   rechteck(f, 18 * e, 26 * e, 40 * e, 26 * e, 4 * e, HELL, 1);
   rechteck(f, 24 * e, 37.5 * e, 16 * e, 3 * e, 1.5 * e, GRUND, 1);
   rechteck(f, 24 * e, 42.5 * e, 10 * e, 3 * e, 1.5 * e, GRUND, 1);
-  return alsPng(f);
+  return f;
+}
+
+const symbol = (groesse) => alsPng(zeichne(groesse));
+
+/* ---------------------------------- ICO --------------------------------- */
+
+/*
+ * Windows braucht für eine Verknüpfung ein ICO. Das Format ist ein
+ * Inhaltsverzeichnis mit angehängten Bildern — und seit Vista dürfen die
+ * Bilder PNG sein. Wir haben also schon alles beisammen.
+ *
+ * Mehrere Größen, weil Windows je nach Ort eine andere nimmt: 16 Punkte in der
+ * Titelleiste, 32 in der Liste, 48 auf dem Schreibtisch, 256 in der großen
+ * Vorschau. Fehlt eine, rechnet Windows sie sich aus einer anderen zurecht und
+ * das Ergebnis ist verwaschen.
+ *
+ * Die kleinen Größen liegen im alten Format (BMP), die großen als PNG. Nicht
+ * aus Nostalgie: Es gibt bis heute Teile der Oberfläche, die PNG in einem
+ * Symbol nicht lesen und statt des Bildes Rauschen zeigen — .NETs eigene
+ * Symbolklasse gehört dazu. Umgekehrt wäre ein unkomprimiertes 256er-BMP
+ * viermal so groß wie die ganze übrige Datei.
+ */
+
+/**
+ * Ein Bild im alten Format: Kopfstück, Punkte von unten nach oben in der
+ * Reihenfolge Blau-Grün-Rot-Deckung, dahinter eine Maske, die bei 32 Bit
+ * niemand mehr auswertet, die aber dazugehört.
+ */
+function alsBmp(f) {
+  const kopf = Buffer.alloc(40);
+  kopf.writeUInt32LE(40, 0);
+  kopf.writeInt32LE(f.breite, 4);
+  kopf.writeInt32LE(f.hoehe * 2, 8);     // Farbe und Maske übereinander
+  kopf.writeUInt16LE(1, 12);
+  kopf.writeUInt16LE(32, 14);
+
+  const punkte = Buffer.alloc(f.breite * f.hoehe * 4);
+  for (let y = 0; y < f.hoehe; y++)
+    for (let x = 0; x < f.breite; x++) {
+      const q = ((f.hoehe - 1 - y) * f.breite + x) * 4;   // von unten nach oben
+      const z = (y * f.breite + x) * 4;
+      punkte[z] = f.punkte[q + 2];
+      punkte[z + 1] = f.punkte[q + 1];
+      punkte[z + 2] = f.punkte[q];
+      punkte[z + 3] = f.punkte[q + 3];
+    }
+
+  const zeile = Math.ceil(f.breite / 32) * 4;             // auf vier Byte aufgefüllt
+  return Buffer.concat([kopf, punkte, Buffer.alloc(zeile * f.hoehe)]);
+}
+function alsIco(groessen, alsPngAb = 128) {
+  const bilder = groessen.map((g) =>
+    (g >= alsPngAb ? alsPng(zeichne(g)) : alsBmp(zeichne(g))));
+  const kopf = Buffer.alloc(6);
+  kopf.writeUInt16LE(0, 0);              // vorbehalten
+  kopf.writeUInt16LE(1, 2);              // 1 = Symbol
+  kopf.writeUInt16LE(bilder.length, 4);
+
+  let versatz = 6 + bilder.length * 16;
+  const eintraege = bilder.map((bild, i) => {
+    const e = Buffer.alloc(16);
+    // 256 wird als 0 geschrieben — ein Byte fasst die Zahl nicht.
+    e[0] = groessen[i] >= 256 ? 0 : groessen[i];
+    e[1] = groessen[i] >= 256 ? 0 : groessen[i];
+    e[2] = 0;                            // keine Farbtafel
+    e[3] = 0;                            // vorbehalten
+    e.writeUInt16LE(1, 4);               // eine Ebene
+    e.writeUInt16LE(32, 6);              // 32 Bit je Punkt
+    e.writeUInt32LE(bild.length, 8);
+    e.writeUInt32LE(versatz, 12);
+    versatz += bild.length;
+    return e;
+  });
+
+  return Buffer.concat([kopf, ...eintraege, ...bilder]);
 }
 
 mkdirSync(ZIEL, { recursive: true });
@@ -127,3 +203,7 @@ for (const groesse of [192, 512]) {
   writeFileSync(datei, symbol(groesse));
   console.log("geschrieben:", datei);
 }
+
+const icoDatei = join(ZIEL, "symbol.ico");
+writeFileSync(icoDatei, alsIco([16, 24, 32, 48, 64, 128, 256]));
+console.log("geschrieben:", icoDatei);
