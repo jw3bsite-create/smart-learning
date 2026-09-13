@@ -310,6 +310,14 @@ export function uebersetze(text) {
       + "→ Sign In / Providers → Email → Confirm email abschalten.";
   if (/already registered/i.test(t)) return "Diese Kennung gibt es bereits.";
   if (/password/i.test(t) && /least/i.test(t)) return "Das Passwort ist zu kurz (mindestens sechs Zeichen).";
+  /* PostgREST meldet eine fehlende Tabelle als "Could not find the table
+     'public.karteikasten' in the schema cache" (PGRST205). Das heisst fast
+     immer: Der SQL-Text wurde in diesem Projekt nie ausgefuehrt — etwa weil
+     ein neues Projekt angelegt wurde, nachdem das alte eingeschlafen war. */
+  if (/could not find the table|schema cache|PGRST205|relation .* does not exist/i.test(t))
+    return "In deinem Supabase-Projekt fehlt die Tabelle. Öffne dort den SQL "
+      + "Editor, füge den Inhalt von wolke.sql ein und drücke Run. Die Anmeldung "
+      + "selbst hat funktioniert — nur die Ablage für die Daten ist noch nicht da.";
   if (istKeinAnschluss(t))
     return "Dein Supabase-Projekt antwortet nicht. Meist ist es pausiert — "
       + "kostenlose Projekte schlafen nach einer Woche ohne Nutzung ein — oder "

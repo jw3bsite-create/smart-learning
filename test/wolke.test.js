@@ -267,3 +267,21 @@ test("andere Meldungen gelten nicht als fehlender Anschluss", () => {
   assert.equal(istKeinAnschluss(""), false);
   assert.match(uebersetze("Invalid login credentials"), /Passwort/);
 });
+
+/*
+ * Nach erfolgreicher Anmeldung kam auf dem Handy "Could not find the table
+ * 'public.karteikasten' in the schema cache". Die Anmeldung stimmte, nur die
+ * Tabelle fehlte im Projekt. Roh durchgereicht klingt das nach einem Defekt
+ * der App; es ist ein fehlender Einrichtungsschritt.
+ */
+test("eine fehlende Tabelle wird als fehlender Einrichtungsschritt erklärt", () => {
+  const text = uebersetze(
+    "Could not find the table 'public.karteikasten' in the schema cache");
+  assert.match(text, /SQL Editor/);
+  assert.match(text, /wolke\.sql/);
+  assert.equal(istKeinAnschluss(text), false);
+});
+
+test("der SQL-Text liest den Zwischenspeicher der Schnittstelle neu ein", () => {
+  assert.match(sql, /notify\s+pgrst\s*,\s*'reload schema'/i);
+});

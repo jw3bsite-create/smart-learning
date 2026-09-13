@@ -46,3 +46,8 @@ create policy "eigene bilder" on storage.objects
   for all
   using (bucket_id = 'bilder' and (storage.foldername(name))[1] = auth.uid()::text)
   with check (bucket_id = 'bilder' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- Den Zwischenspeicher der Schnittstelle neu einlesen. Ohne diese Zeile kann
+-- es einen Moment dauern, bis die neue Tabelle gefunden wird; die Meldung
+-- lautet dann "Could not find the table ... in the schema cache".
+notify pgrst, 'reload schema';
