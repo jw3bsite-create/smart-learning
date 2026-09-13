@@ -41,6 +41,15 @@ function Wolkenteil({ aufAbgleich }) {
   const [laeuft, setLaeuft] = useState(false);
   const [anleitung, setAnleitung] = useState(false);
   const [zuletzt, setZuletzt] = useState(0);
+  // Passwort: "aendern" (angemeldet, bisheriges bekannt), "setzen" (nach dem
+  // Verweis aus der Mail) oder null.
+  const [pwArt, setPwArt] = useState(null);
+  const [pwBisher, setPwBisher] = useState("");
+  const [pwNeu, setPwNeu] = useState("");
+  const [pwWieder, setPwWieder] = useState("");
+  const [andereAbmelden, setAndereAbmelden] = useState(false);
+  const [pwFehler, setPwFehler] = useState("");
+  const [pwLaeuft, setPwLaeuft] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -49,6 +58,31 @@ function Wolkenteil({ aufAbgleich }) {
       setZuletzt(await wolke.letzterAbgleich());
     })();
   }, [wolkeStand.zeit]);
+
+  /* Rueckkehr aus einer Mail von Supabase. Abgeholt wird beim Oeffnen der
+     Einstellungen und, falls sie schon offen sind, auf das Ereignis hin. */
+  useEffect(() => {
+    const abholen = async () => {
+      const r = wolke.rueckkehrAbholen();
+      if (!r) return;
+      setSitz(await wolke.sitzung().catch(() => null));
+      if (r.art === "recovery") {
+        setHinweis("Du bist über den Verweis angemeldet. Leg jetzt ein neues Passwort fest.");
+        oeffnePasswort("setzen");
+      } else if (r.art === "fehler") {
+        setFehler(wolke.uebersetze(r.code + " " + r.text));
+      } else if (r.art === "ohneZugang") {
+        setFehler("Der Verweis funktioniert nur auf einem Gerät, auf dem Adresse und "
+          + "Schlüssel schon eingetragen sind. Trag beides hier ein und fordere dann "
+          + "einen neuen Verweis an.");
+      } else {
+        setHinweis("Deine Kennung ist bestätigt, du bist angemeldet.");
+      }
+    };
+    abholen();
+    window.addEventListener(wolke.RUECKKEHR_EREIGNIS, abholen);
+    return () => window.removeEventListener(wolke.RUECKKEHR_EREIGNIS, abholen);
+  }, []);
 
   /*
    * Beim Speichern prüfen, nicht erst beim Verbinden. Sonst kommt der Fehler
@@ -97,9 +131,65 @@ function Wolkenteil({ aufAbgleich }) {
     } finally { setLaeuft(false); }
   };
 
-  const abmelden = async () => {
-    await wolke.abmelden();
-    setSitz(null);
+  const abmelden = async (ueberall = false) => {
+    setFehler(""); setHinweis("");
+    if (ueberall && !window.confirm(
+      "Auf allen Geräten abmelden? Handy, Tablet und Rechner müssen sich danach "
+      + "neu anmelden. Deine Karten bleiben auf jedem Gerät erhalten.")) return;
+    try {
+      await wolke.abmelden({ ueberall });
+      setSitz(null);
+      if (ueberall)
+        setHinweis("Abgemeldet. Andere Geräte verlieren die Anmeldung spätestens "
+          + "nach einer Stunde.");
+    } catch (f) { setFehler(f.message); }
+  };
+
+  function oeffnePasswort(art) {
+    setPwArt(art); setPwBisher(""); setPwNeu(""); setPwWieder("");
+    setAndereAbmelden(false); setPwFehler("");
+  }
+
+  const passwortSpeichern = async () => {
+    setPwFehler("");
+    const beanstandung = wolke.passwortPruefen(pwNeu, pwWieder);
+    if (beanstandung) { setPwFehler(beanstandung); return; }
+    if (pwArt === "aendern" && !pwBisher) { setPwFehler("Es fehlt das bisherige Passwort."); return; }
+    setPwLaeuft(true);
+    try {
+      if (pwArt === "aendern")
+        await wolke.passwortAendern({
+          kennung: sitz?.user?.email, bisher: pwBisher, neu: pwNeu, andereAbmelden,
+        });
+      else
+        await wolke.passwortSetzen(pwNeu, { andereAbmelden });
+      setPwArt(null);
+      setSitz(await wolke.sitzung().catch(() => null));
+      setFehler("");
+      setHinweis(andereAbmelden
+        ? "Passwort geändert. Deine anderen Geräte werden abgemeldet — "
+          + "spätestens nach einer Stunde müssen sie sich neu anmelden."
+        : "Passwort geändert. Deine anderen Geräte bleiben angemeldet.");
+    } catch (f) {
+      setPwFehler(f.message);
+    } finally { setPwLaeuft(false); }
+  };
+
+  const passwortVergessen = async () => {
+    setFehler(""); setHinweis("");
+    const beanstandung = wolke.adressFehler(zugang.url) || wolke.schluesselFehler(zugang.key);
+    if (beanstandung) { setFehler(beanstandung); return; }
+    setLaeuft(true);
+    try {
+      await wolke.zugangSchreiben(zugang);
+      await wolke.passwortVergessen(kennung);
+      setHinweis("Wenn es diese Kennung gibt, ist ein Verweis unterwegs. Öffne ihn auf "
+        + "einem Gerät, auf dem Adresse und Schlüssel eingetragen sind — dann "
+        + "kannst du ein neues Passwort festlegen. Supabase verschickt in der kostenlosen "
+        + "Fassung nur wenige Mails je Stunde; sieh auch im Spam nach.");
+    } catch (f) {
+      setFehler(f.message);
+    } finally { setLaeuft(false); }
   };
 
   return (
@@ -118,7 +208,12 @@ function Wolkenteil({ aufAbgleich }) {
               </div>
             </div>
             <Knopf symbol="wolke" onClick={aufAbgleich}>Jetzt abgleichen</Knopf>
-            <SymbolKnopf symbol="abmelden" titel="Abmelden" onClick={abmelden} />
+            <SymbolKnopf symbol="abmelden" titel="Auf diesem Gerät abmelden"
+              onClick={() => abmelden(false)} />
+          </div>
+          <div className="reihe umbruch" style={{ marginTop: 10 }}>
+            <Knopf art="klein" onClick={() => oeffnePasswort("aendern")}>Passwort ändern</Knopf>
+            <Knopf art="klein leer" onClick={() => abmelden(true)}>Auf allen Geräten abmelden</Knopf>
           </div>
           {wolkeStand.zustand === "fehler" && (
             <div className="rueckmeldung schlecht klein" style={{ marginTop: 10 }}>
@@ -176,6 +271,11 @@ function Wolkenteil({ aufAbgleich }) {
                 <Knopf art="leer klein" type="button" onClick={() => { setNeu(!neu); setFehler(""); }}>
                   {neu ? "Ich habe schon eine Kennung" : "Neue Kennung anlegen"}
                 </Knopf>
+                {!neu && (
+                  <Knopf art="leer klein" type="button" disabled={laeuft} onClick={passwortVergessen}>
+                    Passwort vergessen?
+                  </Knopf>
+                )}
               </div>
             </form>
           )}
@@ -184,6 +284,48 @@ function Wolkenteil({ aufAbgleich }) {
 
       {fehler && <div className="rueckmeldung schlecht klein" style={{ marginTop: 12 }}>{fehler}</div>}
       {hinweis && <div className="rueckmeldung gut klein" style={{ marginTop: 12 }}>{hinweis}</div>}
+
+      {pwArt && (
+        <Dialog titel={pwArt === "aendern" ? "Passwort ändern" : "Neues Passwort festlegen"}
+          aufSchliessen={() => setPwArt(null)}
+          fuss={<>
+            <Knopf onClick={() => setPwArt(null)}>Abbrechen</Knopf>
+            <Knopf art="voll" disabled={pwLaeuft} onClick={passwortSpeichern}>
+              {pwLaeuft ? "Wird gespeichert …" : "Speichern"}
+            </Knopf>
+          </>}>
+          {/* Ein verborgenes Feld mit der Kennung, damit Passwortmanager wissen,
+              zu welchem Konto das neue Passwort gehoert. */}
+          <input type="email" autoComplete="username" value={sitz?.user?.email || kennung}
+            readOnly hidden />
+          {pwArt === "aendern" && (
+            <>
+              <label className="beschriftung">Bisheriges Passwort</label>
+              <input className="feld" type="password" autoComplete="current-password"
+                value={pwBisher} onChange={(e) => setPwBisher(e.target.value)} />
+            </>
+          )}
+          <label className="beschriftung" style={{ marginTop: 10 }}>Neues Passwort</label>
+          <input className="feld" type="password" autoComplete="new-password"
+            value={pwNeu} onChange={(e) => setPwNeu(e.target.value)} />
+          <label className="beschriftung" style={{ marginTop: 10 }}>Neues Passwort wiederholen</label>
+          <input className="feld" type="password" autoComplete="new-password"
+            value={pwWieder} onChange={(e) => setPwWieder(e.target.value)} />
+
+          <label className="schalter" style={{ marginTop: 16 }}>
+            <input type="checkbox" checked={andereAbmelden}
+              onChange={(e) => setAndereAbmelden(e.target.checked)} />
+            <span>Auf meinen anderen Geräten abmelden</span>
+          </label>
+          <p className="klein matt" style={{ marginTop: 4 }}>
+            Ohne Haken bleiben Handy, Tablet und Rechner angemeldet — Supabase meldet
+            beim Passwortwechsel von sich aus niemanden ab. Mit Haken müssen sie sich neu
+            anmelden, spätestens nach einer Stunde, wenn ihre Anmeldung erneuert würde.
+            Setz den Haken, wenn du das Passwort änderst, weil jemand es kennen könnte.
+          </p>
+          {pwFehler && <div className="rueckmeldung schlecht klein" style={{ marginTop: 10 }}>{pwFehler}</div>}
+        </Dialog>
+      )}
 
       {anleitung && (
         <Dialog weit titel="Abgleich einrichten" aufSchliessen={() => setAnleitung(false)}
@@ -196,6 +338,10 @@ function Wolkenteil({ aufAbgleich }) {
               Ablage für Bilder an.</li>
             <li>Unter <em>Project Settings → API</em> die <em>Project URL</em> und den
               <em> anon public</em>-Schlüssel kopieren und oben eintragen.</li>
+            <li>Unter <em>Authentication → URL Configuration</em> die Adresse dieser App als
+              <em> Site URL</em> eintragen und zusätzlich unter <em>Redirect URLs</em>. Sonst
+              führen die Verweise zum Bestätigen und zum Zurücksetzen des Passworts ins
+              Leere.</li>
             <li>Eine Kennung anlegen und anmelden — auf jedem Gerät dieselbe.</li>
           </ol>
           <p className="klein matt">

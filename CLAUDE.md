@@ -211,6 +211,18 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
     denn ein `crossorigin`-Skript schickt eine Origin-Kopfzeile mit, das
     Einlagern nicht. Der Fehler zeigt sich nur ohne Netz und nur bei den
     Anfragen des Browsers, nicht bei denen aus dem Programm.
+22. **Verweise aus Supabase-Mails landen hinter dem `#`** — dort, wo auch die
+    Seitenwege der App liegen, und die Bibliothek liest sie nur beim Aufbau der
+    Verbindung. Die App baut sie aber erst bei Bedarf auf. Darum erkennt
+    `main.jsx` eine Rückkehr vor dem ersten Zeichnen und stößt
+    `rueckkehrVerarbeiten` an; vorher taten Bestätigungs- und Passwortverweise
+    scheinbar nichts. Seitenwege beginnen immer mit `/`, eine Rückkehr nie.
+23. **`signOut()` ohne `scope` meldet auf allen Geräten ab.** Supabase nimmt
+    dann `global`. Abmelden heißt hier `local`; `global` nur ausdrücklich.
+    Beim Passwortwechsel meldet Supabase von sich aus niemanden ab.
+24. **Prüfen im Browserfenster: Ein Sprung auf dieselbe Seite mit anderem
+    `#`-Teil lädt nicht neu.** Wer die Rückkehr prüfen will, braucht einen
+    echten Seitenaufruf, etwa mit angehängtem `?probe=1`.
 
 ## Was ausdrücklich nicht gebaut wird
 

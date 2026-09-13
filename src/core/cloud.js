@@ -282,10 +282,192 @@ function eigeneAdresse() {
   return new URL(".", window.location.href).href;
 }
 
-export async function abmelden() {
+/**
+ * Abmelden — ab Werk nur auf diesem Geraet.
+ *
+ * Supabase meldet ohne Angabe mit `scope: "global"` ab, also auf allen
+ * Geraeten zugleich. So stand es hier bis zu dieser Fassung: Wer sich auf dem
+ * Schul-iPad abmeldete, war auch auf Handy und Rechner draussen. Das will man
+ * fast nie; wer es will, sagt es ausdruecklich.
+ */
+export async function abmelden({ ueberall = false } = {}) {
   const k = await verbinde();
-  if (k) await k.auth.signOut();
+  if (!k) return;
+  const { error } = await k.auth.signOut({ scope: ueberall ? "global" : "local" });
+  if (error) throw new Error(uebersetze(error.message));
 }
+
+/* ------------------------------ Passwort ------------------------------- */
+
+/** Supabase verlangt ab Werk mindestens sechs Zeichen. */
+export const PASSWORT_MINDEST = 6;
+
+/** Prueft zwei Eingaben fuer ein neues Passwort, bevor etwas hinausgeht. */
+export function passwortPruefen(neu, wiederholt) {
+  const a = String(neu || "");
+  if (!a) return "Es fehlt das neue Passwort.";
+  if (a.length < PASSWORT_MINDEST)
+    return "Das neue Passwort ist zu kurz \u2014 mindestens sechs Zeichen.";
+  if (a !== String(wiederholt || ""))
+    return "Die beiden Eingaben stimmen nicht \u00fcberein.";
+  return "";
+}
+
+/**
+ * Schickt einen Verweis zum Zuruecksetzen an die Kennung.
+ *
+ * Supabase verraet dabei nicht, ob es die Kennung gibt — sonst liesse sich
+ * damit ausprobieren, welche Adressen ein Konto haben. Die Oberflaeche sagt
+ * darum "wenn es die Kennung gibt".
+ */
+export async function passwortVergessen(kennung) {
+  const k = await verbinde();
+  if (!k) throw new Error("Keine Zugangsdaten hinterlegt.");
+  const email = String(kennung || "").trim();
+  if (!email)
+    throw new Error("Trag oben deine Kennung (E-Mail) ein \u2014 dorthin geht der Verweis.");
+  const { error } = await k.auth.resetPasswordForEmail(email, { redirectTo: eigeneAdresse() });
+  if (error) throw new Error(uebersetze(error.message));
+}
+
+/**
+ * Setzt ein neues Passwort fuer die bestehende Anmeldung.
+ *
+ * Gebraucht nach der Rueckkehr ueber den Verweis — dort gibt es kein
+ * bisheriges Passwort, die Anmeldung stammt aus dem Verweis selbst.
+ *
+ * Andere Geraete bleiben angemeldet, sofern nicht `andereAbmelden` gesetzt
+ * ist: Supabase selbst meldet beim Passwortwechsel niemanden ab (im Quelltext
+ * des Anmeldedienstes steht dabei kein einziger Abmeldeschritt).
+ */
+export async function passwortSetzen(neu, { andereAbmelden = false } = {}) {
+  const k = await verbinde();
+  if (!k) throw new Error("Keine Zugangsdaten hinterlegt.");
+  const { error } = await k.auth.updateUser({ password: neu });
+  if (error) throw new Error(uebersetze(error.message));
+  if (andereAbmelden) {
+    const { error: abmeldeFehler } = await k.auth.signOut({ scope: "others" });
+    if (abmeldeFehler) throw new Error(uebersetze(abmeldeFehler.message));
+  }
+}
+
+/**
+ * Aendert das Passwort, wenn man angemeldet ist und das bisherige kennt.
+ *
+ * Das bisherige Passwort wird verlangt, und zwar echt geprueft, indem damit
+ * frisch angemeldet wird. Zwei Gruende: Wer ein entsperrtes Geraet in der Hand
+ * hat, soll damit nicht das Passwort umstellen koennen. Und ist im Projekt
+ * "Secure password change" eingeschaltet, verlangt Supabase bei Anmeldungen
+ * aelter als 24 Stunden eine Bestaetigung per Mail — nach einer frischen
+ * Anmeldung nicht.
+ */
+export async function passwortAendern({ kennung, bisher, neu, andereAbmelden = false }) {
+  const k = await verbinde();
+  if (!k) throw new Error("Keine Zugangsdaten hinterlegt.");
+  const { error } = await k.auth.signInWithPassword({ email: kennung, password: bisher });
+  if (error)
+    throw new Error(/invalid login/i.test(error.message)
+      ? "Das bisherige Passwort stimmt nicht."
+      : uebersetze(error.message));
+  await passwortSetzen(neu, { andereAbmelden });
+}
+
+/* ---------------------- Rueckkehr aus einer Mail ----------------------- */
+
+const RUECKKEHR_SCHLUESSEL = "wolke-rueckkehr";
+
+/**
+ * Erkennt, ob die Adresse eine Rueckkehr aus einer Supabase-Mail ist.
+ *
+ * Supabase haengt die Anmeldung hinter das #: `#access_token=...&type=recovery`
+ * — oder bei einem abgelaufenen Verweis `#error=access_denied&error_code=
+ * otp_expired`. Genau dort liegen aber auch die Seitenwege der App
+ * (`#/stapel/...`). Die beginnen immer mit einem Schraegstrich; eine
+ * Rueckkehr nie.
+ *
+ * → null, oder { art: "recovery" | "signup" | "magiclink" | "anmeldung" }
+ *   oder { art: "fehler", code, text }
+ */
+export function anmeldeRueckkehrLesen(hash) {
+  const roh = String(hash || "").replace(/^#/, "");
+  if (!/(^|&)(access_token|error|error_code|error_description)=/.test(roh)) return null;
+  const teile = new URLSearchParams(roh);
+  if (teile.get("error") || teile.get("error_code") || teile.get("error_description"))
+    return {
+      art: "fehler",
+      code: teile.get("error_code") || teile.get("error") || "",
+      text: teile.get("error_description") || "",
+    };
+  return { art: teile.get("type") || "anmeldung" };
+}
+
+function sitzungsSpeicher() {
+  try { return window.sessionStorage; } catch { return null; }
+}
+
+/** Merkt sich eine Rueckkehr ueber den Neustart der Seite hinweg. */
+export function rueckkehrMerken(rueckkehr, fertig = false) {
+  const sp = sitzungsSpeicher();
+  if (sp) sp.setItem(RUECKKEHR_SCHLUESSEL, JSON.stringify({ ...rueckkehr, fertig }));
+}
+
+/** Gibt eine fertig verarbeitete Rueckkehr einmal heraus und vergisst sie. */
+export function rueckkehrAbholen() {
+  const sp = sitzungsSpeicher();
+  if (!sp) return null;
+  try {
+    const r = JSON.parse(sp.getItem(RUECKKEHR_SCHLUESSEL) || "null");
+    if (!r || !r.fertig) return null;
+    sp.removeItem(RUECKKEHR_SCHLUESSEL);
+    return r;
+  } catch {
+    sp.removeItem(RUECKKEHR_SCHLUESSEL);
+    return null;
+  }
+}
+
+/**
+ * Verarbeitet eine Rueckkehr: Verbindung aufbauen, damit die Bibliothek die
+ * Anmeldung aus der Adresse liest, dann auf die Einstellungen wechseln.
+ *
+ * Der Grund, warum das beim Start geschehen muss: Die Bibliothek liest die
+ * Anmeldung nur beim Aufbau der Verbindung aus der Adresse — und die App baut
+ * sie erst bei Bedarf auf. Bis zu dieser Fassung lag die Anmeldung aus jedem
+ * Bestaetigungs- und Passwortverweis darum ungelesen in der Adresse, und der
+ * Verweis tat scheinbar nichts.
+ */
+export async function rueckkehrVerarbeiten() {
+  const sp = sitzungsSpeicher();
+  let r = null;
+  try { r = JSON.parse((sp && sp.getItem(RUECKKEHR_SCHLUESSEL)) || "null"); } catch { r = null; }
+  if (!r) return;
+
+  if (r.art !== "fehler") {
+    try {
+      const k = await verbinde();
+      if (!k) r = { art: "ohneZugang" };
+      else {
+        // getSession wartet, bis die Bibliothek die Adresse gelesen hat.
+        const { data } = await k.auth.getSession();
+        if (!data?.session) r = { art: "fehler", code: "keine_sitzung", text: "" };
+      }
+    } catch (e) {
+      r = { art: "fehler", code: "", text: String(e?.message || e) };
+    }
+  }
+  rueckkehrMerken(r, true);
+
+  // Die Anmeldedaten gehoeren nicht in die Adresszeile — und nicht in den
+  // Verlauf, wo sie beim Zurueckblaettern wieder auftauchten.
+  if (typeof window !== "undefined") {
+    const ziel = window.location.pathname + window.location.search + "#/einstellungen";
+    window.history.replaceState(null, "", ziel);
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+    window.dispatchEvent(new Event(RUECKKEHR_SCHLUESSEL));
+  }
+}
+
+export const RUECKKEHR_EREIGNIS = RUECKKEHR_SCHLUESSEL;
 
 /*
  * Was ein Browser meldet, wenn eine Anfrage gar nicht erst ankommt — und
@@ -303,6 +485,18 @@ export function istKeinAnschluss(text) {
 export function uebersetze(text) {
   const t = String(text || "");
   if (/invalid login/i.test(t)) return "Kennung oder Passwort stimmen nicht.";
+  if (/otp_expired|link is invalid or has expired/i.test(t))
+    return "Der Verweis ist abgelaufen oder wurde schon benutzt. Fordere einen neuen an.";
+  if (/different from the old password|same_password/i.test(t))
+    return "Das neue Passwort ist dasselbe wie das bisherige.";
+  if (/rate limit|only request this after|over_email_send_rate_limit/i.test(t))
+    return "Supabase hat gerade zu viele Mails verschickt \u2014 in der kostenlosen "
+      + "Fassung sind es nur wenige je Stunde. Versuch es sp\u00e4ter noch einmal.";
+  if (/reauthentication|nonce/i.test(t))
+    return "Supabase verlangt f\u00fcr den Passwortwechsel eine erneute Best\u00e4tigung. "
+      + "Melde dich ab und wieder an und versuche es dann noch einmal.";
+  if (/keine_sitzung/i.test(t))
+    return "Der Verweis hat keine Anmeldung mitgebracht. Fordere einen neuen an.";
   if (/email not confirmed/i.test(t))
     return "Die Kennung ist noch nicht bestätigt. Supabase verschickt in der "
       + "kostenlosen Fassung nur wenige Mails am Tag, oft kommt keine an. Du "

@@ -18,7 +18,7 @@ import { readFileSync } from "node:fs";
 import { SYNCED, STORES, SICHERUNG_FELDER } from "../src/core/db.js";
 import {
   ARTEN, normalisiereUrl, saeubereSchluessel, schluesselFehler, adressFehler,
-  uebersetze, istKeinAnschluss,
+  uebersetze, istKeinAnschluss, anmeldeRueckkehrLesen, passwortPruefen, PASSWORT_MINDEST,
 } from "../src/core/cloud.js";
 
 test("jede abzugleichende Ablage hat einen Namen in der Tabelle", () => {
@@ -284,4 +284,53 @@ test("eine fehlende Tabelle wird als fehlender Einrichtungsschritt erklärt", ()
 
 test("der SQL-Text liest den Zwischenspeicher der Schnittstelle neu ein", () => {
   assert.match(sql, /notify\s+pgrst\s*,\s*'reload schema'/i);
+});
+
+/* ============================ Passwort und Rückkehr ===================== */
+
+/*
+ * Supabase hängt die Anmeldung aus einer Mail hinter das # — dort, wo auch
+ * die Seitenwege der App liegen. Die Unterscheidung muss zuverlässig sein:
+ * Hält die App einen Seitenweg für eine Rückkehr, verbiegt sie ihn; übersieht
+ * sie eine Rückkehr, bleibt die Anmeldung ungelesen in der Adresse liegen.
+ */
+test("eine Rückkehr zum Zurücksetzen des Passworts wird erkannt", () => {
+  assert.deepEqual(
+    anmeldeRueckkehrLesen("#access_token=abc&expires_in=3600&refresh_token=def&token_type=bearer&type=recovery"),
+    { art: "recovery" });
+});
+
+test("eine Rückkehr aus der Bestätigungsmail wird erkannt", () => {
+  assert.deepEqual(anmeldeRueckkehrLesen("#access_token=abc&type=signup"), { art: "signup" });
+});
+
+/* Genau diese Adresse kam beim Nutzer an — abgelaufen und obendrein auf den
+   falschen Rechner zeigend. */
+test("ein abgelaufener Verweis wird als Fehler mit seinem Grund erkannt", () => {
+  const r = anmeldeRueckkehrLesen(
+    "#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired&sb=");
+  assert.equal(r.art, "fehler");
+  assert.equal(r.code, "otp_expired");
+  assert.match(uebersetze(r.code + " " + r.text), /abgelaufen/);
+});
+
+test("die eigenen Seitenwege der App sind keine Rückkehr", () => {
+  for (const hash of ["", "#", "#/", "#/einstellungen", "#/stapel/s_abc/lernen", "#/fragen"])
+    assert.equal(anmeldeRueckkehrLesen(hash), null, "fälschlich erkannt: " + hash);
+});
+
+test("ein neues Passwort wird vor dem Absenden geprüft", () => {
+  assert.match(passwortPruefen("", ""), /fehlt/);
+  assert.match(passwortPruefen("kurz", "kurz"), /zu kurz/);
+  assert.match(passwortPruefen("langgenug1", "langgenug2"), /nicht .berein/);
+  assert.equal(passwortPruefen("langgenug", "langgenug"), "");
+  assert.equal(PASSWORT_MINDEST, 6);
+});
+
+test("die Meldungen rund ums Passwort kommen auf Deutsch", () => {
+  assert.match(uebersetze("New password should be different from the old password."), /dasselbe/);
+  assert.match(uebersetze("email rate limit exceeded"), /zu viele Mails/);
+  assert.match(uebersetze("For security purposes, you can only request this after 42 seconds."),
+    /zu viele Mails/);
+  assert.match(uebersetze("Password update requires reauthentication."), /Bestätigung/);
 });
