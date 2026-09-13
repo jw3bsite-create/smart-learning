@@ -61,7 +61,13 @@ function Wolkenteil({ aufAbgleich }) {
     if (beanstandung) { setFehler(beanstandung); return; }
     await wolke.zugangSchreiben(zugang);
     setZugang(await wolke.zugangLesen());   // zeigt die geradegezogene Adresse
-    setHinweis("Zugangsdaten gespeichert.");
+    /* Gespeichert wird in jedem Fall — aber gleich nachgesehen, ob das Projekt
+       antwortet. Sonst erfährt man es erst beim Anmelden, und dann in der
+       Sprache des Browsers. */
+    setHinweis("Zugangsdaten gespeichert — sehe nach, ob das Projekt antwortet …");
+    const probe = await wolke.verbindungPruefen(zugang);
+    if (probe.ok) setHinweis("Zugangsdaten gespeichert. Das Projekt antwortet.");
+    else { setHinweis("Zugangsdaten gespeichert."); setFehler(probe.text); }
     setSitz(await wolke.sitzung().catch(() => null));
   };
 

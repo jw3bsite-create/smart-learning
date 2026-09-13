@@ -18,6 +18,7 @@ import { readFileSync } from "node:fs";
 import { SYNCED, STORES, SICHERUNG_FELDER } from "../src/core/db.js";
 import {
   ARTEN, normalisiereUrl, saeubereSchluessel, schluesselFehler, adressFehler,
+  uebersetze, istKeinAnschluss,
 } from "../src/core/cloud.js";
 
 test("jede abzugleichende Ablage hat einen Namen in der Tabelle", () => {
@@ -238,4 +239,31 @@ test("die Feldnamen sind untereinander verschieden", () => {
   const felder = Object.values(SICHERUNG_FELDER);
   assert.equal(new Set(felder).size, felder.length,
     "zwei Ablagen unter demselben Feld würden einander in der Datei überschreiben");
+});
+
+/* ============================ Kein Anschluss ============================ */
+
+/*
+ * Jeder Browser sagt es anders, wenn eine Anfrage nicht ankommt. Übersetzt
+ * wurde zuerst nur Chromes Fassung — auf dem iPad stand deshalb „Load failed"
+ * roh da, ausgerechnet auf dem Gerät, auf dem man am wenigsten nachsehen kann.
+ */
+test("jede Browserfassung von kein Anschluss wird erkannt", () => {
+  for (const meldung of [
+    "Failed to fetch",
+    "TypeError: Load failed",
+    "NetworkError when attempting to fetch resource.",
+    "Network request failed",
+  ]) {
+    assert.ok(istKeinAnschluss(meldung), "nicht erkannt: " + meldung);
+    const text = uebersetze(meldung);
+    assert.notEqual(text, meldung, "roh durchgereicht: " + meldung);
+    assert.match(text, /pausiert/, "der häufigste Grund fehlt in: " + text);
+  }
+});
+
+test("andere Meldungen gelten nicht als fehlender Anschluss", () => {
+  assert.equal(istKeinAnschluss("Invalid login credentials"), false);
+  assert.equal(istKeinAnschluss(""), false);
+  assert.match(uebersetze("Invalid login credentials"), /Passwort/);
 });

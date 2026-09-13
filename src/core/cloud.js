@@ -144,6 +144,63 @@ export function adressFehler(roh) {
   return "";
 }
 
+/**
+ * Klopft beim Projekt an, bevor man sich darauf verlässt.
+ *
+ * → { ok: true } oder { ok: false, grund: "offline" | "projekt" | "schluessel" |
+ *   "unbekannt", text }
+ *
+ * Der Grund für diese Prüfung: Ein pausiertes oder falsch abgetipptes Projekt
+ * meldete sich bisher erst beim Anmelden, und dann mit dem Wortlaut des
+ * Browsers. Beim Speichern nachzusehen kostet eine Anfrage und erspart das
+ * Rätseln an der falschen Stelle.
+ *
+ * Unterschieden wird dreierlei, soweit ein Browser das überhaupt zulässt: kein
+ * Netz (navigator.onLine), Netz da, aber Supabase selbst unerreichbar, und
+ * Supabase erreichbar, aber dieses Projekt nicht. Nur das Letzte heißt
+ * „pausiert oder falsche Adresse" — und genau dieser Fall ist der häufige.
+ */
+export async function verbindungPruefen(roh = {}) {
+  const adresse = normalisiereUrl(roh.url);
+  const schluessel = saeubereSchluessel(roh.key);
+
+  if (typeof navigator !== "undefined" && navigator.onLine === false)
+    return { ok: false, grund: "offline", text: "Dieses Gerät hat gerade kein Netz." };
+
+  try {
+    const antwort = await fetch(adresse + "/auth/v1/health", {
+      headers: { apikey: schluessel },
+    });
+    if (antwort.status === 401 || antwort.status === 403)
+      return { ok: false, grund: "schluessel",
+        text: "Das Projekt antwortet, lehnt den Schlüssel aber ab. Kopiere den "
+          + "publishable key frisch aus Supabase (API Keys)." };
+    if (!antwort.ok)
+      return { ok: false, grund: "unbekannt",
+        text: "Das Projekt antwortet mit Fehler " + antwort.status + "." };
+    return { ok: true };
+  } catch {
+    /* Die Anfrage kam nicht an. Ob das am Projekt liegt oder am Netz, prüft
+       ein zweiter Versuch bei Supabase selbst. `no-cors` genügt: Lesen dürfen
+       wir die Antwort nicht, aber dass eine kommt, reicht als Beweis. */
+    let supabaseDa = false;
+    try {
+      await fetch("https://supabase.com/favicon.ico", { mode: "no-cors", cache: "no-store" });
+      supabaseDa = true;
+    } catch { /* bleibt false */ }
+
+    if (!supabaseDa)
+      return { ok: false, grund: "netz",
+        text: "Supabase ist von hier aus nicht erreichbar. Vielleicht sperrt ein "
+          + "Filter im Netz (etwa im Schul-WLAN) die Adresse." };
+    return { ok: false, grund: "projekt",
+      text: "Supabase ist erreichbar, dein Projekt aber nicht. Meist ist es "
+        + "pausiert — kostenlose Projekte schlafen nach einer Woche ohne Nutzung "
+        + "ein; in Supabase steht dann „Paused\u201c mit einem Knopf zum Aufwecken. "
+        + "Sonst weicht die Adresse ab: Project URL frisch kopieren." };
+  }
+}
+
 export async function zugangLesen() {
   return (await db.getSetting("wolke", null)) || { url: "", key: "" };
 }
@@ -230,7 +287,20 @@ export async function abmelden() {
   if (k) await k.auth.signOut();
 }
 
-function uebersetze(text) {
+/*
+ * Was ein Browser meldet, wenn eine Anfrage gar nicht erst ankommt — und
+ * jeder meldet es anders: Chrome "Failed to fetch", Safari "Load failed",
+ * Firefox "NetworkError when attempting to fetch resource". Zuerst stand hier
+ * nur die Chrome-Fassung; auf dem iPad kam deshalb "Load failed" roh an, und
+ * damit kann niemand etwas anfangen.
+ */
+const KEIN_ANSCHLUSS = /failed to fetch|load failed|networkerror|network request failed/i;
+
+export function istKeinAnschluss(text) {
+  return KEIN_ANSCHLUSS.test(String(text || ""));
+}
+
+export function uebersetze(text) {
   const t = String(text || "");
   if (/invalid login/i.test(t)) return "Kennung oder Passwort stimmen nicht.";
   if (/email not confirmed/i.test(t))
@@ -240,7 +310,11 @@ function uebersetze(text) {
       + "→ Sign In / Providers → Email → Confirm email abschalten.";
   if (/already registered/i.test(t)) return "Diese Kennung gibt es bereits.";
   if (/password/i.test(t) && /least/i.test(t)) return "Das Passwort ist zu kurz (mindestens sechs Zeichen).";
-  if (/failed to fetch/i.test(t)) return "Kein Anschluss — Adresse falsch oder keine Verbindung.";
+  if (istKeinAnschluss(t))
+    return "Dein Supabase-Projekt antwortet nicht. Meist ist es pausiert — "
+      + "kostenlose Projekte schlafen nach einer Woche ohne Nutzung ein — oder "
+      + "die Adresse weicht ab. Sieh in Supabase nach, ob dort „Paused\u201c steht, "
+      + "und kopiere die Project URL frisch.";
   return t;
 }
 
