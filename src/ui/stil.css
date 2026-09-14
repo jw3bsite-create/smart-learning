@@ -488,3 +488,33 @@ select.feld { appearance: none; padding-right: 30px;
   .karten-zeile { break-inside: avoid; border-color: #bbb; }
   .mitte { padding: 0; max-width: none; }
 }
+
+/* ------------------------------ Startseite ---------------------------- */
+
+/* Logo und Name als Knopf: sieht aus wie Schrift, fuehrt zur Startseite. */
+.logo-knopf {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: none; border: 0; padding: 4px 6px; margin: -4px -6px;
+  color: inherit; font: inherit; cursor: pointer; text-align: left;
+  border-radius: 8px; transition: background var(--wechsel);
+}
+.logo-knopf:hover { background: var(--grund-3); }
+.logo-knopf:focus-visible { outline: 2px solid var(--akzent); outline-offset: 2px; }
+
+/* Nur im Schmalbild — breit blendet .nur-schmal den Streifen aus, und eine
+   Anzeige-Regel hier ausserhalb wuerde das ueberschreiben. */
+@media (max-width: 860px) {
+  .menue-streifen { display: flex; align-items: center; gap: 6px; }
+}
+.menue-streifen .logo-knopf {
+  font-family: var(--schrift-karten); font-size: 17px; margin: 0; gap: 8px;
+}
+
+.start-faecher { display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+/* minmax(0, …): Sonst schiebt ein langes Wort wie „Gemeinschaftskunde" die
+   Spalte breiter als den Bildschirm, und die rechte Kachel wird abgeschnitten. */
+.start-faecher .titel { overflow-wrap: anywhere; min-width: 0; }
+@media (max-width: 480px) {
+  .start-faecher { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

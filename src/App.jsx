@@ -20,6 +20,7 @@ import Statistik from "./ui/Statistik.jsx";
 import Papierkorb from "./ui/Papierkorb.jsx";
 import Faecher from "./ui/Faecher.jsx";
 import FachSeite from "./ui/FachSeite.jsx";
+import Startseite from "./ui/Startseite.jsx";
 import Kalibrierung from "./ui/Kalibrierung.jsx";
 import Noten from "./ui/Noten.jsx";
 import Fragen from "./modes/Fragen.jsx";
@@ -58,10 +59,14 @@ export const MODI = [
 
 export function gehe(weg) { window.location.hash = weg; }
 
+/* Ohne Weg in der Adresse (frisch geoeffnet, vom Startbildschirm) beginnt
+   die App auf der Startseite. "#/" bleibt "Alle Stapel". */
+export const START = "/start";
+
 function useWeg() {
-  const [weg, setWeg] = useState(() => window.location.hash.slice(1) || "/");
+  const [weg, setWeg] = useState(() => window.location.hash.slice(1) || START);
   useEffect(() => {
-    const f = () => setWeg(window.location.hash.slice(1) || "/");
+    const f = () => setWeg(window.location.hash.slice(1) || START);
     window.addEventListener("hashchange", f);
     return () => window.removeEventListener("hashchange", f);
   }, []);
@@ -202,7 +207,8 @@ export default function App() {
   }
 
   let inhalt = <Bibliothek ordnerId={null} />;
-  if (teile[0] === "ordner") inhalt = <Bibliothek ordnerId={teile[1]} />;
+  if (teile[0] === "start") inhalt = <Startseite />;
+  else if (teile[0] === "ordner") inhalt = <Bibliothek ordnerId={teile[1]} />;
   else if (teile[0] === "suche") inhalt = <Bibliothek suchbegriff={decodeURIComponent(teile[1] || "")} />;
   else if (teile[0] === "stapel" && teile[2] === "bearbeiten") inhalt = <Bearbeiten setId={teile[1]} />;
   else if (teile[0] === "stapel" && teile[2] === "entwuerfe") inhalt = <EntwuerfeAnsicht setId={teile[1]} />;
@@ -233,6 +239,11 @@ export default function App() {
         <div className="menue-streifen nur-schmal">
           <SymbolKnopf symbol="balken" titel="Menü" art="leer" groesse={22}
             onClick={() => setLeisteOffen(true)} />
+          <button type="button" className="logo-knopf" title="Zur Startseite"
+            onClick={() => gehe(START)}>
+            <Symbol name="stapel" groesse={20} />
+            <span>Smart Learning</span>
+          </button>
         </div>
         {inhalt}
       </main>

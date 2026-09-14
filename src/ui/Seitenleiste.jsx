@@ -7,7 +7,7 @@ import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { baueBaum } from "../core/model.js";
 import { istFaellig } from "../core/fsrs.js";
-import { gehe } from "../App.jsx";
+import { gehe, START } from "../App.jsx";
 import { Symbol, SymbolKnopf, Knopf, useMerker } from "./basis.jsx";
 import Flamme from "./Flamme.jsx";
 
@@ -51,7 +51,7 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
   } = useDaten();
   const [aufgeklappt, setAufgeklappt] = useMerker("aufgeklappt", []);
   const [suche, setSuche] = useState("");
-  const weg = window.location.hash.slice(1) || "/";
+  const weg = window.location.hash.slice(1) || START;
   const aktiverOrdner = weg.startsWith("/ordner/") ? weg.split("/")[2] : null;
 
   const baum = useMemo(() => baueBaum(ordner), [ordner]);
@@ -93,8 +93,12 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
   return (
     <aside className={"leiste" + (offen ? " offen" : "")}>
       <div className="leiste-kopf">
-        <Symbol name="stapel" groesse={22} />
-        <span style={{ flex: 1 }}>Smart Learning</span>
+        {/* Logo und Name fuehren zur Startseite — wie auf den meisten Seiten. */}
+        <button type="button" className="logo-knopf dehnen" title="Zur Startseite"
+          onClick={() => gehe(START)}>
+          <Symbol name="stapel" groesse={22} />
+          <span>Smart Learning</span>
+        </button>
         <SymbolKnopf symbol="kreuz" titel="Menü schließen" art="leer klein nur-schmal"
           onClick={aufSchliessen} />
       </div>
