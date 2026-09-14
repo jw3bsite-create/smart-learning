@@ -126,6 +126,20 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
           <span className="name dehnen">Fächer</span>
           {faecher.length > 0 && <span className="klein blass">{faecher.length}</span>}
         </div>
+        {/* Die Faecher selbst, eingerueckt: Ein Klick auf "Ethik" oeffnet das
+            Material dieses Fachs, ohne Umweg ueber die Uebersicht. */}
+        {[...faecher]
+          .sort((a, b) => (a.name || "").localeCompare(b.name || "", "de"))
+          .map((f) => (
+            <div key={f.id}
+              className={"baum-zeile" + (weg === "/fach/" + f.id ? " aktiv" : "")}
+              style={{ paddingLeft: 30 }}
+              onClick={() => gehe("/fach/" + f.id)}>
+              <span style={{ width: 8, height: 8, borderRadius: 2, flex: "none",
+                background: f.farbe || "var(--akzent)", display: "inline-block" }} />
+              <span className="name dehnen">{f.name}</span>
+            </div>
+          ))}
         <div className={"baum-zeile" + (weg.startsWith("/erklaeren") ? " aktiv" : "")}
           onClick={() => gehe("/erklaeren")}>
           <span className="pfeil" />

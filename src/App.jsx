@@ -19,6 +19,7 @@ import Einstellungen from "./ui/Einstellungen.jsx";
 import Statistik from "./ui/Statistik.jsx";
 import Papierkorb from "./ui/Papierkorb.jsx";
 import Faecher from "./ui/Faecher.jsx";
+import FachSeite from "./ui/FachSeite.jsx";
 import Kalibrierung from "./ui/Kalibrierung.jsx";
 import Noten from "./ui/Noten.jsx";
 import Fragen from "./modes/Fragen.jsx";
@@ -210,6 +211,7 @@ export default function App() {
   else if (teile[0] === "statistik") inhalt = <Statistik />;
   else if (teile[0] === "papierkorb") inhalt = <Papierkorb />;
   else if (teile[0] === "faecher") inhalt = <Faecher />;
+  else if (teile[0] === "fach") inhalt = <FachSeite fachId={teile[1]} />;
   else if (teile[0] === "kalibrierung") inhalt = <Kalibrierung />;
   else if (teile[0] === "punkte") inhalt = <Noten />;
   else if (teile[0] === "fragen")

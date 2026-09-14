@@ -39,7 +39,7 @@ const VORSCHLAG = [
   ["Gemeinschaftskunde", "#ef5b6b"],
 ];
 
-function FachEinstellungen({ fach, aufSchliessen }) {
+export function FachEinstellungen({ fach, aufSchliessen }) {
   const { fachAendern, notenfaecher } = useDaten();
   const punkte = punkteZuLernfach(notenfaecher, fach.id);
   const termin = fach.pruefungsdatum
@@ -280,7 +280,9 @@ export default function Faecher() {
           const pensum = restTage !== null && restTage > 0
             ? pensumPruefen(karten, zustaende, stapelVon, f) : null;
           return (
-            <div key={f.id} className="kachel" onClick={() => gehe("/abrufen/" + f.id)}>
+            /* Ein Klick oeffnet das Fach mit seinem Material. Ins Abrufen fuehrt
+               der eigene Knopf auf der Kachel — ein Klick, wie vorher. */
+            <div key={f.id} className="kachel" onClick={() => gehe("/fach/" + f.id)}>
               <div className="reihe">
                 <span style={{ width: 10, height: 10, borderRadius: 3,
                   background: f.farbe || "var(--akzent)", display: "block" }} />
@@ -303,6 +305,14 @@ export default function Faecher() {
                 {z.faellig === 0 && z.neu === 0 && z.gesamt > 0 &&
                   <span className="marke gruen">nichts offen</span>}
               </div>
+              {z.faellig + z.neu > 0 && (
+                <div>
+                  <Knopf art="klein voll" symbol="blitz"
+                    onClick={(e) => { e.stopPropagation(); gehe("/abrufen/" + f.id); }}>
+                    Abrufen
+                  </Knopf>
+                </div>
+              )}
 
               <div className="dehnen" />
               <Balken anteile={anteile} />

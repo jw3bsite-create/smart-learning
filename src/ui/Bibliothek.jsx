@@ -22,7 +22,7 @@ import {
  * dieselben Karten längst geplant hat. Dieselbe Karte darf nicht an zwei
  * Stellen zwei Wahrheiten haben.
  */
-function StapelKachel({ stapel, karten, zustaende, aufMenue }) {
+export function StapelKachel({ stapel, karten, zustaende, aufMenue }) {
   const stand = stapelStand(karten, zustaende, stapel);
   const anteile = anteileNachStufe(stand.zustaende);
   const { faellig: faellige, neu } = stand;
