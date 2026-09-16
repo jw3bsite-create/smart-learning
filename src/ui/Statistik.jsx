@@ -16,6 +16,7 @@ import { punkteZuLernfach } from "./Noten.jsx";
 import { gehe } from "../App.jsx";
 import { Symbol, Balken, Leer, Knopf } from "./basis.jsx";
 import Flamme from "./Flamme.jsx";
+import Lernzeit from "./Lernzeit.jsx";
 
 const MODUS_NAME = {
   karten: "Karteikarten", lernen: "Lernen", schreiben: "Schreiben",
@@ -151,6 +152,7 @@ export default function Statistik() {
       <div className="mitte">
         <div className="kopfzeile"><h1>Fortschritt</h1></div>
         <Punktestand faecher={faecher} notenfaecher={notenfaecher} />
+        <Lernzeit />
         <Leer symbol="statistik" titel="Noch nichts gelernt"
           text="Sobald du Karten anlegst und abrufst, sammeln sich hier Zahlen an.">
           <Knopf art="voll" onClick={() => gehe("/")}>Zur Übersicht</Knopf>
@@ -164,6 +166,8 @@ export default function Statistik() {
       <div className="kopfzeile"><h1>Fortschritt</h1></div>
 
       <div style={{ marginBottom: 26 }}><Flamme /></div>
+
+      <Lernzeit />
 
       <div className="gitter" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", marginBottom: 26 }}>
         <div className="zahl-kachel">

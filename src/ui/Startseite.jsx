@@ -17,6 +17,8 @@ import { straehne } from "../core/straehne.js";
 import { anzahl, datumKurz } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import { Symbol, Knopf, Leer } from "./basis.jsx";
+import { useLernzeiten } from "./Lernzeit.jsx";
+import { summe, tagesBeginn, dauerText } from "../core/lernzeit.js";
 
 function gruss(stunde) {
   if (stunde < 5) return "Gute Nacht";
@@ -44,6 +46,8 @@ export default function Startseite() {
   const heute = fachZaehlung(karten, zustaende, stapelVon, null);
   const offen = heute.faellig + heute.neu;
   const stand = useMemo(() => straehne(reviews), [reviews]);
+  const bloecke = useLernzeiten();
+  const heuteZeit = bloecke ? summe(bloecke, tagesBeginn(jetzt.getTime())) : null;
 
   const faecherSortiert = useMemo(() => [...faecher]
     .sort((a, b) => (a.name || "").localeCompare(b.name || "", "de"))
@@ -116,6 +120,16 @@ export default function Startseite() {
                     : anzahl(stand.fehlendHeute, "Abruf fehlt", "Abrufe fehlen") + " heute"}
                 </div>
               </div>
+              {heuteZeit && (
+                <div style={{ minWidth: 140, cursor: "pointer" }} onClick={() => gehe("/statistik")}
+                  title="Mehr unter Fortschritt">
+                  <div className="reihe klein matt" style={{ gap: 6 }}>
+                    <Symbol name="uhr" groesse={15} /> Heute gelernt
+                  </div>
+                  <div className="zahl">{dauerText(heuteZeit.lernen)}</div>
+                  <div className="klein blass">{dauerText(heuteZeit.erstellen)} erstellt</div>
+                </div>
+              )}
               <div className="dehnen" />
               {offen > 0 ? (
                 <Knopf art="voll gross" symbol="blitz" onClick={() => gehe("/abrufen")}>

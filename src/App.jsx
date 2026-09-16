@@ -21,6 +21,7 @@ import Papierkorb from "./ui/Papierkorb.jsx";
 import Faecher from "./ui/Faecher.jsx";
 import FachSeite from "./ui/FachSeite.jsx";
 import Startseite from "./ui/Startseite.jsx";
+import Zeitmesser from "./ui/Zeitmesser.jsx";
 import Kalibrierung from "./ui/Kalibrierung.jsx";
 import Noten from "./ui/Noten.jsx";
 import Fragen from "./modes/Fragen.jsx";
@@ -163,6 +164,17 @@ export default function App() {
     );
   }
 
+  return (
+    <>
+      <Zeitmesser weg={weg} />
+      <Inhalt weg={weg} leisteOffen={leisteOffen} setLeisteOffen={setLeisteOffen}
+        abgleichen={abgleichen} />
+    </>
+  );
+}
+
+/* Die Wege. Eigenes Bauteil, damit der Zeitmesser oben bei jedem Weg dabei ist. */
+function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
   const teile = weg.split("/").filter(Boolean);
 
   /* Das Abrufen ist der verbindliche Lernweg und bekommt die ganze Fläche. */

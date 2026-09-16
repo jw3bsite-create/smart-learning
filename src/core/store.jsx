@@ -19,6 +19,7 @@ import { aufschlagFuer, istPlausibel } from "./kalibrierung.js";
 import { wirksameRetention } from "./warteschlange.js";
 import { tagesSchluessel } from "./util.js";
 import { STANDARD_GESTALTUNG } from "./gestaltung.js";
+import { LERNZEIT_EREIGNIS } from "./lernzeit.js";
 
 const Zusammenhang = createContext(null);
 
@@ -694,7 +695,7 @@ export function DatenSpeicher({ children }) {
       }),
     })));
     return {
-      fassung: 6, erzeugt: Date.now(), ...eintraege,
+      fassung: 7, erzeugt: Date.now(), ...eintraege,
       bilder: eingepackt.filter((b) => b.daten), einstellungen,
     };
   }, [einstellungen]);
@@ -727,6 +728,7 @@ export function DatenSpeicher({ children }) {
     setZustaende(Object.fromEntries(cs.map((x) => [x.id, x])));
     setReviews(rv);
     setEntwuerfe(en); setErklaerungen(xk); setPruefungen(pr); setNotenfaecher(nt);
+    window.dispatchEvent(new Event(LERNZEIT_EREIGNIS));
   }, []);
 
   const neuLaden = useCallback(async () => {
@@ -741,7 +743,26 @@ export function DatenSpeicher({ children }) {
     setZustaende(Object.fromEntries(cs.map((x) => [x.id, x])));
     setReviews(rv);
     setEntwuerfe(en); setErklaerungen(xk); setPruefungen(pr); setNotenfaecher(nt);
+    window.dispatchEvent(new Event(LERNZEIT_EREIGNIS));
   }, []);
+
+  /* ------------------------------- Lernzeit ---------------------------- */
+
+  /*
+   * Die Zeitbloecke liegen bewusst nicht im gemeinsamen Zustand. Waehrend des
+   * Lernens wird alle halbe Minute gesichert; laege das im Zustand, wuerde die
+   * ganze App jedes Mal neu gezeichnet — mitten im Tippen einer Antwort.
+   * Wer die Zahlen braucht, liest sie und horcht auf das Ereignis.
+   */
+  const lernzeitSpeichern = useCallback(async (saetze) => {
+    if (!saetze?.length) return;
+    const jetzt = Date.now();
+    await db.putMany("lernzeit", saetze.map((s) => ({ ...s, updatedAt: jetzt })));
+    window.dispatchEvent(new Event(LERNZEIT_EREIGNIS));
+    merkeAenderung.current();
+  }, []);
+
+  const lernzeitLesen = useCallback(() => db.all("lernzeit"), []);
 
   /* ------------------------------ Ableitungen ------------------------- */
   const kartenNachStapel = useMemo(() => {
@@ -803,6 +824,8 @@ export function DatenSpeicher({ children }) {
     // Fassung 6
     notenfaecher, notenfachAnlegen, notenfachAendern, notenfachLoeschen,
     leistungAnlegen, leistungAendern, leistungLoeschen,
+    // Fassung 7
+    lernzeitSpeichern, lernzeitLesen,
   };
 
   return <Zusammenhang.Provider value={wert}>{children}</Zusammenhang.Provider>;

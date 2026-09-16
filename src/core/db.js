@@ -19,7 +19,7 @@
  */
 const DB_NAME = "karteikasten";
 const SICHERUNG_DB = "karteikasten-sicherung";
-const VERSION = 6;
+const VERSION = 7;
 
 /**
  * Alle Ablagen und ihre Verzeichnisse.
@@ -32,6 +32,7 @@ const VERSION = 6;
  * Fassung 4: explanations (Erklärungen im Feynman-Modus, versioniert)
  * Fassung 5: exams (Prüfungssimulationen samt Kriterienraster)
  * Fassung 6: noten (Punkte der Kursstufe, ein Satz je Fach und Halbjahr)
+ * Fassung 7: lernzeit (Zeitbloecke: wie lange gelernt, wie lange erstellt)
  *
  * `progress` bleibt bestehen und unangetastet: davon leben die sieben
  * Übungsmodi weiter. Über Wiederholungstermine entscheidet ab Fassung 2
@@ -53,6 +54,7 @@ const SCHEMA = {
   explanations: { keyPath: "id", indexes: { thema: "themaId", fach: "subjectId" } },
   exams: { keyPath: "id", indexes: { fach: "subjectId", zeit: "zeit" } },
   noten: { keyPath: "id", indexes: { halbjahr: "halbjahr", fach: "subjectId" } },
+  lernzeit: { keyPath: "id", indexes: { tag: "tag", fach: "subjectId" } },
 };
 
 export const STORES = Object.keys(SCHEMA);
@@ -62,7 +64,7 @@ export const STORES = Object.keys(SCHEMA);
  * `kilog` bleibt bewusst auf dem Gerät: Es ist ein Protokoll, kein Bestand.
  */
 export const SYNCED = ["folders", "sets", "cards", "progress", "subjects",
-  "cardstates", "reviews", "drafts", "explanations", "exams", "noten"];
+  "cardstates", "reviews", "drafts", "explanations", "exams", "noten", "lernzeit"];
 
 /**
  * Wie die Ablagen in einer Sicherungsdatei heissen.
@@ -88,6 +90,7 @@ export const SICHERUNG_FELDER = {
   explanations: "erklaerungen",
   exams: "pruefungen",
   noten: "notenfaecher",
+  lernzeit: "lernzeiten",
 };
 
 let dbPromise = null;

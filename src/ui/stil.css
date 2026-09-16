@@ -24,6 +24,11 @@
   --rot: #ef5b6b;
   --gelb: #e8b84b;
   --lila: #a97bf0;
+  /* Lernzeit-Diagramm. Feste Werte, nicht der Akzent: Der ist frei
+     einstellbar, und zwei Reihen muessen auch fuer Farbfehlsichtige
+     unterscheidbar bleiben (geprueft auf dunklem und schwarzem Grund). */
+  --lz-lernen: #4f86f7;
+  --lz-erstellen: #c98326;
   --schatten: 0 8px 30px rgba(0, 0, 0, 0.35);
 
   /* Vom Nutzer einstellbar */
@@ -62,6 +67,8 @@
   --schrift-matt: #5c6577;
   --schrift-blass: #8b94a6;
   --schatten: 0 8px 30px rgba(20, 30, 60, 0.10);
+  --lz-lernen: #2f6ae0;       /* geprueft auf Weiss */
+  --lz-erstellen: #c46f12;
   color-scheme: light;
 }
 
@@ -518,3 +525,52 @@ select.feld { appearance: none; padding-right: 30px;
 @media (max-width: 480px) {
   .start-faecher { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ------------------------------- Lernzeit ----------------------------- */
+
+.lz-lernen { background: var(--lz-lernen); }
+.lz-erstellen { background: var(--lz-erstellen); }
+.lz-muster { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+.lz-strich { display: inline-block; width: 14px; height: 3px; border-radius: 2px; }
+
+.lz-diagramm { position: relative; }
+.lz-flaeche { position: relative; height: 190px; margin-left: 44px; }
+.lz-linie { position: absolute; left: 0; right: 0; border-top: 1px solid var(--rand); }
+.lz-linie span {
+  position: absolute; right: calc(100% + 8px); top: -8px;
+  font-size: 11px; color: var(--schrift-blass); white-space: nowrap;
+}
+.lz-saeulen { position: absolute; inset: 0; display: flex; align-items: flex-end; gap: 2px; }
+.lz-saeule {
+  flex: 1; height: 100%; min-width: 0; padding: 0 2px; border: 0; background: none;
+  display: flex; align-items: flex-end; justify-content: center; cursor: default;
+  border-radius: 4px;
+}
+.lz-saeule:focus-visible { outline: 2px solid var(--akzent); outline-offset: 1px; }
+.lz-saeule.aktiv { background: color-mix(in srgb, var(--schrift) 6%, transparent); }
+.lz-stapel {
+  width: 100%; max-width: 28px; display: flex; flex-direction: column; gap: 2px;
+  min-height: 3px;
+}
+.lz-stapel i { display: block; min-height: 2px; flex-basis: 0; }
+.lz-stapel i:first-child { border-radius: 4px 4px 0 0; }
+.lz-saeule.aktiv .lz-stapel i { filter: brightness(1.15); }
+.lz-achse { display: flex; gap: 2px; margin: 6px 0 0 44px; }
+.lz-achse span {
+  flex: 1; min-width: 0; text-align: center; font-size: 11px;
+  color: var(--schrift-blass); white-space: nowrap; overflow: visible;
+}
+.lz-hinweis {
+  position: absolute; top: 4px; pointer-events: none;
+  background: var(--grund-2); border: 1px solid var(--rand); border-radius: 10px;
+  padding: 8px 10px; box-shadow: var(--schatten); display: grid; gap: 3px;
+  white-space: nowrap; z-index: 2;
+}
+.lz-tabelle { border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+.lz-tabelle th, .lz-tabelle td { text-align: left; padding: 4px 14px 4px 0; }
+.lz-tabelle th { color: var(--schrift-matt); font-weight: 500; }
+.lz-fachbalken {
+  display: flex; gap: 2px; height: 8px; margin-top: 5px;
+  background: var(--grund-3); border-radius: 999px; overflow: hidden;
+}
+.lz-fachbalken i { display: block; height: 100%; }

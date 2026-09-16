@@ -103,6 +103,7 @@ werkzeug/     Erzeugt die PNG-Symbole
 | `explanations` | Erklärungen, versioniert | 4 |
 | `exams` | Prüfungssimulationen mit Kriterienraster | 5 |
 | `noten` | Punkte der Kursstufe, ein Satz je Fach **und** Halbjahr | 6 |
+| `lernzeit` | Zeitblöcke Lernen/Erstellen (`core/lernzeit.js`) | 7 |
 
 Karten tragen `nichtRelevant`, Fächer `prioritaet` (1–3). Beides wirkt sich
 aus, ohne dass eine Schemafassung nötig war: Fehlt das Feld, gilt der
@@ -223,6 +224,13 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
 24. **Prüfen im Browserfenster: Ein Sprung auf dieselbe Seite mit anderem
     `#`-Teil lädt nicht neu.** Wer die Rückkehr prüfen will, braucht einen
     echten Seitenaufruf, etwa mit angehängtem `?probe=1`.
+25. **Lernzeit zählt Handlungen, nicht offene Fenster.** Nur auf Lern- und
+    Bearbeitungsseiten, nur sichtbar und mit Fokus, Pausen über zwei Minuten
+    fallen heraus. Die Blöcke liegen nicht im React-Zustand (sonst zeichnet
+    die App alle 30 s neu) und werden nur geschrieben, wenn sich ihr Ende
+    geändert hat — sonst schöbe ein offenes Fenster den Abgleich endlos
+    hinaus. Im Prüfbrowser ist `document.hasFocus()` falsch, es wird dort
+    also nichts gemessen.
 
 ## Was ausdrücklich nicht gebaut wird
 

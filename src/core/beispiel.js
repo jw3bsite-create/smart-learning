@@ -20,6 +20,7 @@
 
 import * as db from "./db.js";
 import * as model from "./model.js";
+import { alsDatensatz } from "./lernzeit.js";
 import { neuerZustand, bewerteKarte, NOTEN, KONFIDENZ } from "./fsrs.js";
 import {
   KANT_GRUND, KANT_AESTHETIK, KANT_ANALYTIK, KANT_DIALEKTIK,
@@ -698,10 +699,47 @@ export function baueBeispieldaten({ jetzt = Date.now() } = {}) {
       [MARKE]: true },
   ];
 
+  /* ------------------------------ Lernzeit ------------------------------ */
+  /*
+   * Aus den Antworten abgeleitet: je Tag und Stapel ein Block, so lang wie die
+   * Antworten zusammen plus ein paar Sekunden je Karte zum Lesen. Dazu je
+   * Stapel ein Block Erstellen, einige Wochen zurueck — damit die Seite
+   * Fortschritt beide Arten zeigen kann.
+   */
+  const lernzeit = [];
+  const gruppen = new Map();
+  for (const r of reviews) {
+    const schluessel = tagText(r.zeit) + "|" + r.setId;
+    const g = gruppen.get(schluessel)
+      || { beginn: r.zeit, dauer: 0, setId: r.setId, subjectId: r.subjectId,
+        bereich: r.flag === "practice" ? r.modus : "abrufen" };
+    g.beginn = Math.min(g.beginn, r.zeit);
+    g.dauer += (r.antwortzeit || 4000) + 4000;
+    gruppen.set(schluessel, g);
+  }
+  for (const g of gruppen.values()) {
+    const beginn = Math.min(g.beginn, jetzt - g.dauer);
+    lernzeit.push(mitMarke(alsDatensatz({
+      id: model.id("lz"), art: "lernen", bereich: g.bereich,
+      setId: g.setId, subjectId: g.subjectId, beginn, ende: beginn + g.dauer,
+    }, jetzt)));
+  }
+  stapelListe.forEach((st, i) => {
+    const tag = new Date(jetzt - (40 - i * 3) * TAG);
+    tag.setHours(17, 0, 0, 0);
+    const beginn = Math.min(tag.getTime(), jetzt - 3600 * 1000);
+    lernzeit.push(mitMarke(alsDatensatz({
+      id: model.id("lz"), art: "erstellen", bereich: "bearbeiten",
+      setId: st.id, subjectId: st.subjectId || null,
+      beginn, ende: beginn + (8 + (i * 7) % 20) * 60 * 1000,
+    }, jetzt)));
+  });
+
   return {
     subjects: faecher, folders: ordner, sets: stapelListe, cards: kartenListe,
     media: bilder, cardstates: zustaende, reviews, sessions: sitzungen,
     drafts: entwuerfe, explanations: erklaerungen, exams: pruefungen, kilog,
+    lernzeit,
   };
 }
 
@@ -731,7 +769,7 @@ export async function beispieldatenAnlegen({ jetzt = Date.now() } = {}) {
 /** Ablagen, in denen Beispieldaten liegen können. */
 const ABLAGEN = ["subjects", "folders", "sets", "cards", "media", "cardstates",
   "reviews", "sessions", "drafts", "explanations", "exams", "kilog", "progress",
-  "noten"];
+  "noten", "lernzeit"];
 
 /**
  * Entfernt alles Angelegte wieder — endgültig, ohne Grabstein.

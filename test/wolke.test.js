@@ -54,6 +54,7 @@ test("die Namen in der Tabelle liegen fest", () => {
     explanations: "erklaerung",
     exams: "pruefung",
     noten: "note",
+    lernzeit: "lernzeit",
   });
 });
 
@@ -232,6 +233,7 @@ test("die Feldnamen der Sicherung liegen fest", () => {
     explanations: "erklaerungen",
     exams: "pruefungen",
     noten: "notenfaecher",
+    lernzeit: "lernzeiten",
   });
 });
 

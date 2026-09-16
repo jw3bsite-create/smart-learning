@@ -36,7 +36,7 @@ export default class Auffanglinie extends React.Component {
        geschrieben wird. Sie hier noch einmal von Hand zu führen hieße, dass
        eine neue Ablage in der Rettung fehlt, gerade wenn man sie braucht. */
     const ablagen = Object.keys(db.SICHERUNG_FELDER);
-    const daten = { fassung: 6, erzeugt: Date.now(), notsicherung: true };
+    const daten = { fassung: 7, erzeugt: Date.now(), notsicherung: true };
     const namen = db.SICHERUNG_FELDER;
     for (const ablage of ablagen) {
       try { daten[namen[ablage]] = await db.all(ablage, { mitGeloeschten: true }); }
