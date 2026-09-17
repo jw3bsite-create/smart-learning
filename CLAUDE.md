@@ -237,6 +237,11 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
     zweiten Gerät verwaist und beim nächsten Aufräumen weg. Geprüft in
     `test/ton.test.js`. Aufgenommen wird erst bei offener Lösung, und die
     Datenrate ist begrenzt (Sprache, nicht Musik).
+27. **Schriftschlüssel dürfen nicht verschwinden.** Die Namen in `SCHRIFTEN`
+    (`core/gestaltung.js`) stehen in gespeicherten Einstellungen und in
+    Sicherungen. Die alten (`serifen`, `humanistisch`, `schmal`, `buch`,
+    `schreibmaschine`) bleiben darum als `alt: true` erhalten: wirksam, aber
+    nicht mehr zur Wahl. Geprüft in `test/gestaltung.test.js`.
 
 ## Was ausdrücklich nicht gebaut wird
 

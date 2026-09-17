@@ -14,9 +14,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import {
-  SCHRIFTEN, DICHTEN, BREITEN, PALETTEN, STANDARD_GESTALTUNG, anwenden,
+  SCHRIFTEN, SCHRIFT_GRUPPEN, DICHTEN, BREITEN, PALETTEN, STANDARD_GESTALTUNG,
+  anwenden, schriftenZurWahl, stapelVorhanden,
 } from "../core/gestaltung.js";
-import { Symbol, Knopf, Rueckfrage } from "./basis.jsx";
+import { Symbol, Knopf, Rueckfrage, useMerker } from "./basis.jsx";
 
 const AKZENTE = [
   ["#5b8bff", "Blau"], ["#a97bf0", "Violett"], ["#3fbf7f", "Grün"],
@@ -30,6 +31,74 @@ const DESIGNS = [
   ["dunkel", "Dunkel", "mond"],
   ["tief", "Tiefschwarz", "mond"],
 ];
+
+/* ------------------------------ Bauteile -------------------------------- */
+
+/*
+ * Ein ausklappbarer Abschnitt.
+ *
+ * Alle Stellschrauben auf einmal sind zu viele: Wer die Schrift wechseln
+ * will, sucht sie zwischen Farben, Reglern und Schaltern. Zugeklappt steht
+ * in der Zeile, was gerade eingestellt ist; das erspart das Aufklappen,
+ * wenn man nur nachsehen wollte.
+ *
+ * Welche Abschnitte offen sind, merkt sich das Gerät (nicht die Wolke) —
+ * es ist eine Gewohnheit, keine Einstellung.
+ */
+function Klappe({ titel, stand, offen, umschalten, children }) {
+  return (
+    <section className={"klappe" + (offen ? " offen" : "")}>
+      <button type="button" className="klappe-kopf" aria-expanded={offen}
+        onClick={umschalten}>
+        <Symbol name={offen ? "runter" : "weiter"} groesse={15} />
+        <strong className="dehnen">{titel}</strong>
+        <span className="klein blass">{stand}</span>
+      </button>
+      {offen && <div className="klappe-inhalt">{children}</div>}
+    </section>
+  );
+}
+
+/*
+ * Die Schriftwahl als Liste.
+ *
+ * Als Knopfreihe waere sie mit dreissig Schriften eine Wand; ein Auswahlfeld
+ * kennt jeder aus Textprogrammen. Darunter steht eine Zeile in der gewaehlten
+ * Schrift, denn der Name allein sagt wenig.
+ */
+function SchriftWahl({ beschriftung, wert, setzen }) {
+  const gruppen = schriftenZurWahl();
+  const gewaehlt = SCHRIFTEN[wert] || SCHRIFTEN.system;
+  const da = stapelVorhanden(gewaehlt.stapel);
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <label className="beschriftung">{beschriftung}</label>
+      <select className="feld" value={wert} onChange={(e) => setzen(e.target.value)}>
+        {gewaehlt.alt && <option value={wert}>{gewaehlt.name}</option>}
+        {Object.entries(SCHRIFT_GRUPPEN).map(([schluessel, name]) => (
+          <optgroup key={schluessel} label={name}>
+            {(gruppen[schluessel] || []).map((s) => (
+              <option key={s.schluessel} value={s.schluessel}>
+                {s.name}
+                {stapelVorhanden(s.stapel) ? "" : " (nicht auf diesem Gerät)"}
+              </option>
+            ))}
+          </optgroup>
+        ))}
+      </select>
+      <div style={{ fontFamily: gewaehlt.stapel, fontSize: 17, marginTop: 6 }}>
+        Franz jagt im Taxi quer durch Bayern. 0123
+      </div>
+      {!da && (
+        <div className="klein blass">
+          Diese Schrift liegt nicht auf diesem Gerät, oben steht die Rückfallschrift.
+          Auf einem anderen Gerät kann sie vorhanden sein.
+        </div>
+      )}
+    </div>
+  );
+}
 
 /* -------------------------------- Regler -------------------------------- */
 
@@ -153,7 +222,14 @@ function Vorschau({ werte }) {
 export default function Gestaltung() {
   const { einstellungen, setzeEinstellung } = useDaten();
   const [zuruecksetzen, setZuruecksetzen] = useState(false);
+  const [offen, setOffen] = useMerker("gestaltungOffen", []);
   const farbfeld = useRef(null);
+
+  const umschalten = (name) => setOffen((alt) =>
+    alt.includes(name) ? alt.filter((x) => x !== name) : [...alt, name]);
+  const klappe = (name) => ({
+    offen: offen.includes(name), umschalten: () => umschalten(name),
+  });
 
   const setzen = (schluessel, wert) => setzeEinstellung(schluessel, wert);
 
@@ -192,78 +268,93 @@ export default function Gestaltung() {
       <div className="antwort-gitter" style={{ gap: 26, alignItems: "start" }}>
         {/* ------------------------ Die Stellschrauben ------------------- */}
         <div>
-          <Wahlreihe beschriftung="Grundton" wert={einstellungen.design}
-            setzen={(w) => setzen("design", w)}
-            moeglichkeiten={DESIGNS.map(([k, n]) => [k, n])} />
+          {/* ----------------------------- Farben ----------------------- */}
+          <Klappe titel="Farben" {...klappe("farben")}
+            stand={(DESIGNS.find(([k]) => k === einstellungen.design) || DESIGNS[0])[1]
+              + " · " + (AKZENTE.find(([f]) => f === einstellungen.akzent)?.[1]
+                || "eigene Farbe")}>
+            <Wahlreihe beschriftung="Grundton" wert={einstellungen.design}
+              setzen={(w) => setzen("design", w)}
+              moeglichkeiten={DESIGNS.map(([k, n]) => [k, n])} />
 
-          <label className="beschriftung">Akzentfarbe</label>
-          <div className="reihe umbruch" style={{ gap: 8, marginBottom: 8 }}>
-            {AKZENTE.map(([farbe, name]) => (
-              <button key={farbe} title={name} onClick={() => setzen("akzent", farbe)}
-                style={{ width: 30, height: 30, borderRadius: 9, background: farbe,
-                  cursor: "pointer",
-                  border: einstellungen.akzent === farbe
-                    ? "2px solid var(--schrift)" : "1px solid var(--rand)" }} />
-            ))}
-            <button title="Eigene Farbe" onClick={() => farbfeld.current?.click()}
-              style={{ width: 30, height: 30, borderRadius: 9, cursor: "pointer",
-                border: eigeneFarbe ? "2px solid var(--schrift)" : "1px solid var(--rand)",
-                background: eigeneFarbe ? einstellungen.akzent
-                  : "conic-gradient(#ef5b6b,#e8b84b,#3fbf7f,#4bc6d8,#5b8bff,#a97bf0,#ef5b6b)",
-                display: "grid", placeItems: "center" }}>
-              {eigeneFarbe && <Symbol name="stift" groesse={14}
-                style={{ color: "var(--akzent-schrift)" }} />}
-            </button>
-            <input ref={farbfeld} type="color" value={einstellungen.akzent}
-              style={{ width: 0, height: 0, opacity: 0, position: "absolute" }}
-              onChange={(e) => setzen("akzent", e.target.value)} />
-          </div>
-          <p className="klein blass" style={{ marginBottom: 18 }}>
-            Grün, Gelb und Rot bleiben, wie sie sind, sie bedeuten in dieser App
-            richtig, unsicher und falsch.
-          </p>
+            <label className="beschriftung">Akzentfarbe</label>
+            <div className="reihe umbruch" style={{ gap: 8, marginBottom: 8 }}>
+              {AKZENTE.map(([farbe, name]) => (
+                <button key={farbe} title={name} onClick={() => setzen("akzent", farbe)}
+                  style={{ width: 30, height: 30, borderRadius: 9, background: farbe,
+                    cursor: "pointer",
+                    border: einstellungen.akzent === farbe
+                      ? "2px solid var(--schrift)" : "1px solid var(--rand)" }} />
+              ))}
+              <button title="Eigene Farbe" onClick={() => farbfeld.current?.click()}
+                style={{ width: 30, height: 30, borderRadius: 9, cursor: "pointer",
+                  border: eigeneFarbe ? "2px solid var(--schrift)" : "1px solid var(--rand)",
+                  background: eigeneFarbe ? einstellungen.akzent
+                    : "conic-gradient(#ef5b6b,#e8b84b,#3fbf7f,#4bc6d8,#5b8bff,#a97bf0,#ef5b6b)",
+                  display: "grid", placeItems: "center" }}>
+                {eigeneFarbe && <Symbol name="stift" groesse={14}
+                  style={{ color: "var(--akzent-schrift)" }} />}
+              </button>
+              <input ref={farbfeld} type="color" value={einstellungen.akzent}
+                style={{ width: 0, height: 0, opacity: 0, position: "absolute" }}
+                onChange={(e) => setzen("akzent", e.target.value)} />
+            </div>
+            <p className="klein blass" style={{ margin: 0 }}>
+              Grün, Gelb und Rot bleiben, wie sie sind, sie bedeuten in dieser App
+              richtig, unsicher und falsch.
+            </p>
+          </Klappe>
 
-          <Regler beschriftung="Schriftgröße" wert={einstellungen.schriftgroesse}
-            min={12} max={22} einheit=" px" setzen={(w) => setzen("schriftgroesse", w)} />
+          {/* ---------------------------- Schriften --------------------- */}
+          <Klappe titel="Schriften" {...klappe("schriften")}
+            stand={(SCHRIFTEN[einstellungen.schriftOberflaeche] || SCHRIFTEN.system).name
+              + " · " + (SCHRIFTEN[einstellungen.schriftKarten] || SCHRIFTEN.georgia).name}>
+            <SchriftWahl beschriftung="Schrift der Oberfläche"
+              wert={einstellungen.schriftOberflaeche}
+              setzen={(w) => setzen("schriftOberflaeche", w)} />
 
-          <Regler beschriftung="Zeilenabstand" wert={einstellungen.zeilenhoehe}
-            min={1.3} max={1.9} schritt={0.05}
-            setzen={(w) => setzen("zeilenhoehe", w)} />
+            <SchriftWahl beschriftung="Schrift auf Karten und Überschriften"
+              wert={einstellungen.schriftKarten}
+              setzen={(w) => setzen("schriftKarten", w)} />
 
-          <Wahlreihe beschriftung="Schrift der Oberfläche"
-            wert={einstellungen.schriftOberflaeche}
-            setzen={(w) => setzen("schriftOberflaeche", w)}
-            moeglichkeiten={Object.entries(SCHRIFTEN).map(([k, s]) => [k, s.name])} />
+            <Regler beschriftung="Schriftgröße" wert={einstellungen.schriftgroesse}
+              min={12} max={22} einheit=" px" setzen={(w) => setzen("schriftgroesse", w)} />
 
-          <Wahlreihe beschriftung="Schrift auf Karten und Überschriften"
-            wert={einstellungen.schriftKarten}
-            setzen={(w) => setzen("schriftKarten", w)}
-            moeglichkeiten={Object.entries(SCHRIFTEN).map(([k, s]) => [k, s.name])} />
+            <Regler beschriftung="Zeilenabstand" wert={einstellungen.zeilenhoehe}
+              min={1.3} max={1.9} schritt={0.05}
+              setzen={(w) => setzen("zeilenhoehe", w)} />
+          </Klappe>
 
-          <Wahlreihe beschriftung="Abstände" wert={einstellungen.dichte}
-            setzen={(w) => setzen("dichte", w)}
-            moeglichkeiten={Object.entries(DICHTEN).map(([k, d]) => [k, d.name])} />
+          {/* ------------------------ Abstände und Form ----------------- */}
+          <Klappe titel="Abstände und Form" {...klappe("abstaende")}
+            stand={(DICHTEN[einstellungen.dichte] || DICHTEN.normal).name
+              + " · " + (BREITEN[einstellungen.breite] || BREITEN.normal).name
+              + " · " + einstellungen.rundung + " px"}>
+            <Wahlreihe beschriftung="Abstände" wert={einstellungen.dichte}
+              setzen={(w) => setzen("dichte", w)}
+              moeglichkeiten={Object.entries(DICHTEN).map(([k, d]) => [k, d.name])} />
 
-          <Wahlreihe beschriftung="Breite der Arbeitsfläche" wert={einstellungen.breite}
-            setzen={(w) => setzen("breite", w)}
-            moeglichkeiten={Object.entries(BREITEN).map(([k, b]) => [k, b.name])} />
+            <Wahlreihe beschriftung="Breite der Arbeitsfläche" wert={einstellungen.breite}
+              setzen={(w) => setzen("breite", w)}
+              moeglichkeiten={Object.entries(BREITEN).map(([k, b]) => [k, b.name])} />
 
-          <Regler beschriftung="Eckenrundung" wert={einstellungen.rundung}
-            min={0} max={24} einheit=" px" setzen={(w) => setzen("rundung", w)}
-            hinweis="Null ergibt scharfe Ecken." />
+            <Regler beschriftung="Eckenrundung" wert={einstellungen.rundung}
+              min={0} max={24} einheit=" px" setzen={(w) => setzen("rundung", w)}
+              hinweis="Null ergibt scharfe Ecken." />
 
-          <Regler beschriftung="Höhe der Karteikarte" wert={einstellungen.kartenhoehe}
-            min={240} max={520} schritt={10} einheit=" px"
-            setzen={(w) => setzen("kartenhoehe", w)}
-            hinweis="Gilt für den Karteikarten-Modus." />
+            <Regler beschriftung="Höhe der Karteikarte" wert={einstellungen.kartenhoehe}
+              min={240} max={520} schritt={10} einheit=" px"
+              setzen={(w) => setzen("kartenhoehe", w)}
+              hinweis="Gilt für den Karteikarten-Modus." />
 
-          <label className="schalter">
-            <input type="checkbox" checked={Boolean(einstellungen.ruhig)}
-              onChange={(e) => setzen("ruhig", e.target.checked)} />
-            <span>Ruhige Oberfläche
-              <span className="klein blass">(ohne Übergänge und Bewegung)</span>
-            </span>
-          </label>
+            <label className="schalter">
+              <input type="checkbox" checked={Boolean(einstellungen.ruhig)}
+                onChange={(e) => setzen("ruhig", e.target.checked)} />
+              <span>Ruhige Oberfläche
+                <span className="klein blass">(ohne Übergänge und Bewegung)</span>
+              </span>
+            </label>
+          </Klappe>
 
           <Knopf art="klein leer" symbol="zurueckSetzen" style={{ marginTop: 14 }}
             onClick={() => setZuruecksetzen(true)}>

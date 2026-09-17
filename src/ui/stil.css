@@ -585,3 +585,15 @@ select.feld { appearance: none; padding-right: 30px;
 }
 @keyframes ton-puls { 50% { opacity: 0.25; } }
 @media (prefers-reduced-motion: reduce) { .ton-punkt { animation: none; } }
+
+/* ---------------------------- Ausklappbares --------------------------- */
+
+.klappe { border-bottom: 1px solid var(--rand); }
+.klappe-kopf {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: none; border: 0; color: inherit; font: inherit; text-align: left;
+  padding: 12px 2px; cursor: pointer; border-radius: 8px;
+}
+.klappe-kopf:hover { background: var(--grund-2); }
+.klappe-kopf:focus-visible { outline: 2px solid var(--akzent); outline-offset: -2px; }
+.klappe-inhalt { padding: 4px 2px 18px; }
