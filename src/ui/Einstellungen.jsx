@@ -19,6 +19,7 @@ import * as beispiel from "../core/beispiel.js";
 import { datumKurz } from "../core/util.js";
 import { Symbol, Knopf, SymbolKnopf, Dialog } from "./basis.jsx";
 import Gestaltung from "./Gestaltung.jsx";
+import Kalenderausfuhr from "./Kalenderausfuhr.jsx";
 
 
 
@@ -517,6 +518,7 @@ function Sprachmodellteil() {
 
 function Erinnerungsteil() {
   const [e, setE] = useState(null);
+  const [kalender, setKalender] = useState(false);
   const [erlaubnis, setErlaubnis] = useState(erinnerung.erlaubnisStand());
 
   useEffect(() => { erinnerung.einstellungLesen().then(setE); }, []);
@@ -554,6 +556,21 @@ function Erinnerungsteil() {
           Uhr
         </label>
       )}
+
+      {/*
+        * Der ehrliche Teil: Ohne geoeffnete App kann diese Nachricht nicht
+        * kommen, denn es gibt keinen Server, der sie verschickt. Der Kalender
+        * des Geraets kann es, und darum steht der Weg hier daneben.
+        */}
+      <div className="reihe umbruch" style={{ gap: 10, marginTop: 14 }}>
+        <Knopf art="klein" symbol="papier" onClick={() => setKalender(true)}>
+          Erinnerung in den Kalender legen
+        </Knopf>
+        <span className="klein blass">
+          weckt auch, wenn Smart Learning geschlossen ist
+        </span>
+      </div>
+      {kalender && <Kalenderausfuhr aufSchliessen={() => setKalender(false)} />}
 
       {erlaubnis === "denied" && (
         <div className="rueckmeldung schlecht klein" style={{ marginTop: 10 }}>

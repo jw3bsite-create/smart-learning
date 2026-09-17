@@ -25,6 +25,7 @@ const PUNKTFARBE = {
   wacklig: "var(--gelb)", schlecht: "var(--rot)", leer: "var(--schrift-blass)",
 };
 import { gehe } from "../App.jsx";
+import Kalenderausfuhr from "./Kalenderausfuhr.jsx";
 import {
   Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Leer, Dialog, Rueckfrage,
 } from "./basis.jsx";
@@ -155,6 +156,7 @@ export default function Faecher() {
   const [einstellungenFuer, setEinstellungenFuer] = useState(null);
   const [loescht, setLoescht] = useState(null);
   const [zuordnen, setZuordnen] = useState(false);
+  const [kalenderAus, setKalenderAus] = useState(false);
 
   const alleZustaende = useMemo(() => Object.values(zustaende), [zustaende]);
   const kalibrierungen = useMemo(() => kalibrierungJeFach(reviews), [reviews]);
@@ -210,6 +212,9 @@ export default function Faecher() {
     <div className="mitte">
       <div className="kopfzeile">
         <h1 style={{ flex: 1 }}>Fächer</h1>
+        <Knopf symbol="papier" onClick={() => setKalenderAus(true)}>
+          Termine in den Kalender
+        </Knopf>
         <Knopf symbol="plus" onClick={async () => {
           const name = window.prompt("Name des Fachs");
           if (name) await fachAnlegen(name.trim());
@@ -372,6 +377,8 @@ export default function Faecher() {
         <FachEinstellungen fach={faecher.find((f) => f.id === einstellungenFuer.id) || einstellungenFuer}
           aufSchliessen={() => setEinstellungenFuer(null)} />
       )}
+
+      {kalenderAus && <Kalenderausfuhr aufSchliessen={() => setKalenderAus(false)} />}
 
       {zuordnen && (
         <Dialog weit titel="Stapel den Fächern zuordnen" aufSchliessen={() => setZuordnen(false)}

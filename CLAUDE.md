@@ -257,6 +257,15 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
     Vokabelliste als Rückseite. Ebenso muss bei Komma das vollwertige
     CSV-Lesen als eigene Lesart antreten, sonst zerschneidet der erste
     Beistrich ein Feld in Anführungszeichen. `test/quizlet.test.js`.
+31. **Kalenderdateien (.ics) müssen gefaltet und maskiert werden.** Zeilen über
+    75 Oktette und unmaskierte Kommas führen bei Apple und Google nicht zu
+    einer Fehlermeldung, sondern zum stillen Verwerfen — man merkt es erst,
+    wenn der Termin fehlt. `core/kalender.js`, `test/kalender.test.js`.
+    Kennungen werden aus dem Fach gebildet, damit ein zweites Einlesen
+    denselben Termin aktualisiert.
+32. **Der Fehlerheft-Bereich im Fragemodus reicht Schlüssel herein**
+    (`bereich.schluessel`, Format `<karte>:<richtung>`). Geübt wird daraus als
+    Übung; die Termine im Abrufen bleiben beim Plan (Regel 7).
 
 ## Was ausdrücklich nicht gebaut wird
 
