@@ -63,7 +63,7 @@ export default class Auffanglinie extends React.Component {
         <p style={{ color: "var(--schrift-matt)", lineHeight: 1.6 }}>
           <strong style={{ color: "var(--gruen)" }}>Deine Karten und dein Lernstand
           sind unversehrt.</strong> Sie liegen in der Datenbank des Browsers, nicht
-          in diesem Fenster — ein Fehler in der Anzeige kann ihnen nichts anhaben.
+          in diesem Fenster, ein Fehler in der Anzeige kann ihnen nichts anhaben.
         </p>
 
         <div className="reihe" style={{ gap: 10, flexWrap: "wrap", margin: "22px 0" }}>
@@ -90,7 +90,7 @@ export default class Auffanglinie extends React.Component {
             {this.state.stelle}
           </pre>
           <p style={{ fontSize: 12, color: "var(--schrift-blass)" }}>
-            Wenn das wiederkehrt: Diesen Text mitsamt der Sicherung aufheben —
+            Wenn das wiederkehrt: Diesen Text mitsamt der Sicherung aufheben,
             damit lässt sich der Fehler nachstellen.
           </p>
         </details>

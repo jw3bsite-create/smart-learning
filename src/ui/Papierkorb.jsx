@@ -63,7 +63,7 @@ export default function Papierkorb() {
 
       {!leer && (
         <p className="klein blass" style={{ marginTop: 18 }}>
-          {anzahl(inhalt.karten.length, "gelöschte Karte", "gelöschte Karten")} insgesamt —
+          {anzahl(inhalt.karten.length, "gelöschte Karte", "gelöschte Karten")} insgesamt.
           Karten aus gelöschten Stapeln kommen mit dem Stapel zurück.
         </p>
       )}

@@ -127,10 +127,10 @@ function Zeile({ karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZe
         </select>
         <SymbolKnopf symbol="muell" titel="Karte löschen" onClick={() => loeschen(karte.id)} />
       </div>
-      {seite("vorn", term, setTerm, "term", "Vorderseite — Begriff, Frage, Vokabel")}
+      {seite("vorn", term, setTerm, "term", "Vorderseite: Begriff, Frage, Vokabel")}
       {istMehrschritt ? (
         <div className="seite">
-          <label className="beschriftung">Rechenweg — ein Schritt je Zeile</label>
+          <label className="beschriftung">Rechenweg, ein Schritt je Zeile</label>
           <textarea className="feld" rows={4} value={schritteText}
             placeholder={"f'(x) = 2x\nf'(x) = 0\nx = 0"}
             style={{ minHeight: 96, fontFamily: "ui-monospace, monospace" }}
@@ -142,7 +142,7 @@ function Zeile({ karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZe
           </p>
         </div>
       ) : (
-        seite("hinten", definition, setDefinition, "definition", "Rückseite — Erklärung, Antwort, Übersetzung")
+        seite("hinten", definition, setDefinition, "definition", "Rückseite: Erklärung, Antwort, Übersetzung")
       )}
       <div style={{ gridColumn: "1 / -1" }}>
         {hinweisOffen ? (
@@ -210,7 +210,7 @@ export default function Bearbeiten({ setId }) {
       </div>
 
       <input className="feld" value={derStapel.title}
-        placeholder="Titel des Stapels — etwa „Englisch Vokabeln Unit 5“"
+        placeholder="Titel des Stapels, etwa „Englisch Vokabeln Unit 5“"
         style={{ fontSize: 20, fontFamily: "var(--serifen)", marginBottom: 10 }}
         onChange={(e) => stapelAendern(setId, { title: e.target.value })} />
       <textarea className="feld" value={derStapel.description || ""}
@@ -257,7 +257,7 @@ export default function Bearbeiten({ setId }) {
 
       {karten.length === 0 && (
         <p className="matt klein" style={{ marginTop: 14, textAlign: "center" }}>
-          Schneller geht es mit „Text einfügen“ — eine Liste aus dem Heft oder aus
+          Schneller geht es mit „Text einfügen“, eine Liste aus dem Heft oder aus
           Quizlet in einem Rutsch.
         </p>
       )}

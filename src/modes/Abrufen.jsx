@@ -284,7 +284,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
         <h1>Verschachtelt abrufen</h1>
         <p className="matt">
           Mehrere Fächer in einer Sitzung, gemischt und ohne Ankündigung, woher
-          eine Frage kommt. Das ist mühsamer als ein Fach am Stück — und genau
+          eine Frage kommt. Das ist mühsamer als ein Fach am Stück, und genau
           darum wirksamer: In der Prüfung steht auch nicht dabei, welches
           Verfahren gemeint ist.
         </p>
@@ -324,7 +324,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
               <input type="checkbox" checked={herkunftVerbergen}
                 onChange={(e) => setHerkunftVerbergen(e.target.checked)} />
               <span>Herkunft verbergen
-                <span className="klein blass"> — Fach und Stapel erst nach der Antwort</span>
+                <span className="klein blass">(Fach und Stapel erst nach der Antwort)</span>
               </span>
             </label>
 
@@ -350,20 +350,20 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
       <ModusRahmen titel={titel} symbol="blitz" aufSchliessen={aufSchliessen}>
         <Leer symbol="haken" titel={nichtsFaellig ? "Für heute genug Neues" : "Nichts fällig"}
           text={nichtsFaellig
-            ? `Das Tageslimit für neue Karten ist erreicht. ${anzahl(sitzung.neu, "Karte wartet", "Karten warten")} auf später — so bleibt die Menge tragbar.`
+            ? `Das Tageslimit für neue Karten ist erreicht. ${anzahl(sitzung.neu, "Karte wartet", "Karten warten")} auf später, so bleibt die Menge tragbar.`
             : "Alle Karten sitzen im Plan. Komm wieder, wenn etwas fällig wird."}>
           <div className="reihe" style={{ justifyContent: "center", flexWrap: "wrap" }}>
             <Knopf onClick={() => gehe("/faecher")}>Zur Übersicht</Knopf>
             {cramMoeglich && (
               <Knopf art="voll" symbol="uhr" onClick={() => setCram(true)}>
-                Endspurt — alles durchgehen
+                Endspurt, alles durchgehen
               </Knopf>
             )}
           </div>
           {cramMoeglich && (
             <p className="klein blass" style={{ maxWidth: 460, margin: "14px auto 0" }}>
               In {restTage === 0 ? "null" : restTage} Tagen ist deine Prüfung. Der
-              Endspurt geht den ganzen Stoff durch, ohne Rücksicht auf Termine —
+              Endspurt geht den ganzen Stoff durch, ohne Rücksicht auf Termine,
               und ohne den Plan zu verstellen: Was hier geschieht, zählt nicht
               als Wiederholung.
             </p>
@@ -429,7 +429,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
     <ModusRahmen titel={titel} symbol="blitz" aufSchliessen={aufSchliessen}
       anteil={stelle / sitzung.aufgaben.length}
       rechts={<>
-        {cram && <span className="marke rot">Endspurt — zählt nicht für den Plan</span>}
+        {cram && <span className="marke rot">Endspurt, zählt nicht für den Plan</span>}
         {frisch && !cram && <span className="marke">neu</span>}
         <span className="klein matt mono">{stelle + 1} / {sitzung.aufgaben.length}</span>
       </>}>
@@ -539,7 +539,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
       {phase === "tippen" && !istMehrschritt && (
         <>
           <input ref={feld} className="feld" style={{ fontSize: 19, padding: "14px 16px" }}
-            placeholder="Antwort schreiben — dann Leertaste zum Aufdecken"
+            placeholder="Antwort schreiben, dann Leertaste zum Aufdecken"
             value={eingabe} onChange={(e) => setEingabe(e.target.value)} />
           <div className="reihe" style={{ marginTop: 12 }}>
             <span className="klein blass nur-breit">
@@ -586,7 +586,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
                 ))}
               </div>
               <p className="klein matt" style={{ marginTop: 10, marginBottom: 0 }}>
-                Ein Weg, der an einer Stelle kippt, ist nicht halb richtig —
+                Ein Weg, der an einer Stelle kippt, ist nicht halb richtig,
                 aber du siehst, wo. Bewerte danach.
               </p>
             </div>

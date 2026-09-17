@@ -72,7 +72,7 @@ function FachZeile({ notenfach, aufOeffnen }) {
           {notenfach.fach || "Ohne Namen"}
         </div>
         {stand.vonHand !== null && (
-          <span className="marke" title="Von Hand gesetzt — sticht die Rechnung">
+          <span className="marke" title="Von Hand gesetzt: sticht die Rechnung">
             Zeugnis
           </span>
         )}
@@ -210,7 +210,7 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
       <h3 style={{ marginBottom: 4 }}>Wie die Arten zählen</h3>
       <p className="klein matt" style={{ marginTop: 0 }}>
         Erst wird je Art gemittelt, dann werden die Arten nach diesen Zahlen
-        zusammengefasst. Was an deiner Schule gilt, weiß die App nicht — darum
+        zusammengefasst. Was an deiner Schule gilt, weiß die App nicht, darum
         stehen alle drei auf eins, bis du es änderst. Eine Art ohne Leistungen
         zählt nicht mit.
       </p>
@@ -233,7 +233,7 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
       {/* ------------------------- Zeugnispunkte ------------------------- */}
       <h3 style={{ marginBottom: 4 }}>Punkte auf dem Zeugnis</h3>
       <p className="klein matt" style={{ marginTop: 0 }}>
-        Steht hier eine Zahl, gilt sie statt der Rechnung — am Ende zählt, was
+        Steht hier eine Zahl, gilt sie statt der Rechnung, am Ende zählt, was
         der Lehrer eingetragen hat, nicht was wir uns ausgerechnet haben.
         {stand.gerechnet !== null && (
           <> Gerechnet wären es <strong>{punkteText(stand.gerechnet)}</strong>.</>
@@ -261,13 +261,13 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
           <h3 style={{ marginBottom: 4 }}>Zugehöriges Lernfach</h3>
           <p className="klein matt" style={{ marginTop: 0 }}>
             Verknüpft, erscheinen die Punkte auch beim Fortschritt neben dem
-            Lernstand — dort sieht man, ob das Üben ankommt.
+            Lernstand, dort sieht man, ob das Üben ankommt.
           </p>
           <select className="feld" style={{ maxWidth: 320, marginBottom: 26 }}
             value={notenfach.subjectId || ""}
             onChange={(e) => notenfachAendern(notenfach.id,
               { subjectId: e.target.value || null })}>
-            <option value="">— keines —</option>
+            <option value="">(keines)</option>
             {faecher.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
           </select>
         </>
@@ -376,7 +376,7 @@ export default function Noten() {
 
       {!gewaehlt || gewaehlt.faecher.length === 0 ? (
         <Leer symbol="statistik" titel="Noch keine Fächer in diesem Halbjahr"
-          text="Trag deine Fächer ein und dann die einzelnen Leistungen — schriftlich, mündlich, praktisch, jede mit eigenem Gewicht.">
+          text="Trag deine Fächer ein und dann die einzelnen Leistungen, schriftlich, mündlich, praktisch, jede mit eigenem Gewicht.">
           <Knopf art="voll gross" symbol="plus" onClick={() => setAnlegen(true)}>
             Erstes Fach anlegen
           </Knopf>
@@ -392,7 +392,7 @@ export default function Noten() {
       {/* ---------------------------- Der Hinweis ------------------------- */}
       <p className="klein blass" style={{ marginTop: 28, maxWidth: "60ch" }}>
         Der Schnitt hier ist der schlichte Durchschnitt deiner
-        Halbjahresleistungen — <strong>nicht</strong> die Abiturnote. Die
+        Halbjahresleistungen, <strong>nicht</strong> die Abiturnote. Die
         entsteht in Baden-Württemberg aus Block I und Block II, mit
         Einbringungspflichten und doppelt gewichteten Kursen. Welche Kurse in
         welcher Zahl zählen, steht in der Verordnung für deinen Jahrgang; die

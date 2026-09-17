@@ -91,9 +91,9 @@ export default function Pretest({ setId, aufSchliessen }) {
           <h1 style={{ marginTop: 12 }}>Vorab erledigt</h1>
           <p className="matt" style={{ maxWidth: 480, margin: "10px auto" }}>
             {getroffen === 0
-              ? "Nichts getroffen — genau so war es gedacht. Die Fragen haben ihre Arbeit trotzdem getan: Der Stoff kommt dir gleich bekannter vor, als er sollte."
+              ? "Nichts getroffen, genau so war es gedacht. Die Fragen haben ihre Arbeit trotzdem getan: Der Stoff kommt dir gleich bekannter vor, als er sollte."
               : getroffen === auswahl.length
-                ? "Alles getroffen. Dann kennst du das Thema schon — häng dich lieber an etwas Neues."
+                ? "Alles getroffen. Dann kennst du das Thema schon, häng dich lieber an etwas Neues."
                 : `${getroffen} von ${auswahl.length} getroffen. Der Rest ist jetzt vorbereitet, ohne dass du es merkst.`}
           </p>
           <p className="klein blass">
@@ -129,7 +129,7 @@ export default function Pretest({ setId, aufSchliessen }) {
       <div className="rueckmeldung fast" style={{ marginBottom: 18 }}>
         <div className="reihe">
           <Symbol name="auge" />
-          <strong>Vorab — Fehler sind hier erwünscht.</strong>
+          <strong>Vorab. Fehler sind hier erwünscht.</strong>
         </div>
         <p className="klein" style={{ marginTop: 6, marginBottom: 0 }}>
           Diesen Stoff hattest du noch nicht. Rate ruhig; nichts davon zählt.

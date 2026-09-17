@@ -134,14 +134,14 @@ export default function Stapelansicht({ setId }) {
                 <div className="titel">Abrufen</div>
                 <div className="klein matt">
                   {derStapel.subjectId
-                    ? "Tippen, einschätzen, bewerten — hier entscheidet sich, wann diese Karten wiederkommen."
+                    ? "Tippen, einschätzen, bewerten: Hier entscheidet sich, wann diese Karten wiederkommen."
                     : "Noch keinem Fach zugeordnet. Ohne Fach kann der Plan nicht rechnen."}
                 </div>
               </div>
               <select className="feld" style={{ width: "auto" }} value={derStapel.subjectId || ""}
                 onClick={(e) => e.stopPropagation()}
                 onChange={(e) => stapelAendern(setId, { subjectId: e.target.value || null })}>
-                <option value="">— ohne Fach —</option>
+                <option value="">(ohne Fach)</option>
                 {faecher.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
             </div>
@@ -149,7 +149,7 @@ export default function Stapelansicht({ setId }) {
 
           {/* --------------------------- Übungsmodi --------------------- */}
           <div className="klein blass" style={{ marginBottom: 8 }}>
-            Zum Üben — zählt für die Statistik, verschiebt aber keine Termine
+            Zum Üben, zählt für die Statistik, verschiebt aber keine Termine
           </div>
           <div className="gitter" style={{ marginBottom: 24, gridTemplateColumns: "repeat(auto-fill, minmax(215px, 1fr))" }}>
             {MODI.map((m) => (
@@ -246,7 +246,7 @@ export default function Stapelansicht({ setId }) {
                     <SymbolKnopf symbol={k.nichtRelevant ? "zurueckSetzen" : "haken"}
                       titel={k.nichtRelevant
                         ? "Wieder mitlernen"
-                        : "Abhaken — kommt nicht dran"}
+                        : "Abhaken, kommt nicht dran"}
                       style={k.nichtRelevant ? undefined : { opacity: 0.55 }}
                       onClick={() => karteAendern(k.id, { nichtRelevant: !k.nichtRelevant })} />
                     <SymbolKnopf symbol="stift" titel="Bearbeiten"
@@ -285,7 +285,7 @@ export default function Stapelansicht({ setId }) {
             </div>
           </div>
           <p className="klein matt" style={{ marginTop: 12 }}>
-            Die Sprachen bestimmen, welche Stimme vorliest — wichtig für Vokabeln
+            Die Sprachen bestimmen, welche Stimme vorliest, wichtig für Vokabeln
             und für den Modus „Buchstabieren“.
           </p>
         </Dialog>

@@ -286,7 +286,7 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
 
       {sichtbareStapel.length === 0 ? (
         <Leer titel="Noch nichts hier"
-          text="Lege einen Stapel an und fülle ihn mit Karten — von Hand, aus einer Liste zum Einfügen oder aus einem Foto.">
+          text="Lege einen Stapel an und fülle ihn mit Karten, von Hand, aus einer Liste zum Einfügen oder aus einem Foto.">
           <div className="reihe" style={{ justifyContent: "center", flexWrap: "wrap" }}>
             <Knopf art="voll gross" symbol="plus" onClick={neuerStapel}>Ersten Stapel anlegen</Knopf>
             {!ordnerId && <BeispielKnopf />}

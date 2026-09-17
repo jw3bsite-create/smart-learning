@@ -145,7 +145,7 @@ export default function Pruefung({ pruefungId, aufSchliessen }) {
             Kein Sprachmodell, keine Karten, kein Nachschlagen in dieser App.
             {pruefung.minuten
               ? ` Die Uhr läuft ${pruefung.minuten} Minuten.`
-              : " Ohne Zeitnahme — trag eine Zeit ein, wenn du sie kennst."}
+              : " Ohne Zeitnahme, trag eine Zeit ein, wenn du sie kennst."}
             {pruefung.hilfsmittelfrei && " Hilfsmittelfreier Teil."}
           </p>
         </div>
@@ -160,7 +160,7 @@ export default function Pruefung({ pruefungId, aufSchliessen }) {
         <div className="klein matt" style={{ marginTop: 18 }}>
           {anzahl(pruefung.kriterien.length, "Kriterium hinterlegt", "Kriterien hinterlegt")}
           {pruefung.kriterien.length === 0
-            && " — ohne Erwartungshorizont gibt es hinterher nichts abzugleichen."}
+            && " (ohne Erwartungshorizont gibt es hinterher nichts abzugleichen)."}
         </div>
 
         <Knopf art="voll gross" symbol="uhr" style={{ marginTop: 22 }}
@@ -227,7 +227,7 @@ export default function Pruefung({ pruefungId, aufSchliessen }) {
 
       <div className="rueckmeldung fast" style={{ marginTop: 16 }}>
         <strong>Keine Note.</strong> Diese App weiß nicht, was deine Lehrkraft
-        erwartet — sie prüft nur, ob die Kriterien vorkommen, die du selbst
+        erwartet, sie prüft nur, ob die Kriterien vorkommen, die du selbst
         hinterlegt hast. Die Bewertung bleibt bei dir.
       </div>
 
@@ -392,7 +392,7 @@ function Uebersicht({ pruefungen, faecher, aufAnlegen, aufLoeschen, aufSchliesse
             <div>
               <label className="beschriftung">Fach</label>
               <select className="feld" value={fach} onChange={(e) => setFach(e.target.value)}>
-                <option value="">— ohne Fach —</option>
+                <option value="">(ohne Fach)</option>
                 {faecher.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
             </div>
@@ -404,7 +404,7 @@ function Uebersicht({ pruefungen, faecher, aufAnlegen, aufLoeschen, aufSchliesse
             onChange={(e) => setAufgabe(e.target.value)} />
 
           <label className="beschriftung" style={{ marginTop: 14 }}>
-            Erwartungshorizont — ein Kriterium je Zeile
+            Erwartungshorizont, ein Kriterium je Zeile
           </label>
           <textarea className="feld" style={{ minHeight: 120 }} value={kriterienText}
             placeholder={"Ableitung korrekt gebildet\nRandwerte geprüft\nErgebnis im Sachzusammenhang gedeutet"}
@@ -427,7 +427,7 @@ function Uebersicht({ pruefungen, faecher, aufAnlegen, aufLoeschen, aufSchliesse
             </label>
           </div>
           <p className="klein blass">
-            Die Prüfungszeiten für dein Abitur trägst du selbst ein — sie stehen
+            Die Prüfungszeiten für dein Abitur trägst du selbst ein, sie stehen
             im Bildungsplan und ändern sich; geraten wird hier nichts.
           </p>
         </Dialog>

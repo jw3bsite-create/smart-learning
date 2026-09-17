@@ -196,7 +196,7 @@ export async function verbindungPruefen(roh = {}) {
           + "Filter im Netz (etwa im Schul-WLAN) die Adresse." };
     return { ok: false, grund: "projekt",
       text: "Supabase ist erreichbar, dein Projekt aber nicht. Meist ist es "
-        + "pausiert — kostenlose Projekte schlafen nach einer Woche ohne Nutzung "
+        + "pausiert, kostenlose Projekte schlafen nach einer Woche ohne Nutzung "
         + "ein; in Supabase steht dann „Paused\u201c mit einem Knopf zum Aufwecken. "
         + "Sonst weicht die Adresse ab: Project URL frisch kopieren." };
   }
@@ -512,10 +512,10 @@ export function uebersetze(text) {
   if (/could not find the table|schema cache|PGRST205|relation .* does not exist/i.test(t))
     return "In deinem Supabase-Projekt fehlt die Tabelle. Öffne dort den SQL "
       + "Editor, füge den Inhalt von wolke.sql ein und drücke Run. Die Anmeldung "
-      + "selbst hat funktioniert — nur die Ablage für die Daten ist noch nicht da.";
+      + "selbst hat funktioniert, nur die Ablage für die Daten ist noch nicht da.";
   if (istKeinAnschluss(t))
     return "Dein Supabase-Projekt antwortet nicht. Meist ist es pausiert — "
-      + "kostenlose Projekte schlafen nach einer Woche ohne Nutzung ein — oder "
+      + "kostenlose Projekte schlafen nach einer Woche ohne Nutzung ein, oder "
       + "die Adresse weicht ab. Sieh in Supabase nach, ob dort „Paused\u201c steht, "
       + "und kopiere die Project URL frisch.";
   return t;

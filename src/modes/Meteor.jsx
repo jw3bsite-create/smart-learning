@@ -180,7 +180,7 @@ export default function Meteor({ setId, aufSchliessen }) {
           <h1 style={{ marginTop: 10 }}>{punkte} Punkte</h1>
           <p className="matt">
             {treffer} Begriffe abgewehrt, Stufe {stufe} erreicht
-            {punkte >= bestwert && punkte > 0 ? " — neuer Bestwert!" : bestwert ? ` · Bestwert ${bestwert}` : ""}
+            {punkte >= bestwert && punkte > 0 ? " · neuer Bestwert!" : bestwert ? ` · Bestwert ${bestwert}` : ""}
           </p>
           <div className="reihe" style={{ justifyContent: "center", marginTop: 20, flexWrap: "wrap" }}>
             <Knopf art="voll gross" symbol="zurueckSetzen" onClick={beginnen}>Noch einmal</Knopf>

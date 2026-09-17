@@ -219,7 +219,7 @@ export default function Gestaltung() {
               onChange={(e) => setzen("akzent", e.target.value)} />
           </div>
           <p className="klein blass" style={{ marginBottom: 18 }}>
-            Grün, Gelb und Rot bleiben, wie sie sind — sie bedeuten in dieser App
+            Grün, Gelb und Rot bleiben, wie sie sind, sie bedeuten in dieser App
             richtig, unsicher und falsch.
           </p>
 
@@ -261,7 +261,7 @@ export default function Gestaltung() {
             <input type="checkbox" checked={Boolean(einstellungen.ruhig)}
               onChange={(e) => setzen("ruhig", e.target.checked)} />
             <span>Ruhige Oberfläche
-              <span className="klein blass"> — ohne Übergänge und Bewegung</span>
+              <span className="klein blass">(ohne Übergänge und Bewegung)</span>
             </span>
           </label>
 

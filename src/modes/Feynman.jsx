@@ -121,7 +121,7 @@ export default function Feynman({ erklaerungId, aufSchliessen }) {
       <h1 style={{ marginBottom: 4 }}>{erklaerung.thema}</h1>
       <p className="matt" style={{ marginTop: 0 }}>
         Erkläre es so, als säße jemand vor dir, der davon noch nie gehört hat.
-        Keine Stichworte — ganze Sätze.
+        Keine Stichworte, ganze Sätze.
       </p>
 
       <textarea ref={feld} className="feld"
@@ -132,7 +132,7 @@ export default function Feynman({ erklaerungId, aufSchliessen }) {
       <div className="reihe umbruch" style={{ marginTop: 12 }}>
         {woerter < 15 && (
           <span className="klein blass">
-            Noch etwas kurz — unter fünfzehn Wörtern lohnt die Prüfung nicht.
+            Noch etwas kurz, unter fünfzehn Wörtern lohnt die Prüfung nicht.
           </span>
         )}
         <div className="dehnen" />
@@ -162,7 +162,7 @@ export default function Feynman({ erklaerungId, aufSchliessen }) {
             <strong>Nichts mehr offen.</strong>
           </div>
           <p className="klein" style={{ marginTop: 6, marginBottom: 0 }}>
-            Das heißt nicht, dass die Erklärung vollständig ist — nur, dass die
+            Das heißt nicht, dass die Erklärung vollständig ist, nur, dass die
             Prüfung nichts mehr gefunden hat. Der beste nächste Schritt: das
             Thema in ein paar Tagen noch einmal erklären, ohne vorher
             nachzulesen.
@@ -198,7 +198,7 @@ export default function Feynman({ erklaerungId, aufSchliessen }) {
             ))}
           </div>
           <p className="klein matt" style={{ marginTop: 12 }}>
-            Beantworte die Fragen nicht hier, sondern oben im Text — schreib die
+            Beantworte die Fragen nicht hier, sondern oben im Text, schreib die
             Erklärung so um, dass sie sich nicht mehr stellen.
           </p>
         </div>
@@ -274,7 +274,7 @@ function Uebersicht({ faecher, erklaerungen, aufAnlegen, aufLoeschen, aufSchlies
     <ModusRahmen titel="Erklären" symbol="buch" aufSchliessen={aufSchliessen}>
       <h1>Erklären</h1>
       <p className="matt">
-        Ein Thema in eigenen Worten erklären und sich sagen lassen, wo es hakt —
+        Ein Thema in eigenen Worten erklären und sich sagen lassen, wo es hakt,
         aber nicht, wie es weitergeht. Das Nachdenken bleibt bei dir.
       </p>
 
@@ -285,7 +285,7 @@ function Uebersicht({ faecher, erklaerungen, aufAnlegen, aufLoeschen, aufSchlies
           onKeyDown={(e) => { if (e.key === "Enter") anlegen(); }} />
         <select className="feld" style={{ width: "auto" }} value={fach}
           onChange={(e) => setFach(e.target.value)}>
-          <option value="">— ohne Fach —</option>
+          <option value="">(ohne Fach)</option>
           {faecher.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
         </select>
         <Knopf art="voll" symbol="plus" onClick={anlegen} disabled={!thema.trim()}>

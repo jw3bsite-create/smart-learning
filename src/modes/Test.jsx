@@ -243,7 +243,7 @@ export default function Test({ setId, aufSchliessen }) {
                           onChange={(e) => antwortSetzen(frage.id, {
                             ...(antworten[frage.id] || {}), [paar.karte.id]: e.target.value,
                           })}>
-                          <option value="">— wählen —</option>
+                          <option value="">(wählen)</option>
                           {frage.optionen.map((o) => (
                             <option key={o.id} value={o.id}>{o.antwort}</option>
                           ))}

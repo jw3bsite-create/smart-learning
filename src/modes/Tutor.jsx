@@ -131,7 +131,7 @@ export default function Tutor({ tutorSchluessel, aufSchliessen }) {
         <h1>Fachtutoren</h1>
         <p className="matt" style={{ maxWidth: 620 }}>
           Sechs Tutoren, jeder mit einer Sperre. Keiner von ihnen gibt dir die
-          Lösung — auch nicht, wenn du darum bittest. Sie fragen, bis du selbst
+          Lösung, auch nicht, wenn du darum bittest. Sie fragen, bis du selbst
           darauf kommst.
         </p>
         {kiDa === false && (

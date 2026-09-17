@@ -112,7 +112,7 @@ export default function KiGenerator({ setId, aufSchliessen }) {
           <div className="reihe"><Symbol name="zahnrad" /><strong>Noch nicht eingerichtet</strong></div>
           <p className="klein" style={{ marginTop: 8 }}>
             Für diesen Weg braucht es ein Sprachmodell. Am einfachsten läuft es
-            mit LM Studio auf diesem Rechner — dann verlässt die Vorlage das
+            mit LM Studio auf diesem Rechner, dann verlässt die Vorlage das
             Gerät nicht und es kostet nichts.
           </p>
           <Knopf art="klein" onClick={() => { aufSchliessen(); gehe("/einstellungen"); }}>
@@ -124,7 +124,7 @@ export default function KiGenerator({ setId, aufSchliessen }) {
           <p className="klein matt" style={{ marginTop: 0 }}>
             Füge einen Abschnitt aus dem Buch, dem Heft oder deinen Notizen ein.
             Heraus kommen <strong>Vorderseiten</strong> mit der Stelle, auf die
-            sie sich stützen. Die Rückseiten schreibst du selbst — das ist der
+            sie sich stützen. Die Rückseiten schreibst du selbst, das ist der
             Teil, bei dem man lernt.
           </p>
 
@@ -149,7 +149,7 @@ export default function KiGenerator({ setId, aufSchliessen }) {
             <span className={"marke " + (stand?.gut ? "gruen" : "rot")}>
               <span className={"wolke-punkt " + (stand?.gut ? "gut" : "fehler")} />
               {lokal ? "LM Studio" : ki.ANBIETER[zugang.anbieter]?.name}
-              {stand ? " — " + stand.text : ""}
+              {stand ? " · " + stand.text : ""}
             </span>
           </div>
 
@@ -157,7 +157,7 @@ export default function KiGenerator({ setId, aufSchliessen }) {
           <div className="klein" style={{ marginTop: 12 }}>
             {lokal ? (
               <span className="matt">
-                <Symbol name="haken" groesse={14} /> Läuft auf diesem Rechner —
+                <Symbol name="haken" groesse={14} /> Läuft auf diesem Rechner,
                 die Vorlage verlässt das Gerät nicht.
               </span>
             ) : (

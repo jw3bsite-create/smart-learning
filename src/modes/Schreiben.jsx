@@ -127,7 +127,7 @@ export default function Schreiben({ setId, aufSchliessen }) {
       <ModusRahmen titel="Schreiben" symbol="schreiben" aufSchliessen={aufSchliessen}>
         <h1>{derStapel.title}</h1>
         <p className="matt">
-          Alle {brauchbare.length} Karten der Reihe nach — falsch Beantwortetes kommt
+          Alle {brauchbare.length} Karten der Reihe nach, falsch Beantwortetes kommt
           am Ende noch einmal.
         </p>
         <div style={{ display: "grid", gap: 12, marginTop: 20 }}>
@@ -205,7 +205,7 @@ export default function Schreiben({ setId, aufSchliessen }) {
           <div className="reihe">
             <Symbol name={urteil.status === "falsch" ? "kreuz" : "haken"} />
             <strong>{urteil.status === "richtig" ? "Richtig"
-              : urteil.status === "fast" ? "Fast richtig — sieh dir die Schreibung an"
+              : urteil.status === "fast" ? "Fast richtig, sieh dir die Schreibung an"
                 : "Leider nicht"}</strong>
             <div className="dehnen" />
             <SymbolKnopf symbol="laut" titel="Vorlesen"

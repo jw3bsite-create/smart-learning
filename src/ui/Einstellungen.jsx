@@ -98,7 +98,7 @@ function Wolkenteil({ aufAbgleich }) {
     /* Gespeichert wird in jedem Fall — aber gleich nachgesehen, ob das Projekt
        antwortet. Sonst erfährt man es erst beim Anmelden, und dann in der
        Sprache des Browsers. */
-    setHinweis("Zugangsdaten gespeichert — sehe nach, ob das Projekt antwortet …");
+    setHinweis("Zugangsdaten gespeichert, sehe nach, ob das Projekt antwortet …");
     const probe = await wolke.verbindungPruefen(zugang);
     if (probe.ok) setHinweis("Zugangsdaten gespeichert. Das Projekt antwortet.");
     else { setHinweis("Zugangsdaten gespeichert."); setFehler(probe.text); }
@@ -116,7 +116,7 @@ function Wolkenteil({ aufAbgleich }) {
       if (neu) {
         const s = await wolke.registrieren(kennung.trim(), passwort);
         if (!s) setHinweis("Das Konto ist angelegt. Supabase will die Kennung noch "
-          + "bestätigt haben und schickt dafür eine Mail — in der kostenlosen "
+          + "bestätigt haben und schickt dafür eine Mail, in der kostenlosen "
           + "Fassung kommt die oft nicht an. Einfacher: im eigenen Projekt unter "
           + "Authentication → Sign In / Providers → Email die Option Confirm "
           + "email abschalten und hier auf Anmelden wechseln.");
@@ -167,7 +167,7 @@ function Wolkenteil({ aufAbgleich }) {
       setSitz(await wolke.sitzung().catch(() => null));
       setFehler("");
       setHinweis(andereAbmelden
-        ? "Passwort geändert. Deine anderen Geräte werden abgemeldet — "
+        ? "Passwort geändert. Deine anderen Geräte werden abgemeldet; "
           + "spätestens nach einer Stunde müssen sie sich neu anmelden."
         : "Passwort geändert. Deine anderen Geräte bleiben angemeldet.");
     } catch (f) {
@@ -184,7 +184,7 @@ function Wolkenteil({ aufAbgleich }) {
       await wolke.zugangSchreiben(zugang);
       await wolke.passwortVergessen(kennung);
       setHinweis("Wenn es diese Kennung gibt, ist ein Verweis unterwegs. Öffne ihn auf "
-        + "einem Gerät, auf dem Adresse und Schlüssel eingetragen sind — dann "
+        + "einem Gerät, auf dem Adresse und Schlüssel eingetragen sind, dann "
         + "kannst du ein neues Passwort festlegen. Supabase verschickt in der kostenlosen "
         + "Fassung nur wenige Mails je Stunde; sieh auch im Spam nach.");
     } catch (f) {
@@ -244,7 +244,7 @@ function Wolkenteil({ aufAbgleich }) {
               <div className="klein blass" style={{ marginTop: 4 }}>
                 Der <span className="mono">publishable</span> beziehungsweise
                 <span className="mono"> anon</span> key. Niemals der
-                <span className="mono"> service_role</span> key — der umgeht jeden Schutz.
+                <span className="mono"> service_role</span> key, der umgeht jeden Schutz.
               </div>
             </div>
           </div>
@@ -318,7 +318,7 @@ function Wolkenteil({ aufAbgleich }) {
             <span>Auf meinen anderen Geräten abmelden</span>
           </label>
           <p className="klein matt" style={{ marginTop: 4 }}>
-            Ohne Haken bleiben Handy, Tablet und Rechner angemeldet — Supabase meldet
+            Ohne Haken bleiben Handy, Tablet und Rechner angemeldet. Supabase meldet
             beim Passwortwechsel von sich aus niemanden ab. Mit Haken müssen sie sich neu
             anmelden, spätestens nach einer Stunde, wenn ihre Anmeldung erneuert würde.
             Setz den Haken, wenn du das Passwort änderst, weil jemand es kennen könnte.
@@ -342,7 +342,7 @@ function Wolkenteil({ aufAbgleich }) {
               <em> Site URL</em> eintragen und zusätzlich unter <em>Redirect URLs</em>. Sonst
               führen die Verweise zum Bestätigen und zum Zurücksetzen des Passworts ins
               Leere.</li>
-            <li>Eine Kennung anlegen und anmelden — auf jedem Gerät dieselbe.</li>
+            <li>Eine Kennung anlegen und anmelden, auf jedem Gerät dieselbe.</li>
           </ol>
           <p className="klein matt">
             Der öffentliche Schlüssel darf im Browser stehen; die Zeilenrechte („row level
@@ -392,7 +392,7 @@ function Sprachmodellteil() {
 
   return (
     <Abschnitt titel="Sprachmodell"
-      hinweis="Freiwillig. Wird nur beim Erzeugen von Karten und später beim Erklären gebraucht — gelernt wird ohne.">
+      hinweis="Freiwillig. Wird nur beim Erzeugen von Karten und später beim Erklären gebraucht, gelernt wird ohne.">
       <label className="schalter">
         <input type="checkbox" checked={Boolean(zugang.angeschaltet)}
           onChange={(e) => aendern({ angeschaltet: e.target.checked })} />
@@ -425,7 +425,7 @@ function Sprachmodellteil() {
               {stand?.modelle?.length ? (
                 <select className="feld" value={zugang.modell}
                   onChange={(e) => aendern({ modell: e.target.value })}>
-                  <option value="">— erstes verfügbares —</option>
+                  <option value="">(erstes verfügbares)</option>
                   {stand.modelle.map((m) => <option key={m} value={m}>{m}</option>)}
                 </select>
               ) : (
@@ -438,7 +438,7 @@ function Sprachmodellteil() {
           {anbieter.schluesselNoetig && (
             <>
               <label className="beschriftung" style={{ marginTop: 12 }}>
-                Dein Schlüssel — bleibt auf diesem Gerät
+                Dein Schlüssel, bleibt auf diesem Gerät
               </label>
               <input className="feld" type="password" value={zugang.schluessel}
                 autoComplete="off" placeholder="sk-…"
@@ -490,7 +490,7 @@ function Sprachmodellteil() {
                     <span>{p.zweck}</span>
                     <div className="dehnen" />
                     <span>{p.zeichenHin} Zeichen hin{p.gelungen
-                      ? ", " + p.zeichenZurueck + " zurück" : " — " + p.fehler}</span>
+                      ? ", " + p.zeichenZurueck + " zurück" : ", " + p.fehler}</span>
                   </div>
                 ))}
               </div>
@@ -563,7 +563,7 @@ function Erinnerungsteil() {
       )}
 
       <p className="klein blass" style={{ marginTop: 10 }}>
-        Die Nachricht erscheint nur, solange die App irgendwo geöffnet ist —
+        Die Nachricht erscheint nur, solange die App irgendwo geöffnet ist,
         ohne eigenen Server geht es nicht anders. Auf dem Handy also beim
         Öffnen, nicht davor.
       </p>
@@ -624,7 +624,7 @@ function Beispielteil() {
 
   return (
     <Abschnitt titel="Beispieldaten"
-      hinweis="Ein erfundener Bestand mit zwölf Wochen Lernhistorie — damit sich jede Ansicht ansehen lässt, ehe eigener Stoff da ist.">
+      hinweis="Ein erfundener Bestand mit zwölf Wochen Lernhistorie, damit sich jede Ansicht ansehen lässt, ehe eigener Stoff da ist.">
       <div className="reihe umbruch">
         <Knopf art="voll" symbol="plus" disabled={Boolean(laeuft)} onClick={anlegen}>
           {laeuft === "anlegen" ? "Wird angelegt …" : "Beispieldaten anlegen"}
@@ -645,7 +645,7 @@ function Beispielteil() {
       </p>
       <p className="klein blass">
         Alles Angelegte ist als Beispiel gekennzeichnet und lässt sich mit einem
-        Griff wieder entfernen — eigene Karten bleiben dabei unberührt. Vor dem
+        Griff wieder entfernen, eigene Karten bleiben dabei unberührt. Vor dem
         ersten Abgleich mit der Wolke solltest du es entfernen, sonst wandert es
         auf deine anderen Geräte.
       </p>
@@ -698,7 +698,7 @@ export default function Einstellungen({ aufAbgleich }) {
     <label className="schalter" title={hinweis}>
       <input type="checkbox" checked={Boolean(einstellungen[schluessel])}
         onChange={(e) => setzeEinstellung(schluessel, e.target.checked)} />
-      <span>{name}{hinweis && <span className="klein blass"> — {hinweis}</span>}</span>
+      <span>{name}{hinweis && <span className="klein blass"> · {hinweis}</span>}</span>
     </label>
   );
 
@@ -729,7 +729,7 @@ export default function Einstellungen({ aufAbgleich }) {
       <Abschnitt titel="Sprachausgabe"
         hinweis={stimmenListe.length
           ? stimmenListe.length + " Stimmen stehen zur Verfügung."
-          : "Dieser Browser meldet keine Stimmen — Vorlesen und Buchstabieren bleiben stumm."}>
+          : "Dieser Browser meldet keine Stimmen. Vorlesen und Buchstabieren bleiben stumm."}>
         {schalter("vorlesenAutomatisch", "Bei Karteikarten von allein vorlesen")}
         {schalter("eigeneStimmeAutomatisch", "Eigene Aufnahme von allein abspielen",
           "wenn du die Loesung selbst eingesprochen hast, sobald sie aufgedeckt ist")}
@@ -774,7 +774,7 @@ export default function Einstellungen({ aufAbgleich }) {
           }}>Verwaiste Bilder wegräumen</Knopf>
         </div>
         <p className="klein matt">
-          Die Sicherung enthält Ordner, Stapel, Karten, Lernstände und Bilder — alles in
+          Die Sicherung enthält Ordner, Stapel, Karten, Lernstände und Bilder, alles in
           einer Datei. Gut vor einem Gerätewechsel und als Sicherheitsnetz.
         </p>
         {meldung && <div className="rueckmeldung schlecht klein">{meldung}</div>}

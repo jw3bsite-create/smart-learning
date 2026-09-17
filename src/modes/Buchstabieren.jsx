@@ -121,7 +121,7 @@ export default function Buchstabieren({ setId, aufSchliessen }) {
         <h1>{derStapel.title}</h1>
         {!sprachAusgabeDa() ? (
           <div className="rueckmeldung schlecht">
-            Dieser Browser bringt keine Sprachausgabe mit — ohne sie ist der Modus
+            Dieser Browser bringt keine Sprachausgabe mit, ohne sie ist der Modus
             nicht zu gebrauchen.
           </div>
         ) : (

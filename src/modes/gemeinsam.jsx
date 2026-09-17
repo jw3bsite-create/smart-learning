@@ -93,13 +93,13 @@ export function Ergebnis({ titel, richtig, gesamt, kinder, children, setId, aufN
   const anteil = gesamt ? Math.round(100 * richtig / gesamt) : 0;
   const lob = anteil === 100 ? "Fehlerlos."
     : anteil >= 85 ? "Das sitzt."
-      : anteil >= 60 ? "Solide — der Rest kommt mit der Wiederholung."
+      : anteil >= 60 ? "Solide, der Rest kommt mit der Wiederholung."
         : "Noch wacklig. Bleib dran, die Wiederholung ist eingeplant.";
   return (
     <div style={{ textAlign: "center", paddingTop: 20 }}>
       <div style={{ fontFamily: "var(--serifen)", fontSize: 54 }}>{anteil}<span style={{ fontSize: 26 }}>%</span></div>
       <h2 style={{ marginTop: 6 }}>{titel}</h2>
-      <p className="matt">{richtig} von {gesamt} richtig — {lob}</p>
+      <p className="matt">{richtig} von {gesamt} richtig. {lob}</p>
       {children || kinder}
       <div className="reihe" style={{ justifyContent: "center", marginTop: 26, flexWrap: "wrap" }}>
         {aufNochmal && <Knopf art="voll gross" symbol="zurueckSetzen" onClick={aufNochmal}>Noch eine Runde</Knopf>}

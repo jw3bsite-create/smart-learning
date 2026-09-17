@@ -72,7 +72,7 @@ function EntwurfKarte({ entwurf, aufFertig }) {
 
       {/* Die eigene Rückseite */}
       <label className="beschriftung">
-        Rückseite — schreib sie in deinen eigenen Worten
+        Rückseite, schreib sie in deinen eigenen Worten
       </label>
       <textarea className="feld" rows={2} value={eigene} placeholder="Was gehört auf die Rückseite?"
         style={{ minHeight: 54, fontSize: 16 }}
@@ -93,7 +93,7 @@ function EntwurfKarte({ entwurf, aufFertig }) {
                 In mein Feld übernehmen
               </Knopf>
               <span className="klein blass">
-                — dann kannst du daran weiterschreiben
+(dann kannst du daran weiterschreiben)
               </span>
             </div>
           </div>
@@ -105,7 +105,7 @@ function EntwurfKarte({ entwurf, aufFertig }) {
             </Knopf>
             {!hatGeschrieben && (
               <span className="klein blass">
-                — besser erst selbst schreiben; das ist der halbe Lerneffekt
+(besser erst selbst schreiben; das ist der halbe Lerneffekt)
               </span>
             )}
           </div>
@@ -167,7 +167,7 @@ export default function Entwuerfe({ setId }) {
         <>
           <p className="matt" style={{ marginTop: -6, marginBottom: 18 }}>
             {anzahl(meine.length, "Entwurf wartet", "Entwürfe warten")} auf eine
-            Rückseite. Schreib sie selbst — den Vorschlag kannst du danach zum
+            Rückseite. Schreib sie selbst, den Vorschlag kannst du danach zum
             Vergleich einblenden.
           </p>
           <div style={{ display: "grid", gap: 14 }}>

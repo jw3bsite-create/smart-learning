@@ -90,7 +90,7 @@ export default function Startseite() {
 
       {leer ? (
         <Leer symbol="stapel" titel="Willkommen bei Smart Learning"
-          text="Leg deinen ersten Stapel an — oder lade in den Einstellungen die Beispieldaten, um alles auszuprobieren.">
+          text="Leg deinen ersten Stapel an, oder lade in den Einstellungen die Beispieldaten, um alles auszuprobieren.">
           <div className="reihe" style={{ justifyContent: "center", flexWrap: "wrap" }}>
             <Knopf art="voll gross" symbol="plus" onClick={() => gehe("/faecher")}>Fächer anlegen</Knopf>
             <Knopf art="gross" symbol="zahnrad" onClick={() => gehe("/einstellungen")}>Beispieldaten</Knopf>
@@ -137,7 +137,7 @@ export default function Startseite() {
                 </Knopf>
               ) : (
                 <Knopf art="gross" symbol="wuerfel" onClick={() => gehe("/fragen")}>
-                  Nichts fällig — Fragen üben
+                  Nichts fällig. Fragen üben
                 </Knopf>
               )}
             </div>

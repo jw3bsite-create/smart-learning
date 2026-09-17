@@ -86,7 +86,7 @@ export default function Zuordnen({ setId, aufSchliessen }) {
       <ModusRahmen titel="Zuordnen" symbol="raster" aufSchliessen={aufSchliessen}>
         <h1>{derStapel.title}</h1>
         <p className="matt">
-          Sechs Paare, gemischt. Tippe zusammengehörende Plättchen an — jeder
+          Sechs Paare, gemischt. Tippe zusammengehörende Plättchen an, jeder
           Fehlgriff kostet eine Sekunde.
         </p>
         {bestzeit !== null && (

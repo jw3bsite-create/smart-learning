@@ -60,7 +60,7 @@ export function FachEinstellungen({ fach, aufSchliessen }) {
         onChange={(e) => fachAendern(fach.id, { zielRetention: Number(e.target.value) })} />
       <p className="klein matt" style={{ marginTop: 4 }}>
         Wie wahrscheinlich du eine Karte im Moment der Wiederholung noch können
-        willst. Höher heißt sicherer und deutlich mehr Wiederholungen —
+        willst. Höher heißt sicherer und deutlich mehr Wiederholungen.
         Nomenklatur verträgt 95 %, Überblickswissen kommt mit 85 % aus.
       </p>
 
@@ -81,7 +81,7 @@ export function FachEinstellungen({ fach, aufSchliessen }) {
           pruefungsdatum: e.target.value ? new Date(e.target.value).getTime() : null,
         })} />
       <p className="klein matt" style={{ marginTop: 4 }}>
-        Je näher er rückt, desto dichter rücken die Wiederholungen zusammen —
+        Je näher er rückt, desto dichter rücken die Wiederholungen zusammen,
         und desto häufiger kommt das Fach im Fragemodus dran.
       </p>
 
@@ -136,7 +136,7 @@ export function FachEinstellungen({ fach, aufSchliessen }) {
             richtungen: e.target.checked ? ["td", "dt"] : ["td"],
           })} />
         <span>Beide Richtungen abfragen
-          <span className="klein blass"> — für Vokabeln sinnvoll, für Definitionen selten</span>
+          <span className="klein blass">(für Vokabeln sinnvoll, für Definitionen selten)</span>
         </span>
       </label>
       <p className="klein blass">
@@ -258,11 +258,11 @@ export default function Faecher() {
         {last.heute > 0 && (
           <div className="klein blass" style={{ marginTop: 10 }}>
             Schöpfst du die Tageslimits aus, sind auf Dauer rund {last.heute} Abrufe
-            am Tag zu erwarten — etwa {Math.max(1, last.minutenHeute)} Minuten.
+            am Tag zu erwarten, etwa {Math.max(1, last.minutenHeute)} Minuten.
             Grobe Größenordnung, keine Vorhersage.
             {kalender.ueberfaellig > 20 && (
               <strong style={{ color: "var(--gelb)" }}>
-                {" "}{kalender.ueberfaellig} Karten sind überfällig — nimm das Tageslimit
+                {" "}{kalender.ueberfaellig} Karten sind überfällig, nimm das Tageslimit
                 für neue Karten zurück, bis der Rückstand weg ist.
               </strong>
             )}
@@ -382,7 +382,7 @@ export default function Faecher() {
                 <span className="dehnen">{s.title || "Ohne Titel"}</span>
                 <select className="feld" style={{ width: 200 }} value={s.subjectId || ""}
                   onChange={(e) => stapelAendern(s.id, { subjectId: e.target.value || null })}>
-                  <option value="">— ohne Fach —</option>
+                  <option value="">(ohne Fach)</option>
                   {faecher.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
               </div>
@@ -393,7 +393,7 @@ export default function Faecher() {
 
       {loescht && (
         <Rueckfrage titel="Fach löschen?"
-          text={`„${loescht.name}" verschwindet. Die Stapel darin bleiben erhalten und sind danach ohne Fach — der Lernstand der Karten bleibt ebenfalls.`}
+          text={`„${loescht.name}" verschwindet. Die Stapel darin bleiben erhalten und sind danach ohne Fach, der Lernstand der Karten bleibt ebenfalls.`}
           aufNein={() => setLoescht(null)}
           aufJa={() => { fachLoeschen(loescht.id); setLoescht(null); }} />
       )}

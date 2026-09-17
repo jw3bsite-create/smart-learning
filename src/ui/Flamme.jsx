@@ -85,7 +85,7 @@ export default function Flamme({ knapp = false }) {
           </div>
           <div className="klein blass" style={{ marginTop: 6 }}>
             {stand.heuteGeschafft
-              ? "Pensum geschafft — " + anzahl(stand.heuteAbrufe, "Abruf", "Abrufe")
+              ? "Pensum geschafft: " + anzahl(stand.heuteAbrufe, "Abruf", "Abrufe")
               : stand.heuteAbrufe + " von " + TAGESPENSUM + " Abrufen"}
             {faellig > 0 && !stand.heuteGeschafft
               && " · " + faellig + " fällig"}
@@ -99,7 +99,7 @@ export default function Flamme({ knapp = false }) {
         {stand.verbrauchteRuhetage > 0
           ? ` ${anzahl(stand.verbrauchteRuhetage, "Ruhetag", "Ruhetage")} verbraucht, `
             + `${stand.ruhetageUebrig} von ${RUHETAGE_JE_MONAT} übrig.`
-          : ` ${stand.ruhetageUebrig} Ruhetage übrig — eine Lücke reißt die Strähne nicht.`}
+          : ` ${stand.ruhetageUebrig} Ruhetage übrig, eine Lücke reißt die Strähne nicht.`}
       </p>
 
       {!stand.heuteGeschafft && faellig > 0 && (

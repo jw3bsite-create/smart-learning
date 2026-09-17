@@ -138,7 +138,7 @@ export default function FachSeite({ fachId }) {
 
       {eigene.length === 0 ? (
         <Leer symbol="stapel" titel={"Noch kein Material in " + fach.name}
-          text="Leg einen Stapel an — er gehört dann automatisch zu diesem Fach. Oder nimm einen vorhandenen dazu.">
+          text="Leg einen Stapel an, er gehört dann automatisch zu diesem Fach. Oder nimm einen vorhandenen dazu.">
           <div className="reihe" style={{ justifyContent: "center", flexWrap: "wrap" }}>
             <Knopf art="voll gross" symbol="plus" onClick={neuerStapel}>Neuer Stapel</Knopf>
             {andere.length > 0 && (
@@ -159,7 +159,7 @@ export default function FachSeite({ fachId }) {
 
       <p className="klein blass" style={{ marginTop: 22, maxWidth: "62ch" }}>
         Ein Stapel gehört zu genau einem Fach. In welchem Ordner er liegt, ist davon
-        unabhängig — Ordner sagen, wo etwas liegt, das Fach sagt, wofür es zählt.
+        unabhängig. Ordner sagen, wo etwas liegt, das Fach sagt, wofür es zählt.
       </p>
 
       {/* -------------------------- Stapel hinzufügen ------------------------ */}

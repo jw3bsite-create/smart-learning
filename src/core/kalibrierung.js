@@ -101,9 +101,9 @@ export function aufschlagFuer(reviewsDerKarte, letzteN = 10) {
 export function kalibrierungInWorten(k) {
   if (!k || k.ueberschaetzung === null) return "noch keine Einschätzungen";
   const treffer = Math.round((1 - k.ueberschaetzung) * 100);
-  if (treffer >= 90) return `„sicher" stimmt zu ${treffer} % — verlässlich`;
+  if (treffer >= 90) return `„sicher" stimmt zu ${treffer} %, verlässlich`;
   if (treffer >= 75) return `„sicher" stimmt zu ${treffer} %`;
-  return `„sicher" stimmt nur zu ${treffer} % — du überschätzt dich`;
+  return `„sicher" stimmt nur zu ${treffer} %, du überschätzt dich`;
 }
 
 /* ===================================================================== */

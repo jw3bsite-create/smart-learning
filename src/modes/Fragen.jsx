@@ -92,7 +92,7 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
       <ModusRahmen titel="Fragen" symbol="wuerfel" aufSchliessen={aufSchliessen}>
         <h1 style={{ marginBottom: 6 }}>Ein paar Fragen</h1>
         <p className="matt" style={{ marginTop: 0, maxWidth: "62ch" }}>
-          Quer durch, ohne Rücksicht auf den Plan — und ohne ihn zu verstellen:
+          Quer durch, ohne Rücksicht auf den Plan, und ohne ihn zu verstellen:
           Was hier geschieht, zählt für die Strähne, verschiebt aber keine
           Termine. Zum Zwischendurchfragen, wenn du fünf Minuten hast.
         </p>
@@ -132,7 +132,7 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
           <span>
             Gewichten
             <span className="klein blass">
-              {" "}— nahe Prüfung, schwache Punkte und vordringliche Fächer öfter
+              {" "}(nahe Prüfung, schwache Punkte und vordringliche Fächer öfter)
             </span>
           </span>
         </label>
@@ -202,7 +202,7 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
           {runde.beteiligt.length > 0 && (
             <div className="zahl-kachel" style={{ marginTop: 18, textAlign: "left" }}>
               <div className="klein matt" style={{ marginBottom: 8 }}>
-                Woher die Fragen kamen — und warum:
+                Woher die Fragen kamen und warum:
               </div>
               {runde.beteiligt.map((b) => (
                 <div key={b.fach.id} className="reihe klein" style={{ marginBottom: 4 }}>
@@ -257,7 +257,7 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
       rechts={<>
         <span className="klein matt">{nummer + 1} / {runde.aufgaben.length}</span>
         <SymbolKnopf symbol={jetzt.karte.nichtRelevant ? "haken" : "kreuz"}
-          titel="Diese Karte abhaken — kommt nicht dran"
+          titel="Diese Karte abhaken, kommt nicht dran"
           art="leer klein"
           onClick={() => karteAendern(jetzt.karte.id,
             { nichtRelevant: !jetzt.karte.nichtRelevant })} />
@@ -302,7 +302,7 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
 
       <p className="klein blass" style={{ marginTop: 20 }}>
         Kommt eine Karte im Abitur sicher nicht dran, kannst du sie oben rechts
-        abhaken. Sie verschwindet dann aus allen Modi und aus den Zahlen — der
+        abhaken. Sie verschwindet dann aus allen Modi und aus den Zahlen, der
         Lernstand bleibt erhalten, und das Abhaken lässt sich zurücknehmen.
       </p>
     </ModusRahmen>

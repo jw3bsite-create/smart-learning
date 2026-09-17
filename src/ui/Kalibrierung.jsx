@@ -83,7 +83,7 @@ export default function Kalibrierung() {
               ? "Dein Gefühl ist verlässlich. Du darfst dir glauben."
               : treffer >= 0.75
                 ? "Brauchbar, aber du bist etwas zu zuversichtlich. Sieh dir an, in welchem Fach."
-                : "Du hältst dich für sicherer, als du bist. Das ist der teuerste Fehler beim Lernen — und der Grund, warum Wiederlesen sich gut anfühlt und wenig bringt."}
+                : "Du hältst dich für sicherer, als du bist. Das ist der teuerste Fehler beim Lernen, und der Grund, warum Wiederlesen sich gut anfühlt und wenig bringt."}
         </p>
       </div>
 
@@ -91,11 +91,11 @@ export default function Kalibrierung() {
       <div className="zahl-kachel" style={{ marginBottom: 24 }}>
         {[1, 2, 3].map((s) => (
           <Streifenbalken key={s} anteil={gesamt.stufen[s].quote} farbe={STUFEN_FARBE[s]}
-            beschriftung={`„${KONFIDENZ_NAMEN[s]}" — ${gesamt.stufen[s].gewusst} von ${gesamt.stufen[s].anzahl} gewusst`} />
+            beschriftung={`„${KONFIDENZ_NAMEN[s]}": ${gesamt.stufen[s].gewusst} von ${gesamt.stufen[s].anzahl} gewusst`} />
         ))}
         <p className="klein matt" style={{ marginTop: 4 }}>
           Ideal wäre eine fallende Treppe: oben hoch, unten niedrig. Liegen die
-          drei Balken dicht beieinander, sagt deine Einschätzung nichts aus —
+          drei Balken dicht beieinander, sagt deine Einschätzung nichts aus,
           dann rate weniger und horch genauer hin, ehe du aufdeckst.
         </p>
       </div>
@@ -164,7 +164,7 @@ export default function Kalibrierung() {
         </div>
         <p className="klein matt" style={{ marginTop: 12 }}>
           Zu schnell beantwortete Karten werden festgehalten, zählen aber weder
-          für den Plan noch für die Strähne. Sie schaden nicht — sie zeigen nur,
+          für den Plan noch für die Strähne. Sie schaden nicht, sie zeigen nur,
           wann eine Sitzung eigentlich keine war.
         </p>
       </div>

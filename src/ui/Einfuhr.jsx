@@ -80,7 +80,7 @@ export function TextEinfuhr({ setId, aufSchliessen }) {
         </Knopf>
       </>}>
       <p className="klein matt" style={{ marginTop: 0 }}>
-        Füge eine Liste ein — je Zeile Vorder- und Rückseite, getrennt durch
+        Füge eine Liste ein, je Zeile Vorder- und Rückseite, getrennt durch
         Tabulator, Komma oder Gedankenstrich. So kommen auch Stapel aus Quizlet
         herüber: dort „Exportieren“ wählen und den Text hier einsetzen.
       </p>
@@ -95,7 +95,7 @@ export function TextEinfuhr({ setId, aufSchliessen }) {
 
       {istAnki && (
         <div className="rueckmeldung gut klein" style={{ marginTop: 12 }}>
-          <Symbol name="haken" groesse={15} /> Anki-Ausfuhr erkannt — die
+          <Symbol name="haken" groesse={15} /> Anki-Ausfuhr erkannt, die
           Kopfzeilen und die Auszeichnung werden entfernt, die Trennzeichen
           unten sind hier ohne Belang.
         </div>
@@ -135,8 +135,9 @@ export function TextEinfuhr({ setId, aufSchliessen }) {
 
       {ergebnis.uebrig.length > 0 && (
         <div className="rueckmeldung fast klein" style={{ marginBottom: 12 }}>
-          {anzahl(ergebnis.uebrig.length, "Zeile hat", "Zeilen haben")} keine Rückseite —
-          sie werden übergangen. Stimmt das Trennzeichen?
+          {anzahl(ergebnis.uebrig.length,
+            "Zeile ohne Rückseite wird übergangen",
+            "Zeilen ohne Rückseite werden übergangen")}. Stimmt das Trennzeichen?
         </div>
       )}
 
@@ -193,7 +194,7 @@ export function BildEinfuhr({ setId, aufSchliessen }) {
       setMeldung("");
     } catch (e) {
       setFehler("Die Texterkennung ist gescheitert: " + (e?.message || e) +
-        ". Beim ersten Mal muss die Sprachdatei geladen werden — dafür wird eine Verbindung gebraucht.");
+        ". Beim ersten Mal muss die Sprachdatei geladen werden, dafür wird eine Verbindung gebraucht.");
     } finally {
       setLaeuft(false);
     }
@@ -217,7 +218,7 @@ export function BildEinfuhr({ setId, aufSchliessen }) {
       </>}>
       <p className="klein matt" style={{ marginTop: 0 }}>
         Fotografiere eine Vokabelliste oder ein Blatt und lass den Text auslesen.
-        Gedrucktes gelingt gut, Handschrift nur mäßig — sieh das Ergebnis darum
+        Gedrucktes gelingt gut, Handschrift nur mäßig, sieh das Ergebnis darum
         durch, bevor du es übernimmst. Die Erkennung läuft auf diesem Gerät;
         beim ersten Mal wird die Sprachdatei geladen und danach behalten.
       </p>

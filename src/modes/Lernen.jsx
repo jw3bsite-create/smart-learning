@@ -198,7 +198,7 @@ export default function Lernen({ setId, aufSchliessen }) {
         <p className="matt">
           {zaehlung.faellige > 0 || zaehlung.neu > 0
             ? `${anzahl(zaehlung.neu, "neue Karte", "neue Karten")}, ${zaehlung.faellige} zur Wiederholung.`
-            : "Alles wiederholt — du kannst trotzdem eine Runde einlegen."}
+            : "Alles wiederholt, du kannst trotzdem eine Runde einlegen."}
         </p>
         <Balken anteile={anteileNachStufe(brauchbare, staende)} hoehe={12} />
 
@@ -360,7 +360,7 @@ export default function Lernen({ setId, aufSchliessen }) {
           <div className="reihe">
             <Symbol name={urteil.status === "falsch" ? "kreuz" : "haken"} />
             <strong>{urteil.status === "richtig" ? "Richtig"
-              : urteil.status === "fast" ? "Fast — achte auf die Schreibung" : "Leider nicht"}</strong>
+              : urteil.status === "fast" ? "Fast, achte auf die Schreibung" : "Leider nicht"}</strong>
             <div className="dehnen" />
             <SymbolKnopf symbol="laut" titel="Vorlesen"
               onClick={() => sprich(seiten.antwort, sprachen.antwort, einstellungen.sprechTempo)} />

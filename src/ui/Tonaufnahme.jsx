@@ -136,7 +136,7 @@ export default function Tonaufnahme({ cardId, seite, autoAbspielen = false, knap
           </Knopf>
           {!knapp && (
             <span className="klein blass">
-              Lies die Lösung laut vor — die eigene Stimme bleibt besser haften.
+              Lies die Lösung laut vor, die eigene Stimme bleibt besser haften.
             </span>
           )}
         </>

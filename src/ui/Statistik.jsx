@@ -49,7 +49,7 @@ function Punktestand({ faecher, notenfaecher }) {
       <p className="klein matt" style={{ marginTop: 0, marginBottom: 12 }}>
         Der Lernstand oben sagt, wie gut die Karten sitzen. Diese Zahl sagt,
         ob es ankommt. Sie stammt aus deinen eingetragenen Punkten, nicht aus
-        dem Lernen — die App rechnet sie nicht schön.
+        dem Lernen, die App rechnet sie nicht schön.
       </p>
       <div className="zahl-kachel" style={{ marginBottom: 26 }}>
         <div className="reihe" style={{ marginBottom: 12 }}>
@@ -93,7 +93,7 @@ function Punktestand({ faecher, notenfaecher }) {
         )}
 
         <p className="klein blass" style={{ marginTop: 12, marginBottom: 0 }}>
-          Nicht die Abiturnote — der schlichte Durchschnitt der erfassten
+          Nicht die Abiturnote, der schlichte Durchschnitt der erfassten
           Halbjahresleistungen. Mehr unter „Punkte“.
         </p>
       </div>
@@ -207,7 +207,7 @@ export default function Statistik() {
           <h3 style={{ marginBottom: 4 }}>Wie gut du behältst</h3>
           <p className="klein matt" style={{ marginTop: 0, marginBottom: 12 }}>
             Gemessen, nicht geschätzt: Wie oft du eine Karte nach diesem Abstand
-            noch wusstest. Das ist die ehrlichste Zahl dieser App — und die
+            noch wusstest. Das ist die ehrlichste Zahl dieser App, und die
             einzige, die etwas darüber sagt, ob das Lernen hält.
           </p>
           <div className="zahl-kachel" style={{ marginBottom: 26 }}>
@@ -234,7 +234,7 @@ export default function Statistik() {
               </div>
             ))}
             <p className="klein blass" style={{ marginTop: 4 }}>
-              Ein Abfall über die Zeit ist normal und eingeplant — deshalb kommen
+              Ein Abfall über die Zeit ist normal und eingeplant, deshalb kommen
               die Karten wieder. Fällt es unter zwei Drittel, ist die
               Ziel-Sicherheit des Fachs zu niedrig eingestellt.
             </p>
@@ -271,7 +271,7 @@ export default function Statistik() {
             {eigen.anteilUebernommen > 0.3 && (
               <p className="klein" style={{ color: "var(--gelb)", marginTop: 8, marginBottom: 0 }}>
                 Über ein Drittel deiner Karten hast du unverändert übernommen.
-                Schreib die Rückseiten öfter selbst — der Unterschied ist genau
+                Schreib die Rückseiten öfter selbst, der Unterschied ist genau
                 das, was hängen bleibt.
               </p>
             )}
