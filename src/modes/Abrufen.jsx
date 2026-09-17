@@ -388,7 +388,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
           <p className="matt">{kalibrierungInWorten(k)}</p>
 
           <div className="gitter" style={{ maxWidth: 620, margin: "24px auto",
-            gridTemplateColumns: "repeat(3, 1fr)" }}>
+            gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}>
             {[[KONFIDENZ.SICHER, "sicher"], [KONFIDENZ.UNSICHER, "unsicher"],
               [KONFIDENZ.KEINE_AHNUNG, "keine Ahnung"]].map(([stufe, name]) => {
               const s = k.stufen[stufe];
@@ -481,7 +481,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
           <p className="matt klein" style={{ textAlign: "center", marginBottom: 10 }}>
             Ehe du antwortest: Wie sicher bist du dir?
           </p>
-          <div className="gitter" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
+          <div className="gitter konfidenz-gitter">
             {[
               [KONFIDENZ.SICHER, "Sicher", "haken", "var(--gruen)"],
               [KONFIDENZ.UNSICHER, "Unsicher", "auge", "var(--gelb)"],
@@ -629,7 +629,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
           <p className="matt klein" style={{ textAlign: "center", margin: "18px 0 10px" }}>
             Du entscheidest, ob es zählt.
           </p>
-          <div className="gitter" style={{ gridTemplateColumns: "repeat(4, 1fr)", gap: 10 }}>
+          <div className="gitter bewertung-gitter">
             {[
               [NOTEN.NOCHMAL, "var(--rot)"],
               [NOTEN.SCHWER, "var(--gelb)"],

@@ -88,8 +88,11 @@ function Zeile({ karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZe
           if (datei) { e.preventDefault(); bildWaehlen(welche === "vorn" ? "termImage" : "defImage", datei); }
         }}
       />
+      {/* Bild und Aufnahme in einer Zeile: Auf dem Telefon waere sonst jede
+          Karte doppelt so hoch, und man scrollt sich durch die Liste. */}
+      <div className="reihe umbruch zeile-werkzeuge">
       {(welche === "vorn" ? karte.termImage : karte.defImage) ? (
-        <div style={{ position: "relative", display: "inline-block", marginTop: 8 }}>
+        <div style={{ position: "relative", display: "inline-block" }}>
           <Bild kennung={welche === "vorn" ? karte.termImage : karte.defImage}
             klasse="" stil={{ maxHeight: 110, borderRadius: 8, display: "block" }} />
           <button className="knopf klein" style={{ position: "absolute", top: 4, right: 4 }}
@@ -100,7 +103,7 @@ function Zeile({ karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZe
             }}><Symbol name="kreuz" groesse={14} /></button>
         </div>
       ) : (
-        <label className="knopf klein leer" style={{ marginTop: 6, cursor: "pointer" }}>
+        <label className="knopf klein leer" style={{ cursor: "pointer" }}>
           <Symbol name="bild" groesse={15} /> Bild
           <input type="file" accept="image/*" style={{ display: "none" }}
             onChange={(e) => bildWaehlen(welche === "vorn" ? "termImage" : "defImage", e.target.files[0])} />
@@ -110,6 +113,7 @@ function Zeile({ karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZe
           sie am besten gleich einmal. Beim Abrufen wird die Aufnahme dann
           wieder abgespielt. */}
       <Tonaufnahme knapp cardId={karte.id} seite={welche === "vorn" ? "t" : "d"} />
+      </div>
     </div>
   );
 

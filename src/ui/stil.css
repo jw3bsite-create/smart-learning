@@ -621,3 +621,103 @@ select.feld { appearance: none; padding-right: 30px;
 .schriftwahl-zeile:hover { background: var(--grund-3); }
 .schriftwahl-zeile.aktiv { background: var(--grund-3); }
 .schriftwahl-zeile > span:first-child { flex: 1; min-width: 0; }
+
+/* ---------------------------- Touchbedienung -------------------------- */
+
+/*
+ * Diese App ist am Rechner entstanden, gelernt wird aber auf dem Telefon und
+ * auf dem iPad. Mit der Maus genuegt ein Ziel von zwanzig Punkten, mit dem
+ * Finger nicht: Die Fingerkuppe verdeckt, was sie trifft, und die Empfehlung
+ * aller Hersteller lautet ungefaehr vierundvierzig Punkte.
+ *
+ * `pointer: coarse` fragt nicht nach der Bildschirmbreite, sondern nach dem
+ * Zeigegeraet. Das ist hier das Richtige: Ein iPad im Querformat ist breit
+ * wie ein Rechner und wird doch mit dem Finger bedient.
+ */
+@media (pointer: coarse) {
+  .knopf { min-height: 44px; }
+  .knopf.klein { min-height: 40px; padding: 8px 12px; }
+  .knopf.leer { min-width: 44px; min-height: 44px; }
+  .knopf.gross { min-height: 52px; }
+  .stern { padding: 10px; }
+  .baum-zeile { min-height: 44px; }
+  .menue button { min-height: 44px; }
+  .menue { min-width: 220px; }
+  .schriftwahl-zeile { min-height: 46px; }
+  .klappe-kopf { min-height: 48px; }
+  .antwort { min-height: 66px; }
+  select.feld, .feld.klein, input.feld { min-height: 42px; }
+  .pfeil { min-width: 28px; min-height: 36px; display: inline-flex;
+    align-items: center; justify-content: center; }
+  .lz-saeule { min-width: 22px; }
+  .logo-knopf { min-height: 44px; }
+
+  /* Der Schalter darf ruhig etwas groesser sein als am Rechner. */
+  .schalter { padding: 10px 0; }
+  .schalter input { width: 46px; height: 27px; }
+  .schalter input::after { width: 21px; height: 21px; }
+  .schalter input:checked::after { transform: translateX(19px); }
+
+  /*
+   * Auf dem Telefon gibt es kein Ueberfahren. Ein Hover-Zustand bleibt dort
+   * nach dem Antippen haengen, und die Kachel steht hochgeschoben da, bis man
+   * woandershin tippt.
+   */
+  .kachel:hover { transform: none; border-color: var(--rand); }
+  .knopf:hover { background: var(--grund-2); }
+  .knopf.voll:hover { background: var(--akzent); }
+  .knopf.leer:hover { background: transparent; }
+  .baum-zeile:hover { background: transparent; }
+  .klappe-kopf:hover { background: transparent; }
+
+  /* Doppeltippen soll nicht heranzoomen, und kein grauer Kasten beim Tippen. */
+  button, .baum-zeile, .kachel, .schalter, .pfeil, label.knopf { touch-action: manipulation; }
+  button, .baum-zeile, .kachel, a { -webkit-tap-highlight-color: transparent; }
+}
+
+/* Safari blaeht Schrift im Querformat auf, wenn man es nicht verbietet. */
+html { -webkit-text-size-adjust: 100%; }
+
+/*
+ * Dialoge auf dem Telefon: als Blatt von unten.
+ *
+ * Mittig sitzende Dialoge sind auf einem hohen, schmalen Schirm unguenstig —
+ * die Knoepfe landen in der Mitte, wo der Daumen nicht hinreicht, und der
+ * Inhalt bekommt an allen vier Seiten Rand, den er nicht hat.
+ */
+@media (max-width: 640px) {
+  .schleier { padding: 0; align-items: flex-end; }
+  .dialog, .dialog.weit {
+    width: 100%; max-height: 92dvh;
+    border-radius: calc(var(--rund) * 1.15) calc(var(--rund) * 1.15) 0 0;
+    border-bottom: 0;
+  }
+  .dialog-kopf { position: sticky; top: 0; background: var(--grund-2); z-index: 1; }
+  .dialog-fuss {
+    position: sticky; bottom: 0; background: var(--grund-2);
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+  }
+  .dialog-fuss .knopf { flex: 1; justify-content: center; }
+}
+
+/*
+ * Bewerten und Einschaetzen: nicht vier schmale Spalten auf 375 Punkten.
+ * Zwei mal zwei liegt ausserdem naeher am Daumen als eine Reihe am Rand.
+ */
+.konfidenz-gitter { grid-template-columns: repeat(3, 1fr); }
+.bewertung-gitter { grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (max-width: 700px) {
+  .konfidenz-gitter { grid-template-columns: 1fr; }
+  .bewertung-gitter { grid-template-columns: 1fr 1fr; }
+}
+
+/* Der Karteneditor wird auf dem Telefon sonst endlos lang. */
+@media (max-width: 860px) {
+  .karten-zeile { padding: 12px; gap: 10px; }
+  .karten-zeile textarea { min-height: 46px !important; }
+  .karten-zeile .ton-zeile { margin-top: 0; }
+}
+
+/* Bild- und Tonknopf einer Kartenseite stehen in einer Zeile. */
+.zeile-werkzeuge { gap: 6px; margin-top: 6px; }
+.zeile-werkzeuge .ton-zeile { margin-top: 0; }
