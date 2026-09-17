@@ -13,7 +13,8 @@ import { anzahl } from "../core/util.js";
 import { kartenArt, KARTENARTEN } from "../core/model.js";
 import { gehe } from "../App.jsx";
 import { Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Bild, Stern, Leer, Dialog } from "./basis.jsx";
-import { TextEinfuhr, BildEinfuhr } from "./Einfuhr.jsx";
+import { TextEinfuhr, BildEinfuhr, QuizletEinfuhr } from "./Einfuhr.jsx";
+import Tonaufnahme from "./Tonaufnahme.jsx";
 import KiGenerator from "./KiGenerator.jsx";
 
 /* ----------------------------- Eine Kartenzeile ------------------------ */
@@ -105,6 +106,10 @@ function Zeile({ karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZe
             onChange={(e) => bildWaehlen(welche === "vorn" ? "termImage" : "defImage", e.target.files[0])} />
         </label>
       )}
+      {/* Selbst einsprechen, schon beim Anlegen: Wer Vokabeln eintippt, spricht
+          sie am besten gleich einmal. Beim Abrufen wird die Aufnahme dann
+          wieder abgespielt. */}
+      <Tonaufnahme knapp cardId={karte.id} seite={welche === "vorn" ? "t" : "d"} />
     </div>
   );
 
@@ -168,6 +173,7 @@ export default function Bearbeiten({ setId }) {
     entwuerfe,
   } = useDaten();
   const [textEinfuhr, setTextEinfuhr] = useState(false);
+  const [quizlet, setQuizlet] = useState(false);
   const [bildEinfuhr, setBildEinfuhr] = useState(false);
   const [generator, setGenerator] = useState(false);
   const [hilfe, setHilfe] = useState(false);
@@ -205,6 +211,8 @@ export default function Bearbeiten({ setId }) {
         <Knopf symbol="blitz" onClick={() => setGenerator(true)}>Aus Vorlage</Knopf>
         <Knopf art="voll" symbol="haken" onClick={() => gehe("/stapel/" + setId)}>Fertig</Knopf>
         <Menue knopf={<SymbolKnopf symbol="mehr" titel="Mehr" art="klein" />}>
+          <MenuePunkt symbol="hinauf" onClick={() => setQuizlet(true)}>
+            Aus Quizlet …</MenuePunkt>
           <MenuePunkt symbol="auge" onClick={() => setHilfe(true)}>Tastenkürzel</MenuePunkt>
         </Menue>
       </div>
@@ -256,13 +264,19 @@ export default function Bearbeiten({ setId }) {
       </div>
 
       {karten.length === 0 && (
-        <p className="matt klein" style={{ marginTop: 14, textAlign: "center" }}>
-          Schneller geht es mit „Text einfügen“, eine Liste aus dem Heft oder aus
-          Quizlet in einem Rutsch.
-        </p>
+        <div style={{ marginTop: 14, textAlign: "center" }}>
+          <p className="matt klein" style={{ marginBottom: 8 }}>
+            Schneller geht es mit „Text einfügen“, eine Liste aus dem Heft in
+            einem Rutsch.
+          </p>
+          <Knopf art="klein" symbol="hinauf" onClick={() => setQuizlet(true)}>
+            Stapel aus Quizlet übernehmen
+          </Knopf>
+        </div>
       )}
 
       {textEinfuhr && <TextEinfuhr setId={setId} aufSchliessen={() => setTextEinfuhr(false)} />}
+      {quizlet && <QuizletEinfuhr setId={setId} aufSchliessen={() => setQuizlet(false)} />}
       {bildEinfuhr && <BildEinfuhr setId={setId} aufSchliessen={() => setBildEinfuhr(false)} />}
       {generator && <KiGenerator setId={setId} aufSchliessen={() => setGenerator(false)} />}
 

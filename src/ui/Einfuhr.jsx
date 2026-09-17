@@ -9,7 +9,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import {
-  zerlege, rateTrenner, ankiLesen, SPALTEN_TRENNER, ZEILEN_TRENNER,
+  zerlege, rateTrenner, ankiLesen, quizletLesen, SPALTEN_TRENNER, ZEILEN_TRENNER,
 } from "../core/importer.js";
 import { erkenne, zuKarten, ausText, OCR_SPRACHEN } from "../core/ocr.js";
 import { anzahl } from "../core/util.js";
@@ -17,7 +17,7 @@ import { Dialog, Knopf, Symbol, SymbolKnopf } from "./basis.jsx";
 
 /* --------------------------- Durchsicht der Paare ---------------------- */
 
-function Durchsicht({ paare, setPaare }) {
+export function Durchsicht({ paare, setPaare }) {
   if (!paare.length) return <div className="matt klein">Noch nichts zu sehen.</div>;
   return (
     <div style={{ display: "grid", gap: 6, maxHeight: 320, overflow: "auto" }}>
@@ -34,6 +34,125 @@ function Durchsicht({ paare, setPaare }) {
         </div>
       ))}
     </div>
+  );
+}
+
+/* ------------------------------ Aus Quizlet ---------------------------- */
+
+const SPALTEN_NAME = {
+  tab: "Tabulator", komma: "Komma", semikolon: "Semikolon",
+  strich: "Gedankenstrich", doppelpunkt: "Doppelpunkt", gleich: "Gleichheitszeichen",
+};
+const ZEILEN_NAME = { zeile: "neue Zeile", leerzeile: "Leerzeile" };
+
+/*
+ * Stapel aus Quizlet uebernehmen.
+ *
+ * Getrennt von der allgemeinen Texteinfuhr, obwohl beide dasselbe Format
+ * lesen: Dort muss man wissen, welche Zeichen Quizlet gerade verwendet, hier
+ * nicht. Wer eine Vokabelliste seiner Lehrerin uebernehmen will, soll nicht
+ * erst Trennzeichen vergleichen muessen.
+ *
+ * Bilder kommen nicht mit — Quizlet gibt sie nicht heraus.
+ */
+export function QuizletEinfuhr({ setId, aufSchliessen }) {
+  const { kartenAnlegenViele } = useDaten();
+  const [text, setText] = useState("");
+  const [tauschen, setTauschen] = useState(false);
+  const [bearbeitet, setBearbeitet] = useState(null);
+  const datei = useRef(null);
+
+  const gelesen = useMemo(() => quizletLesen(text), [text]);
+  const paare = bearbeitet ?? (tauschen
+    ? gelesen.paare.map((p) => ({ term: p.definition, definition: p.term }))
+    : gelesen.paare);
+
+  const dateiGewaehlt = async (f) => {
+    if (!f) return;
+    setBearbeitet(null);
+    setText(await f.text());
+  };
+
+  const anlegen = async () => {
+    const brauchbar = paare.filter((p) => (p.term || "").trim() || (p.definition || "").trim());
+    if (brauchbar.length) await kartenAnlegenViele(setId, brauchbar);
+    aufSchliessen();
+  };
+
+  return (
+    <Dialog weit titel="Karten aus Quizlet" aufSchliessen={aufSchliessen}
+      fuss={<>
+        <Knopf onClick={aufSchliessen}>Abbrechen</Knopf>
+        <Knopf art="voll" onClick={anlegen} disabled={!paare.length}>
+          {anzahl(paare.length, "Karte anlegen", "Karten anlegen")}
+        </Knopf>
+      </>}>
+      <ol className="klein matt" style={{ marginTop: 0, paddingLeft: 20 }}>
+        <li>Den Stapel bei Quizlet im Browser öffnen.</li>
+        <li>Auf die drei Punkte neben dem Stapel tippen und <strong>Exportieren</strong> wählen.</li>
+        <li>Den ganzen Text im Kasten markieren, kopieren und hier einsetzen.</li>
+      </ol>
+      <p className="klein blass" style={{ marginTop: 0 }}>
+        Die Trennzeichen erkennt die App selbst. Hast du die Liste als Datei,
+        kannst du sie auch auswählen. Bilder gibt Quizlet nicht heraus, Text schon.
+      </p>
+
+      <textarea className="feld" autoFocus
+        style={{ minHeight: 150, fontFamily: "ui-monospace, monospace" }}
+        placeholder={"la casa\tdas Haus\nel perro\tder Hund"}
+        value={text}
+        onChange={(e) => { setText(e.target.value); setBearbeitet(null); }} />
+
+      <div className="reihe umbruch" style={{ marginTop: 8 }}>
+        <input ref={datei} type="file" accept=".txt,.csv,.tsv,text/plain,text/csv"
+          style={{ display: "none" }}
+          onChange={(e) => dateiGewaehlt(e.target.files[0])} />
+        <Knopf art="klein" symbol="hinauf" onClick={() => datei.current?.click()}>
+          Datei auswählen
+        </Knopf>
+        <label className="schalter">
+          <input type="checkbox" checked={tauschen}
+            onChange={(e) => { setTauschen(e.target.checked); setBearbeitet(null); }} />
+          <span>Seiten vertauschen
+            <span className="klein blass">(Deutsch vorn statt hinten)</span>
+          </span>
+        </label>
+      </div>
+
+      {text.trim() && (
+        <div className={"rueckmeldung klein " + (paare.length ? "gut" : "schlecht")}
+          style={{ marginTop: 12 }}>
+          {paare.length ? (
+            <>
+              <Symbol name="haken" groesse={15} /> Erkannt:
+              {" " + (SPALTEN_NAME[gelesen.spalte] || gelesen.spalte)} zwischen den Seiten,
+              {" " + (ZEILEN_NAME[gelesen.zeile] || gelesen.zeile)} zwischen den Karten.
+              {gelesen.doppelte > 0
+                && " " + anzahl(gelesen.doppelte, "doppelte Karte", "doppelte Karten")
+                  + " übergangen."}
+              {gelesen.uebrig.length > 0
+                && " " + anzahl(gelesen.uebrig.length, "Zeile ohne Rückseite wird übergangen",
+                  "Zeilen ohne Rückseite werden übergangen") + "."}
+            </>
+          ) : (
+            <>
+              Daraus lässt sich nichts lesen. Kommt der Text wirklich aus
+              „Exportieren"? Sonst hilft „Text einfügen", dort lassen sich die
+              Trennzeichen von Hand wählen.
+            </>
+          )}
+        </div>
+      )}
+
+      {paare.length > 0 && (
+        <>
+          <label className="beschriftung" style={{ marginTop: 14 }}>
+            Durchsicht: {anzahl(paare.length, "Karte", "Karten")}
+          </label>
+          <Durchsicht paare={paare} setPaare={setBearbeitet} />
+        </>
+      )}
+    </Dialog>
   );
 }
 

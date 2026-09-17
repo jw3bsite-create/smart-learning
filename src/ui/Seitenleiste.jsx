@@ -50,6 +50,7 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
     faecher, zustaende,
   } = useDaten();
   const [aufgeklappt, setAufgeklappt] = useMerker("aufgeklappt", []);
+  const [faecherOffen, setFaecherOffen] = useMerker("faecherOffen", true);
   const [suche, setSuche] = useState("");
   const weg = window.location.hash.slice(1) || START;
   const aktiverOrdner = weg.startsWith("/ordner/") ? weg.split("/")[2] : null;
@@ -125,14 +126,21 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
         </div>
         <div className={"baum-zeile" + (weg.startsWith("/faecher") ? " aktiv" : "")}
           onClick={() => gehe("/faecher")}>
-          <span className="pfeil" />
+          {/* Der Pfeil klappt nur die Liste auf, die Zeile selbst fuehrt zur
+              Uebersicht — wie beim Ordnerbaum darunter. */}
+          <span className="pfeil"
+            onClick={(e) => { e.stopPropagation(); setFaecherOffen((o) => !o); }}>
+            {faecher.length > 0 && (
+              <Symbol name={faecherOffen ? "runter" : "weiter"} groesse={14} />
+            )}
+          </span>
           <Symbol name="buch" groesse={16} />
           <span className="name dehnen">Fächer</span>
           {faecher.length > 0 && <span className="klein blass">{faecher.length}</span>}
         </div>
         {/* Die Faecher selbst, eingerueckt: Ein Klick auf "Ethik" oeffnet das
             Material dieses Fachs, ohne Umweg ueber die Uebersicht. */}
-        {[...faecher]
+        {faecherOffen && [...faecher]
           .sort((a, b) => (a.name || "").localeCompare(b.name || "", "de"))
           .map((f) => (
             <div key={f.id}

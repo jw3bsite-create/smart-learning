@@ -199,3 +199,119 @@ export function ankiLesen(text) {
     };
   }).filter((k) => k.term || k.definition);
 }
+
+/* ===================================================================== */
+/*  Quizlet                                                              */
+/* ===================================================================== */
+
+/*
+ * Ein Stapel aus Quizlet.
+ *
+ * Quizlet gibt unter „Exportieren" einen Textblock heraus, und zwar in der
+ * Form, die dort gerade eingestellt ist: Tabulator oder Komma zwischen den
+ * Seiten, neue Zeile oder Leerzeile zwischen den Karten. Wer das nicht weiss,
+ * waehlt hier falsch und bekommt eine einzige Karte mit dem ganzen Text.
+ *
+ * Darum raet diese Funktion beides selbst: Sie probiert die ueblichen
+ * Kombinationen durch und nimmt die, bei der die meisten Zeilen aufgehen.
+ * Nebenbei fallen Kopfzeilen, Nummerierungen und doppelte Karten weg.
+ *
+ * Eine Adresse hilft nicht: Quizlet gibt seine Inhalte nicht an fremde Seiten
+ * heraus. Kopieren (oder die heruntergeladene Datei) ist der einzige Weg.
+ */
+
+const KOPFZEILE = /^\s*(begriff|term|vorderseite|front|frage)\s*[\t;,|-]+\s*(definition|erkl\u00e4rung|erklaerung|r\u00fcckseite|rueckseite|back|antwort)\s*$/i;
+
+/** Nummerierung am Zeilenanfang: „1. ", „12) " */
+const NUMMER = /^\s*\d{1,3}\s*[.)]\s+/;
+
+function saeubereFeld(text) {
+  let s = String(text || "").trim();
+  s = s.replace(NUMMER, "");
+  // Anfuehrungszeichen, wie CSV sie um Felder legt
+  if (/^".*"$/s.test(s)) s = s.slice(1, -1).replace(/""/g, '"');
+  return s.replace(/\s*\n\s*/g, " ").replace(/[ \t]{2,}/g, " ").trim();
+}
+
+export function quizletLesen(text) {
+  const roh = String(text || "").replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").trim();
+  if (!roh) return { paare: [], uebrig: [], spalte: "tab", zeile: "zeile", doppelte: 0 };
+
+  // Eine Kopfzeile wie „Begriff — Definition" gehoert nicht in die Karten.
+  const zeilen = roh.split("\n");
+  const ohneKopf = KOPFZEILE.test(zeilen[0]) ? zeilen.slice(1).join("\n") : roh;
+
+  /*
+   * Bewertung: Jedes erkannte Paar zaehlt, jede uebrige Zeile zaehlt doppelt
+   * dagegen. Ein Trennzeichen, das nur die Haelfte der Zeilen trifft, ist
+   * schlechter als keins — dann bleibt lieber alles ungeteilt stehen, und man
+   * sieht es in der Durchsicht.
+   */
+  const kandidaten = [];
+
+  /*
+   * Die Leerzeile kommt nur in Frage, wenn es ueberhaupt eine gibt.
+   * Sonst gewinnt sie jeden Vergleich: Ohne Leerzeile ist der ganze Text ein
+   * Stueck, das erste Trennzeichen darin ergibt genau ein Paar und keine
+   * uebrige Zeile — eine einzige Karte mit der ganzen Vokabelliste als
+   * Rueckseite, und nach der Bewertung waere das die beste Lesart.
+   */
+  const zeilenArten = /\n\s*\n/.test(ohneKopf) ? ["zeile", "leerzeile"] : ["zeile"];
+
+  for (const zeile of zeilenArten) {
+    for (const spalte of ["tab", "strich", "semikolon", "komma", "doppelpunkt", "gleich"]) {
+      const e = zerlege(ohneKopf, { spalte, zeile });
+      const halbe = e.paare.filter((pp) => !pp.term || !pp.definition).length;
+      kandidaten.push({
+        spalte, zeile, ...e,
+        punkte: e.paare.length - halbe - 2 * e.uebrig.length,
+      });
+    }
+  }
+
+  /*
+   * Bei Komma als Trenner legt Quizlet Anfuehrungszeichen um Felder, die
+   * selbst ein Komma enthalten. Nach dem ersten Komma zu teilen zerschneidet
+   * dann mitten im Feld, darum hier das vollwertige CSV-Lesen als eigene
+   * Lesart.
+   */
+  if (/"/.test(ohneKopf) && /[,;\t]/.test(ohneKopf)) {
+    const reihen = csvLesen(ohneKopf).filter((r) => r.length >= 2);
+    const paare = reihen.map((r) => ({ term: r[0], definition: r.slice(1).join(", ") }));
+    kandidaten.push({
+      spalte: "komma", zeile: "zeile", paare, uebrig: [],
+      punkte: paare.length + 1,        // knapp vor dem einfachen Teilen
+    });
+  }
+
+  kandidaten.sort((a, b) => b.punkte - a.punkte);
+  let beste = kandidaten[0];
+
+  /*
+   * Geht nichts auf, wird nach Zeilen berichtet, nicht nach Bloecken: „drei
+   * Zeilen ohne Rueckseite" sagt, was zu tun ist; ein einziger Klumpen nicht.
+   */
+  if (!beste.paare.length)
+    beste = kandidaten.find((k) => k.zeile === "zeile" && k.spalte === "tab") || beste;
+
+  const gesehen = new Set();
+  const paare = [];
+  let doppelte = 0;
+  for (const paar of beste.paare) {
+    const term = saeubereFeld(paar.term);
+    const definition = saeubereFeld(paar.definition);
+    if (!term && !definition) continue;
+    const schluessel = term.toLowerCase() + "\u0001" + definition.toLowerCase();
+    if (gesehen.has(schluessel)) { doppelte += 1; continue; }
+    gesehen.add(schluessel);
+    paare.push({ term, definition });
+  }
+
+  return {
+    paare,
+    uebrig: beste.uebrig.map(saeubereFeld).filter(Boolean),
+    spalte: beste.spalte,
+    zeile: beste.zeile,
+    doppelte,
+  };
+}

@@ -250,6 +250,13 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
     `test/sicherung.test.js`). „Alles ersetzen" mit einer halben Datei löschte
     sonst den Bestand und legte nichts an dessen Stelle; davor schreibt die
     App zusätzlich ungefragt eine Datei mit dem jetzigen Stand.
+30. **Beim Raten der Trennzeichen (Quizlet) darf die Leerzeile nur mitspielen,
+    wenn es eine gibt.** Ohne Leerzeile ist der ganze Text ein Stück; das
+    erste Trennzeichen darin ergibt genau ein Paar und keine übrige Zeile —
+    nach Punkten die beste Lesart, in Wahrheit eine Karte mit der ganzen
+    Vokabelliste als Rückseite. Ebenso muss bei Komma das vollwertige
+    CSV-Lesen als eigene Lesart antreten, sonst zerschneidet der erste
+    Beistrich ein Feld in Anführungszeichen. `test/quizlet.test.js`.
 
 ## Was ausdrücklich nicht gebaut wird
 
