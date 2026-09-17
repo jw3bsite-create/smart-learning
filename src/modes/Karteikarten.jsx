@@ -9,6 +9,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { mische, anzahl } from "../core/util.js";
 import { sprich } from "../core/speech.js";
+import { seitenFuerRichtung } from "../core/ton.js";
+import Tonaufnahme from "../ui/Tonaufnahme.jsx";
 import { gehe } from "../App.jsx";
 import { Knopf, SymbolKnopf, Symbol, Stern, Leer, useTastatur } from "../ui/basis.jsx";
 import {
@@ -170,6 +172,11 @@ export default function Karteikarten({ setId, aufSchliessen }) {
               ? (derStapel.termLabel || "Vorderseite") : (derStapel.defLabel || "Rückseite")}</div>
             <Seite text={seiten.antwort} bild={seiten.antwortBild} sprache={sprachen.antwort}
               klasse="karte-text" />
+            {/* Die Rueckseite ist aufgedeckt — hier darf gesprochen werden. */}
+            <Tonaufnahme knapp
+              cardId={karte.id}
+              seite={seitenFuerRichtung(richtung === "beide" ? "td" : richtung).loesung}
+              autoAbspielen={gedreht && einstellungen.eigeneStimmeAutomatisch} />
           </div>
         </div>
       </div>

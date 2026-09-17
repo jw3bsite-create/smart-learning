@@ -9,6 +9,7 @@
 
 import { id } from "./model.js";
 import * as db from "./db.js";
+import { tonTeile } from "./ton.js";
 
 const MAX_KANTE = 1400;
 const urlZwischenspeicher = new Map();
@@ -105,17 +106,37 @@ export async function verwaisteBilderAufraeumen({ trocken = false } = {}) {
     db.all("media", { mitGeloeschten: true }),
   ]);
 
+  const verwaist = verwaisteMedien(karten, entwuerfe, bilder);
+  const bytes = verwaist.reduce((n, b) => n + (b.blob?.size || 0), 0);
+
+  if (!trocken) for (const b of verwaist) await bildLoeschen(b.id);
+
+  return { anzahl: verwaist.length, bytes, geprueft: bilder.length };
+}
+
+/**
+ * Welche Mediendateien auf nichts mehr zeigen — als reine Funktion, damit
+ * geprueft werden kann, was hier weggeraeumt wird.
+ *
+ * Tonaufnahmen haengen nicht an einem Feld der Karte, sondern an ihrer
+ * Kennung (`ton_<karte>_<seite>`). Genau deshalb: Der Abgleich holt nur die
+ * Datei, keine Zusatzangaben — stuende die Zuordnung daneben, waere sie auf
+ * dem zweiten Geraet verloren und die Aufnahme gaelte dort als verwaist.
+ * `karten` und `entwuerfe` kommen mit Grabsteinen herein, damit eine aus dem
+ * Papierkorb geholte Karte ihre Aufnahme behaelt.
+ */
+export function verwaisteMedien(karten, entwuerfe, medien) {
   const gebraucht = new Set();
   for (const k of karten) {
     if (k.termImage) gebraucht.add(k.termImage);
     if (k.defImage) gebraucht.add(k.defImage);
   }
   for (const e of entwuerfe) if (e.termImage) gebraucht.add(e.termImage);
+  const kartenIds = new Set(karten.map((k) => k.id));
 
-  const verwaist = bilder.filter((b) => !gebraucht.has(b.id));
-  const bytes = verwaist.reduce((n, b) => n + (b.blob?.size || 0), 0);
-
-  if (!trocken) for (const b of verwaist) await bildLoeschen(b.id);
-
-  return { anzahl: verwaist.length, bytes, geprueft: bilder.length };
+  return medien.filter((m) => {
+    const ton = tonTeile(m.id);
+    if (ton) return !kartenIds.has(ton.cardId);
+    return !gebraucht.has(m.id);
+  });
 }

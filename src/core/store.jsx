@@ -36,6 +36,7 @@ export const STANDARD_EINSTELLUNGEN = {
   satzzeichenEgal: true,
   rundenGroesse: 7,
   vorlesenAutomatisch: false,
+  eigeneStimmeAutomatisch: false,   // eigene Aufnahme abspielen, sobald die Loesung steht
   sprechTempo: 1,
   ocrSprache: "deu+eng",
   zuletztStapel: null,

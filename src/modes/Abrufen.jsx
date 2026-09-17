@@ -30,6 +30,8 @@ import {
 } from "../core/warteschlange.js";
 import { kalibrierung, kalibrierungInWorten } from "../core/kalibrierung.js";
 import { sprich } from "../core/speech.js";
+import { seitenFuerRichtung } from "../core/ton.js";
+import Tonaufnahme from "../ui/Tonaufnahme.jsx";
 import { anzahl } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import {
@@ -617,6 +619,12 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
             )}
           </div>
           )}
+
+          {/* Erst hier, nie vorher: Die Loesung liegt offen, das Abrufen ist
+              vorbei. Jetzt laut nachsprechen schadet nichts und praegt ein. */}
+          <Tonaufnahme cardId={aufgabe.karte.id}
+            seite={seitenFuerRichtung(aufgabe.richtung).loesung}
+            autoAbspielen={einstellungen.eigeneStimmeAutomatisch} />
 
           <p className="matt klein" style={{ textAlign: "center", margin: "18px 0 10px" }}>
             Du entscheidest, ob es zählt.

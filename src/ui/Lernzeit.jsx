@@ -6,7 +6,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import {
-  LERNZEIT_EREIGNIS, LEERLAUF, zeitraeume, verlauf, jeFach, dauerText, dauerKurz,
+  LERNZEIT_EREIGNIS, LEERLAUF_TEXT, zeitraeume, verlauf, jeFach, dauerText, dauerKurz,
   wochenBeginn, monatsBeginn, jahresBeginn,
 } from "../core/lernzeit.js";
 import { Knopf, Symbol, useMerker } from "./basis.jsx";
@@ -162,8 +162,8 @@ export default function Lernzeit() {
       <p className="klein blass" style={{ marginTop: 0, maxWidth: "70ch" }}>
         Gezählt wird nur, solange du in einem Lernmodus oder beim Bearbeiten eines
         Stapels wirklich etwas tust und die App im Vordergrund ist. Nach
-        {" " + Math.round(LEERLAUF / 60000)} Minuten ohne Tippen oder Klicken endet
-        die Messung — offen im Hintergrund zählt nichts.
+        {" " + LEERLAUF_TEXT} ohne Tippen oder Klicken hält die Uhr an; der
+        nächste Klick setzt sie fort. Offen im Hintergrund zählt nichts.
       </p>
 
       {liste.length === 0 ? (

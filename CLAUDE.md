@@ -225,12 +225,18 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
     `#`-Teil lädt nicht neu.** Wer die Rückkehr prüfen will, braucht einen
     echten Seitenaufruf, etwa mit angehängtem `?probe=1`.
 25. **Lernzeit zählt Handlungen, nicht offene Fenster.** Nur auf Lern- und
-    Bearbeitungsseiten, nur sichtbar und mit Fokus, Pausen über zwei Minuten
-    fallen heraus. Die Blöcke liegen nicht im React-Zustand (sonst zeichnet
+    Bearbeitungsseiten, nur sichtbar und mit Fokus, Pausen über
+    `LEERLAUF` (eineinhalb Minuten) fallen heraus. Die Blöcke liegen nicht im React-Zustand (sonst zeichnet
     die App alle 30 s neu) und werden nur geschrieben, wenn sich ihr Ende
     geändert hat — sonst schöbe ein offenes Fenster den Abgleich endlos
     hinaus. Im Prüfbrowser ist `document.hasFocus()` falsch, es wird dort
     also nichts gemessen.
+26. **Tonaufnahmen tragen ihre Zuordnung in der Kennung** (`ton_<karte>_<seite>`
+    in der Ablage `media`). Der Abgleich holt nur die Datei, keine Felder
+    daneben — stünde die Karte nur in einem Feld, wäre die Aufnahme auf dem
+    zweiten Gerät verwaist und beim nächsten Aufräumen weg. Geprüft in
+    `test/ton.test.js`. Aufgenommen wird erst bei offener Lösung, und die
+    Datenrate ist begrenzt (Sprache, nicht Musik).
 
 ## Was ausdrücklich nicht gebaut wird
 

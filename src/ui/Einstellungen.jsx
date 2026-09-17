@@ -731,6 +731,8 @@ export default function Einstellungen({ aufAbgleich }) {
           ? stimmenListe.length + " Stimmen stehen zur Verfügung."
           : "Dieser Browser meldet keine Stimmen — Vorlesen und Buchstabieren bleiben stumm."}>
         {schalter("vorlesenAutomatisch", "Bei Karteikarten von allein vorlesen")}
+        {schalter("eigeneStimmeAutomatisch", "Eigene Aufnahme von allein abspielen",
+          "wenn du die Loesung selbst eingesprochen hast, sobald sie aufgedeckt ist")}
         <label className="beschriftung" style={{ marginTop: 10 }}>
           Sprechtempo: {Number(einstellungen.sprechTempo).toFixed(1)}
         </label>

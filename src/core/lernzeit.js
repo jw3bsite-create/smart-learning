@@ -24,8 +24,16 @@
 import { id as neueKennung } from "./model.js";
 import { tagesSchluessel } from "./util.js";
 
-/** Längste Pause zwischen zwei Handlungen, die noch mitzählt. */
-export const LEERLAUF = 2 * 60 * 1000;
+/**
+ * Längste Pause zwischen zwei Handlungen, die noch mitzählt.
+ *
+ * Danach steht die Uhr. Der nächste Klick, Tastendruck oder Wisch setzt sie
+ * wieder in Gang — als neuer Block, sodass sich die Zeiten addieren, die
+ * Pause dazwischen aber nicht.
+ */
+export const LEERLAUF = 90 * 1000;
+/** Dieselbe Grenze in Worten, für die Erklärung in der Oberfläche. */
+export const LEERLAUF_TEXT = "eineinhalb Minuten";
 /** Kürzere Blöcke sind Durchklicken, kein Lernen, und werden verworfen. */
 export const MINDEST = 5 * 1000;
 

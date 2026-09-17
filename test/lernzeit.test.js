@@ -83,15 +83,16 @@ test("Durchklicken unter der Mindestdauer wird verworfen", () => {
 test("ein Seitenwechsel schließt den Block und beginnt einen neuen", () => {
   const uhr = neueUhr();
   uhr.regung(0, abrufen);
-  uhr.regung(2 * MIN, abrufen);
-  const fertig = uhr.regung(2 * MIN + SEK, bearbeiten);
+  uhr.regung(LEERLAUF, abrufen);
+  const fertig = uhr.regung(LEERLAUF + SEK, bearbeiten);
   assert.equal(fertig.length, 1);
   assert.equal(fertig[0].art, "lernen");
-  for (let t = 3 * MIN; t <= 6 * MIN; t += MIN) uhr.regung(t, bearbeiten);
+  assert.equal(fertig[0].sekunden, LEERLAUF / SEK);
+  for (let t = LEERLAUF + MIN; t <= LEERLAUF + 3 * MIN; t += MIN) uhr.regung(t, bearbeiten);
   const [b] = uhr.anhalten();
   assert.equal(b.art, "erstellen");
   assert.equal(b.setId, "s1");
-  assert.equal(b.sekunden, 239);
+  assert.equal(b.sekunden, 179, "der erste Klick zaehlt erst ab seinem Zeitpunkt");
 });
 
 test("auf eine Übersicht zu wechseln hält die Uhr an", () => {
