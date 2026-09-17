@@ -60,33 +60,77 @@ function Klappe({ titel, stand, offen, umschalten, children }) {
 }
 
 /*
- * Die Schriftwahl als Liste.
+ * Die Schriftwahl.
  *
- * Als Knopfreihe waere sie mit dreissig Schriften eine Wand; ein Auswahlfeld
- * kennt jeder aus Textprogrammen. Darunter steht eine Zeile in der gewaehlten
- * Schrift, denn der Name allein sagt wenig.
+ * Jeder Name steht in seiner eigenen Schrift — anders ist eine Schriftliste
+ * kaum zu gebrauchen: „Optima" und „Candara" sagen einem nichts, das Bild
+ * schon.
+ *
+ * Darum eine eigene Liste statt eines Auswahlfelds: Native Felder zeigen die
+ * Schriften auf dem iPad nicht, und dort wird gelernt.
  */
 function SchriftWahl({ beschriftung, wert, setzen }) {
+  const [offen, setOffen] = useState(false);
+  const feld = useRef(null);
   const gruppen = schriftenZurWahl();
   const gewaehlt = SCHRIFTEN[wert] || SCHRIFTEN.system;
   const da = stapelVorhanden(gewaehlt.stapel);
 
+  /* Ein Klick daneben oder die Esc-Taste schliesst — sonst bliebe die Liste
+     offen stehen, wenn man sich anders entscheidet. */
+  useEffect(() => {
+    if (!offen) return;
+    const daneben = (e) => { if (!feld.current?.contains(e.target)) setOffen(false); };
+    const taste = (e) => { if (e.key === "Escape") setOffen(false); };
+    document.addEventListener("pointerdown", daneben);
+    document.addEventListener("keydown", taste);
+    return () => {
+      document.removeEventListener("pointerdown", daneben);
+      document.removeEventListener("keydown", taste);
+    };
+  }, [offen]);
+
+  const waehlen = (schluessel) => { setzen(schluessel); setOffen(false); };
+
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div style={{ marginBottom: 16 }} ref={feld}>
       <label className="beschriftung">{beschriftung}</label>
-      <select className="feld" value={wert} onChange={(e) => setzen(e.target.value)}>
-        {gewaehlt.alt && <option value={wert}>{gewaehlt.name}</option>}
-        {Object.entries(SCHRIFT_GRUPPEN).map(([schluessel, name]) => (
-          <optgroup key={schluessel} label={name}>
-            {(gruppen[schluessel] || []).map((s) => (
-              <option key={s.schluessel} value={s.schluessel}>
-                {s.name}
-                {stapelVorhanden(s.stapel) ? "" : " (nicht auf diesem Gerät)"}
-              </option>
+      <div className="schriftwahl">
+        <button type="button" className="feld schriftwahl-knopf"
+          aria-expanded={offen} aria-haspopup="listbox"
+          onClick={() => setOffen((o) => !o)}>
+          <span className="dehnen" style={{ fontFamily: gewaehlt.stapel, fontSize: 16 }}>
+            {gewaehlt.name}
+          </span>
+          <Symbol name={offen ? "runter" : "weiter"} groesse={14} />
+        </button>
+
+        {offen && (
+          <div className="schriftwahl-liste" role="listbox">
+            {Object.entries(SCHRIFT_GRUPPEN).map(([schluessel, name]) => (
+              <div key={schluessel}>
+                <div className="schriftwahl-gruppe">{name}</div>
+                {(gruppen[schluessel] || []).map((s) => {
+                  const vorhanden = stapelVorhanden(s.stapel);
+                  return (
+                    <button key={s.schluessel} type="button" role="option"
+                      aria-selected={s.schluessel === wert}
+                      className={"schriftwahl-zeile" + (s.schluessel === wert ? " aktiv" : "")}
+                      onClick={() => waehlen(s.schluessel)}>
+                      <span style={{ fontFamily: s.stapel, fontSize: 17 }}>{s.name}</span>
+                      {!vorhanden && (
+                        <span className="klein blass">nicht auf diesem Gerät</span>
+                      )}
+                      {s.schluessel === wert && <Symbol name="haken" groesse={14} />}
+                    </button>
+                  );
+                })}
+              </div>
             ))}
-          </optgroup>
-        ))}
-      </select>
+          </div>
+        )}
+      </div>
+
       <div style={{ fontFamily: gewaehlt.stapel, fontSize: 17, marginTop: 6 }}>
         Franz jagt im Taxi quer durch Bayern. 0123
       </div>

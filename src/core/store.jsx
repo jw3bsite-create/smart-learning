@@ -42,6 +42,7 @@ export const STANDARD_EINSTELLUNGEN = {
   zuletztStapel: null,
   sitzungsUmfang: 30,            // Aufgaben je Abrufsitzung
   faecherAngelegt: false,        // ob der Vorschlag der sechs Fächer schon kam
+  letzteSicherung: 0,            // wann zuletzt eine Sicherungsdatei geschrieben wurde
 };
 
 export function DatenSpeicher({ children }) {
@@ -677,7 +678,14 @@ export function DatenSpeicher({ children }) {
   }, []);
 
   /* ------------------------- Sicherung als Datei ---------------------- */
-  const alsSicherung = useCallback(async () => {
+  /*
+   * Die Sicherung, auf Wunsch ohne Medien.
+   *
+   * Bilder und Tonaufnahmen machen den Groessten Teil der Datei aus. Wer
+   * schnell und oft sichern will, nimmt die kleine Fassung; sie enthaelt
+   * alles, woran Jahre Arbeit haengen, nur eben keine Fotos und Aufnahmen.
+   */
+  const alsSicherung = useCallback(async ({ mitMedien = true } = {}) => {
     /* Ueber die Liste in db.js, nicht ueber eine eigene: Eine neue Ablage darf
        nicht deshalb aus der Sicherung fallen, weil jemand hier das Nachtragen
        vergisst. Genau so ist es beim Hinzufuegen von `noten` beinahe
@@ -685,7 +693,7 @@ export function DatenSpeicher({ children }) {
     const eintraege = {};
     for (const [ablage, feld] of Object.entries(db.SICHERUNG_FELDER))
       eintraege[feld] = await db.all(ablage, { mitGeloeschten: true });
-    const bilder = await db.all("media", { mitGeloeschten: true });
+    const bilder = mitMedien ? await db.all("media", { mitGeloeschten: true }) : [];
     const eingepackt = await Promise.all(bilder.map(async (b) => ({
       id: b.id, type: b.type,
       daten: await new Promise((fertig) => {
@@ -698,6 +706,7 @@ export function DatenSpeicher({ children }) {
     return {
       fassung: 7, erzeugt: Date.now(), ...eintraege,
       bilder: eingepackt.filter((b) => b.daten), einstellungen,
+      ohneMedien: !mitMedien,
     };
   }, [einstellungen]);
 

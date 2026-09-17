@@ -10,6 +10,11 @@ import * as ki from "../core/ki.js";
 import * as erinnerung from "../core/erinnerung.js";
 import { stimmen, beiStimmen, sprich } from "../core/speech.js";
 import { verwaisteBilderAufraeumen } from "../core/media.js";
+import {
+  dateiname, inhaltsangabe, angabeText, groesseText, pruefeSicherung,
+  letzteText, sicherungFaellig, ERINNERUNG_TAGE,
+} from "../core/sicherung.js";
+import { alsCsvMitPlan } from "../core/importer.js";
 import * as beispiel from "../core/beispiel.js";
 import { datumKurz } from "../core/util.js";
 import { Symbol, Knopf, SymbolKnopf, Dialog } from "./basis.jsx";
@@ -193,7 +198,7 @@ function Wolkenteil({ aufAbgleich }) {
   };
 
   return (
-    <Abschnitt titel="Wolke" hinweis="Freiwillig. Ohne Zugangsdaten bleibt alles auf diesem Gerät.">
+    <Abschnitt titel="Cloud" hinweis="Freiwillig. Ohne Zugangsdaten bleibt alles auf diesem Gerät.">
       {sitz ? (
         <div className="zahl-kachel">
           <div className="reihe">
@@ -444,7 +449,7 @@ function Sprachmodellteil() {
                 autoComplete="off" placeholder="sk-…"
                 onChange={(e) => aendern({ schluessel: e.target.value })} />
               <p className="klein matt">
-                Der Schlüssel wird lokal abgelegt und nie mit der Wolke abgeglichen.
+                Der Schlüssel wird lokal abgelegt und nie mit der Cloud abgeglichen.
                 Wer Zugriff auf diesen Browser hat, kann ihn auslesen.
               </p>
             </>
@@ -646,7 +651,7 @@ function Beispielteil() {
       <p className="klein blass">
         Alles Angelegte ist als Beispiel gekennzeichnet und lässt sich mit einem
         Griff wieder entfernen, eigene Karten bleiben dabei unberührt. Vor dem
-        ersten Abgleich mit der Wolke solltest du es entfernen, sonst wandert es
+        ersten Abgleich mit der Cloud solltest du es entfernen, sonst wandert es
         auf deine anderen Geräte.
       </p>
       {meldung && (
@@ -658,41 +663,214 @@ function Beispielteil() {
   );
 }
 
-export default function Einstellungen({ aufAbgleich }) {
-  const { einstellungen, setzeEinstellung, alsSicherung, ausSicherung, stapel, karten } = useDaten();
-  const [stimmenListe, setStimmenListe] = useState(stimmen());
+/* ---------------------------- Sicherungsteil ---------------------------- */
+
+/*
+ * Die Sicherung als Datei, gleich unter der Cloud.
+ *
+ * Sie steht dort, weil beide dasselbe Bedürfnis betreffen und weil die Cloud
+ * allein nicht genügt: Sie gleicht ab, und das heisst, sie gleicht auch das
+ * Löschen ab. Wer versehentlich einen Stapel wegwirft und das Gerät wechselt,
+ * findet ihn nirgends wieder. Eine Datei in der Hand ist der einzige Stand,
+ * den nichts nachträglich verändert.
+ */
+function Sicherungsteil() {
+  const {
+    einstellungen, setzeEinstellung, alsSicherung, ausSicherung,
+    stapel, karten, zustaende, stapelVon, fachVon,
+  } = useDaten();
   const [platz, setPlatz] = useState(null);
   const [einlesen, setEinlesen] = useState(null);
+  const [pruefung, setPruefung] = useState(null);
   const [meldung, setMeldung] = useState("");
+  const [fehler, setFehler] = useState("");
+  const [laeuft, setLaeuft] = useState("");
   const datei = useRef(null);
 
-  useEffect(() => beiStimmen(setStimmenListe), []);
-
   useEffect(() => {
-    navigator.storage?.estimate?.().then((s) => setPlatz(s)).catch(() => {});
+    navigator.storage?.estimate?.().then(setPlatz).catch(() => {});
   }, []);
 
-  const sichern = async () => {
-    const daten = await alsSicherung();
-    const text = JSON.stringify(daten);
-    const blob = new Blob([text], { type: "application/json" });
+  const herunterladen = (text, name, typ) => {
+    const blob = new Blob([text], { type: typ });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "smart-learning-" + new Date().toISOString().slice(0, 10) + ".json";
+    a.download = name;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 4000);
+    return blob.size;
+  };
+
+  const sichern = async (mitMedien) => {
+    setFehler(""); setMeldung("");
+    setLaeuft(mitMedien ? "voll" : "daten");
+    try {
+      const daten = await alsSicherung({ mitMedien });
+      const text = JSON.stringify(daten);
+      /* Erst lesen, dann behaupten: Eine Datei, die sich nicht wieder
+         einlesen laesst, waere schlimmer als keine — man verliesse sich
+         darauf. */
+      const geprueft = pruefeSicherung(JSON.parse(text));
+      if (!geprueft.gut) {
+        setFehler("Die Sicherung wirkt unvollständig: " + geprueft.probleme.join(" "));
+        return;
+      }
+      const bytes = herunterladen(text, dateiname(mitMedien ? "voll" : "daten"),
+        "application/json");
+      setzeEinstellung("letzteSicherung", Date.now());
+      /* Die Zahlen liegen ueber denen der Uebersicht, weil auch der
+         Papierkorb mitgesichert wird. Ungesagt wirkt das wie ein Fehler. */
+      setMeldung("Gesichert: " + angabeText(geprueft.angabe)
+        + " · " + groesseText(bytes) + " · einschließlich Papierkorb"
+        + (mitMedien ? "" : " · ohne Bilder und Aufnahmen"));
+    } catch (e) {
+      setFehler("Die Sicherung ist gescheitert: " + (e?.message || e));
+    } finally { setLaeuft(""); }
+  };
+
+  const alsTabelle = () => {
+    setFehler(""); setMeldung("");
+    const text = alsCsvMitPlan(karten.filter((k) => !k.deleted), zustaende,
+      { stapelVon, fachVon });
+    const bytes = herunterladen("\ufeff" + text, dateiname("karten"), "text/csv");
+    setMeldung("Tabelle geschrieben: " + karten.length + " Karten · " + groesseText(bytes)
+      + ". Diese Datei öffnet jedes Tabellenprogramm, sie dient zum Nachlesen, "
+      + "nicht zum Wiederherstellen.");
   };
 
   const dateiGewaehlt = async (f) => {
     if (!f) return;
+    setFehler(""); setMeldung("");
     try {
-      const text = await f.text();
-      setEinlesen(JSON.parse(text));
+      const daten = JSON.parse(await f.text());
+      setPruefung(pruefeSicherung(daten));
+      setEinlesen(daten);
     } catch (e) {
-      setMeldung("Diese Datei lässt sich nicht lesen.");
+      setFehler("Diese Datei lässt sich nicht lesen. Ist es eine Sicherung dieser App?");
     }
   };
+
+  /* Vor dem Ersetzen der jetzige Stand als Datei — ohne Rueckfrage, denn wer
+     hier irrt, hat sonst nichts mehr, worauf er zurueckgreifen koennte. */
+  const ersetzen = async () => {
+    try {
+      const vorher = await alsSicherung({ mitMedien: true });
+      herunterladen(JSON.stringify(vorher), dateiname("vorher"), "application/json");
+    } catch (e) { /* lieber ohne Schutzkopie als gar nicht */ }
+    await ausSicherung(einlesen, true);
+    setEinlesen(null); setPruefung(null);
+    setMeldung("Eingelesen. Der vorherige Stand liegt jetzt als Datei mit dem Zusatz "
+      + "vor-dem-einlesen in deinen Downloads.");
+  };
+
+  const faellig = sicherungFaellig(einstellungen.letzteSicherung);
+  const belegt = platz ? groesseText(platz.usage || 0) : null;
+
+  return (
+    <Abschnitt titel="Sicherung als Datei"
+      hinweis="Für den schlimmsten Fall: eine Datei mit allem, die du selbst aufbewahrst.">
+      <div className={"zahl-kachel" + (faellig ? "" : "")} style={{ marginBottom: 14 }}>
+        <div className="reihe umbruch">
+          <div className="dehnen">
+            <div className="klein matt">Letzte Sicherung</div>
+            <strong style={{ color: faellig ? "var(--gelb)" : undefined }}>
+              {letzteText(einstellungen.letzteSicherung)}
+            </strong>
+            <div className="klein blass">
+              {stapel.filter((s) => !s.deleted).length} Stapel,
+              {" " + karten.filter((k) => !k.deleted).length} Karten
+              {belegt ? " · " + belegt + " im Browser belegt" : ""}
+            </div>
+          </div>
+          <Knopf art="voll" symbol="herunter" disabled={laeuft === "voll"}
+            onClick={() => sichern(true)}>
+            {laeuft === "voll" ? "Wird geschrieben …" : "Alles sichern"}
+          </Knopf>
+        </div>
+        {faellig && (
+          <p className="klein matt" style={{ margin: "10px 0 0" }}>
+            {einstellungen.letzteSicherung
+              ? "Länger als " + ERINNERUNG_TAGE + " Tage her. Ein guter Zeitpunkt."
+              : "Noch nie gesichert. Lade die Datei einmal herunter und lege sie irgendwohin, wo sie bleibt."}
+          </p>
+        )}
+      </div>
+
+      <div className="reihe umbruch">
+        <Knopf symbol="herunter" disabled={laeuft === "daten"} onClick={() => sichern(false)}>
+          Nur Daten (klein)
+        </Knopf>
+        <Knopf symbol="herunter" onClick={alsTabelle}>Karten als Tabelle</Knopf>
+        <input ref={datei} type="file" accept="application/json,.json"
+          style={{ display: "none" }}
+          onChange={(e) => dateiGewaehlt(e.target.files[0])} />
+        <Knopf symbol="hinauf" onClick={() => datei.current?.click()}>Sicherung einlesen</Knopf>
+        <Knopf symbol="muell" onClick={async () => {
+          const vorab = await verwaisteBilderAufraeumen({ trocken: true });
+          if (!vorab.anzahl) { setMeldung("Es liegt nichts Verwaistes herum."); return; }
+          if (!window.confirm(vorab.anzahl + " Dateien gehören zu keiner Karte mehr (rund "
+            + groesseText(vorab.bytes) + "). Löschen?")) return;
+          const weg = await verwaisteBilderAufraeumen();
+          setMeldung(weg.anzahl + " Dateien weggeräumt.");
+          navigator.storage?.estimate?.().then(setPlatz).catch(() => {});
+        }}>Verwaistes wegräumen</Knopf>
+      </div>
+
+      <p className="klein matt">
+        <strong>Alles sichern</strong> schreibt eine Datei mit Ordnern, Stapeln, Karten,
+        Lernständen, Fächern, Punkten, Lernzeiten, Bildern und deinen Tonaufnahmen.
+        <strong> Nur Daten</strong> lässt Bilder und Aufnahmen weg und ist darum viel
+        kleiner. <strong>Karten als Tabelle</strong> ist zum Nachlesen in Excel gedacht,
+        nicht zum Wiederherstellen.
+      </p>
+      <p className="klein blass">
+        Leg die Datei an einen zweiten Ort, etwa OneDrive oder einen Stick. Eine
+        Sicherung, die neben den Daten liegt, hilft gegen einen verlorenen Rechner nicht.
+      </p>
+
+      {meldung && <div className="rueckmeldung gut klein" style={{ marginTop: 10 }}>{meldung}</div>}
+      {fehler && <div className="rueckmeldung schlecht klein" style={{ marginTop: 10 }}>{fehler}</div>}
+
+      {einlesen && (
+        <Dialog titel="Sicherung einlesen" aufSchliessen={() => { setEinlesen(null); setPruefung(null); }}
+          fuss={<>
+            <Knopf onClick={() => { setEinlesen(null); setPruefung(null); }}>Abbrechen</Knopf>
+            <Knopf disabled={!pruefung?.gut} onClick={async () => {
+              await ausSicherung(einlesen, false);
+              setEinlesen(null); setPruefung(null);
+              setMeldung("Dazugelegt, der vorhandene Bestand ist unberührt.");
+            }}>Dazulegen</Knopf>
+            <Knopf art="voll" disabled={!pruefung?.gut} onClick={ersetzen}>Alles ersetzen</Knopf>
+          </>}>
+          <p>
+            Die Datei enthält {angabeText(inhaltsangabe(einlesen))}
+            {einlesen.erzeugt
+              ? ", gesichert am " + new Date(einlesen.erzeugt).toLocaleDateString("de-DE")
+              : ""}.
+          </p>
+          {pruefung && !pruefung.gut && (
+            <div className="rueckmeldung schlecht klein">
+              {pruefung.probleme.map((t) => <div key={t}>{t}</div>)}
+            </div>
+          )}
+          <p className="klein matt">
+            <strong>Dazulegen</strong> behält, was schon da ist, und ergänzt es.
+            <strong> Alles ersetzen</strong> wirft den jetzigen Bestand weg; davor
+            schreibt die App ungefragt eine Datei mit dem jetzigen Stand in deine
+            Downloads.
+          </p>
+        </Dialog>
+      )}
+    </Abschnitt>
+  );
+}
+
+export default function Einstellungen({ aufAbgleich }) {
+  const { einstellungen, setzeEinstellung } = useDaten();
+  const [stimmenListe, setStimmenListe] = useState(stimmen());
+
+  useEffect(() => beiStimmen(setStimmenListe), []);
 
   const schalter = (schluessel, name, hinweis) => (
     <label className="schalter" title={hinweis}>
@@ -753,32 +931,7 @@ export default function Einstellungen({ aufAbgleich }) {
 
       <Wolkenteil aufAbgleich={aufAbgleich} />
 
-      <Abschnitt titel="Sicherung"
-        hinweis={`${stapel.length} Stapel, ${karten.length} Karten` +
-          (platz ? ` · rund ${Math.round((platz.usage || 0) / 1048576)} MB belegt` : "")}>
-        <div className="reihe umbruch">
-          <Knopf symbol="herunter" onClick={sichern}>Sicherung herunterladen</Knopf>
-          <input ref={datei} type="file" accept="application/json,.json" style={{ display: "none" }}
-            onChange={(e) => dateiGewaehlt(e.target.files[0])} />
-          <Knopf symbol="hinauf" onClick={() => datei.current?.click()}>Sicherung einlesen</Knopf>
-          <Knopf symbol="muell" onClick={async () => {
-            const vorab = await verwaisteBilderAufraeumen({ trocken: true });
-            if (!vorab.anzahl) { setMeldung("Es liegt nichts Verwaistes herum."); return; }
-            const mb = Math.max(0.1, Math.round(vorab.bytes / 104857.6) / 10);
-            if (!window.confirm(
-              `${vorab.anzahl} Bilder gehören zu keiner Karte mehr (rund ${mb} MB). Löschen?`))
-              return;
-            const weg = await verwaisteBilderAufraeumen();
-            setMeldung(`${weg.anzahl} Bilder weggeräumt.`);
-            navigator.storage?.estimate?.().then(setPlatz).catch(() => {});
-          }}>Verwaiste Bilder wegräumen</Knopf>
-        </div>
-        <p className="klein matt">
-          Die Sicherung enthält Ordner, Stapel, Karten, Lernstände und Bilder, alles in
-          einer Datei. Gut vor einem Gerätewechsel und als Sicherheitsnetz.
-        </p>
-        {meldung && <div className="rueckmeldung schlecht klein">{meldung}</div>}
-      </Abschnitt>
+      <Sicherungsteil />
 
       <Beispielteil />
 
@@ -790,29 +943,6 @@ export default function Einstellungen({ aufAbgleich }) {
         </p>
       </Abschnitt>
 
-      {einlesen && (
-        <Dialog titel="Sicherung einlesen" aufSchliessen={() => setEinlesen(null)}
-          fuss={<>
-            <Knopf onClick={() => setEinlesen(null)}>Abbrechen</Knopf>
-            <Knopf onClick={async () => {
-              await ausSicherung(einlesen, false); setEinlesen(null);
-              setMeldung("");
-            }}>Dazulegen</Knopf>
-            <Knopf art="voll" onClick={async () => {
-              await ausSicherung(einlesen, true); setEinlesen(null);
-            }}>Alles ersetzen</Knopf>
-          </>}>
-          <p>
-            Die Datei enthält {(einlesen.stapel || []).length} Stapel und
-            {" " + (einlesen.karten || []).length} Karten
-            {einlesen.erzeugt ? `, gesichert am ${new Date(einlesen.erzeugt).toLocaleDateString("de-DE")}` : ""}.
-          </p>
-          <p className="klein matt">
-            <strong>Dazulegen</strong> behält, was schon da ist, und ergänzt es.
-            <strong> Alles ersetzen</strong> wirft den jetzigen Bestand weg.
-          </p>
-        </Dialog>
-      )}
     </div>
   );
 }

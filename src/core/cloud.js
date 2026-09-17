@@ -542,7 +542,7 @@ function nachInnen(zeile) {
  */
 export async function abgleichen(melde = () => {}) {
   const k = await verbinde();
-  if (!k) throw new Error("Die Wolke ist nicht eingerichtet.");
+  if (!k) throw new Error("Die Cloud ist nicht eingerichtet.");
   const { data: sitzungsDaten } = await k.auth.getSession();
   const sitz = sitzungsDaten?.session;
   if (!sitz) throw new Error("Nicht angemeldet.");

@@ -242,6 +242,14 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
     Sicherungen. Die alten (`serifen`, `humanistisch`, `schmal`, `buch`,
     `schreibmaschine`) bleiben darum als `alt: true` erhalten: wirksam, aber
     nicht mehr zur Wahl. Geprüft in `test/gestaltung.test.js`.
+28. **In der Oberfläche heißt es „Cloud", im Code weiter `wolke`.** Der Nutzer
+    hat den englischen Begriff verlangt; die Bezeichner (`core/cloud.js`,
+    `wolkeStand`, `Wolkenteil`) bleiben, weil ein Umbenennen nichts sichtbar
+    verbessert und überall anfassen müsste. Neue sichtbare Texte also „Cloud".
+29. **Die Sicherung wird geprüft, ehe sie etwas ersetzt** (`core/sicherung.js`,
+    `test/sicherung.test.js`). „Alles ersetzen" mit einer halben Datei löschte
+    sonst den Bestand und legte nichts an dessen Stelle; davor schreibt die
+    App zusätzlich ungefragt eine Datei mit dem jetzigen Stand.
 
 ## Was ausdrücklich nicht gebaut wird
 

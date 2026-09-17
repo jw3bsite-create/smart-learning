@@ -232,7 +232,7 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
         {wolkeStand.zustand !== "aus" && (
           <div className="baum-zeile klein" title={wolkeStand.text} onClick={aufAbgleich}>
             <span className={punktKlasse} />
-            <span className="name">{wolkeStand.zustand === "arbeitet" ? wolkeStand.text : "Wolke"}</span>
+            <span className="name">{wolkeStand.zustand === "arbeitet" ? wolkeStand.text : "Cloud"}</span>
           </div>
         )}
       </div>
