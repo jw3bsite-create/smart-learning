@@ -15,6 +15,7 @@
 
 import React, { useCallback, useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
+import { fehlerListe, von as fehlerVon, schluessel as fehlerSchluessel } from "../core/fehler.js";
 import { baueFragen, UMFAENGE, fachGewicht } from "../core/mischen.js";
 import { ordnerZweig } from "../core/model.js";
 import { seitenFuer, sprachenFuer, ModusRahmen, Seite, Ergebnis } from "./gemeinsam.jsx";
@@ -41,14 +42,26 @@ function punkteJeFach(notenfaecher) {
 
 export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchliessen }) {
   const {
-    karten, zustaende, stapelVon, faecher, ordner, notenfaecher,
+    karten, zustaende, stapelVon, faecher, ordner, notenfaecher, reviews,
     einstellungen, uebungVerbuchen, sitzungMerken, karteAendern,
   } = useDaten();
 
   const [umfang, setUmfang] = useState(20);
   const [eigeneZahl, setEigeneZahl] = useState("");
   const [gewichten, setGewichten] = useState(true);
-  const [bereich, setBereich] = useState({ art: bereichArt, id: bereichId });
+  /*
+   * Aus dem Fehlerheft kommt der Bereich als Menge von Schluesseln herein.
+   * Er wird hier gebildet und nicht durchgereicht, damit ein Verweis wie
+   * /fragen/fehler auch nach dem Neuladen der Seite noch etwas ergibt.
+   */
+  const fehlerSatz = useMemo(() => (bereichArt === "fehler"
+    ? fehlerSchluessel(fehlerListe(reviews, { seit: fehlerVon("monat") })
+      .filter((e) => !bereichId || e.subjectId === bereichId))
+    : null), [reviews, bereichArt, bereichId]);
+
+  const [bereich, setBereich] = useState(bereichArt === "fehler"
+    ? { art: "fehler", id: bereichId, schluessel: fehlerSatz }
+    : { art: bereichArt, id: bereichId });
   const [runde, setRunde] = useState(null);
 
   const [nummer, setNummer] = useState(0);
@@ -81,6 +94,9 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
   if (!runde) {
     const bereiche = [
       { art: "alles", id: null, name: "Alles" },
+      ...(fehlerSatz && fehlerSatz.size
+        ? [{ art: "fehler", id: bereichId, name: "Fehlerheft", schluessel: fehlerSatz }]
+        : []),
       ...faecher.map((f) => ({ art: "fach", id: f.id, name: f.name })),
     ];
     const vorschau = baueFragen({
@@ -102,7 +118,7 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
           {bereiche.map((b) => (
             <Knopf key={b.art + (b.id || "")}
               art={"klein" + (bereich.art === b.art && bereich.id === b.id ? " voll" : "")}
-              onClick={() => setBereich({ art: b.art, id: b.id })}>
+              onClick={() => setBereich({ art: b.art, id: b.id, schluessel: b.schluessel })}>
               {b.name}
             </Knopf>
           ))}

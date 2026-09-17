@@ -21,6 +21,7 @@ import Papierkorb from "./ui/Papierkorb.jsx";
 import Faecher from "./ui/Faecher.jsx";
 import FachSeite from "./ui/FachSeite.jsx";
 import Startseite from "./ui/Startseite.jsx";
+import Fehlerheft from "./ui/Fehlerheft.jsx";
 import Zeitmesser from "./ui/Zeitmesser.jsx";
 import Kalibrierung from "./ui/Kalibrierung.jsx";
 import Noten from "./ui/Noten.jsx";
@@ -231,10 +232,13 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
   else if (teile[0] === "faecher") inhalt = <Faecher />;
   else if (teile[0] === "fach") inhalt = <FachSeite fachId={teile[1]} />;
   else if (teile[0] === "kalibrierung") inhalt = <Kalibrierung />;
+  else if (teile[0] === "fehler") inhalt = <Fehlerheft fachId={teile[1] || null} />;
   else if (teile[0] === "punkte") inhalt = <Noten />;
   else if (teile[0] === "fragen")
-    inhalt = <Fragen bereichArt={teile[1] ? "fach" : "alles"} bereichId={teile[1] || null}
-      aufSchliessen={() => gehe("/")} />;
+    inhalt = <Fragen
+      bereichArt={teile[1] === "fehler" ? "fehler" : teile[1] ? "fach" : "alles"}
+      bereichId={teile[1] === "fehler" ? (teile[2] || null) : (teile[1] || null)}
+      aufSchliessen={() => gehe(teile[1] === "fehler" ? "/fehler" : "/")} />;
 
   return (
     <div className="huelle">

@@ -151,7 +151,9 @@ export function kartenGewicht(zustand, zeit = Date.now()) {
  * `faecherVon`  Liste der Fächer
  * `punkteVon`   fachId → Punktzahl oder null
  * `umfang`      wie viele Fragen
- * `bereich`     { art: "alles" | "fach" | "stapel" | "ordner", id }
+ * `bereich`     { art: "alles" | "fach" | "stapel" | "ordner" | "fehler", id }
+ *               Bei "fehler" traegt `schluessel` die Menge "<karte>:<richtung>"
+ *               aus dem Fehlerheft; geuebt wird dann genau daraus.
  * `gewichten`   false = reiner Zufall, true = nach Termin, Punkten, Priorität
  */
 export function baueFragen({
@@ -186,6 +188,9 @@ export function baueFragen({
     const fachTeil = gewichten ? (gewichtJeFach[fachId] ?? 1) : 1;
 
     for (const richtung of richtungenFuer(karte, stapel)) {
+      if (bereich.art === "fehler"
+        && !(bereich.schluessel && bereich.schluessel.has(karte.id + ":" + richtung)))
+        continue;
       const zustand = zustaende[karte.id + ":" + richtung];
       const kartenTeil = gewichten ? kartenGewicht(zustand, zeit) : 1;
       if (kartenTeil <= 0) continue;              // stillgelegt

@@ -7,6 +7,7 @@ import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { baueBaum } from "../core/model.js";
 import { istFaellig } from "../core/fsrs.js";
+import { fehlerZahlKurz } from "../core/fehler.js";
 import { gehe, START } from "../App.jsx";
 import { Symbol, SymbolKnopf, Knopf, useMerker } from "./basis.jsx";
 import Flamme from "./Flamme.jsx";
@@ -47,7 +48,7 @@ function Zweig({ ordner, tiefe, aktiv, offen, umschalten, aufAblegen }) {
 export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
   const {
     ordner, stapel, ordnerAnlegen, stapelAnlegen, stapelAendern, wolkeStand,
-    faecher, zustaende,
+    faecher, zustaende, reviews,
   } = useDaten();
   const [aufgeklappt, setAufgeklappt] = useMerker("aufgeklappt", []);
   const [faecherOffen, setFaecherOffen] = useMerker("faecherOffen", true);
@@ -60,6 +61,7 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
 
   const faellig = useMemo(
     () => Object.values(zustaende).filter((z) => istFaellig(z)).length, [zustaende]);
+  const fehlerZahl = useMemo(() => fehlerZahlKurz(reviews), [reviews]);
 
   const umschalten = (id) =>
     setAufgeklappt((alt) => alt.includes(id) ? alt.filter((x) => x !== id) : [...alt, id]);
@@ -169,6 +171,13 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
           <span className="pfeil" />
           <Symbol name="schreiben" groesse={16} />
           <span className="name">Tutoren</span>
+        </div>
+        <div className={"baum-zeile" + (weg.startsWith("/fehler") ? " aktiv" : "")}
+          onClick={() => gehe("/fehler")}>
+          <span className="pfeil" />
+          <Symbol name="kreuz" groesse={16} />
+          <span className="name dehnen">Fehlerheft</span>
+          {fehlerZahl > 0 && <span className="marke rot klein">{fehlerZahl}</span>}
         </div>
         <div className={"baum-zeile" + (weg.startsWith("/kalibrierung") ? " aktiv" : "")}
           onClick={() => gehe("/kalibrierung")}>
