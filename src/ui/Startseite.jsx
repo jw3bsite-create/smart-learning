@@ -19,7 +19,6 @@ import { gehe } from "../App.jsx";
 import { Symbol, Knopf, Leer } from "./basis.jsx";
 import { useLernzeiten } from "./Lernzeit.jsx";
 import { summe, tagesBeginn, dauerText } from "../core/lernzeit.js";
-import { sicherungFaellig, letzteText } from "../core/sicherung.js";
 
 function gruss(stunde) {
   if (stunde < 5) return "Gute Nacht";
@@ -41,7 +40,7 @@ function Abschnitt({ titel, children, rechts }) {
 }
 
 export default function Startseite() {
-  const { faecher, stapel, karten, zustaende, stapelVon, reviews, einstellungen } = useDaten();
+  const { faecher, stapel, karten, zustaende, stapelVon, reviews } = useDaten();
 
   const jetzt = new Date();
   const heute = fachZaehlung(karten, zustaende, stapelVon, null);
@@ -203,18 +202,6 @@ export default function Startseite() {
             </Abschnitt>
           )}
         </>
-      )}
-
-      {/* Erinnerung an die Sicherung. Steht unten und leise, aber sie steht da:
-          Wer nie sichert, merkt es erst, wenn nichts mehr da ist. */}
-      {!leer && sicherungFaellig(einstellungen.letzteSicherung) && (
-        <div className="klein matt reihe umbruch" style={{ marginTop: 26, gap: 8 }}>
-          <Symbol name="herunter" groesse={15} />
-          <span>
-            Letzte Sicherung: {letzteText(einstellungen.letzteSicherung)}.
-          </span>
-          <Knopf art="klein" onClick={() => gehe("/einstellungen")}>Jetzt sichern</Knopf>
-        </div>
       )}
 
       {/* ---------------------------- Schnellzugriff -------------------------- */}
