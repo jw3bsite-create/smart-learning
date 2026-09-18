@@ -20,6 +20,7 @@ import { wirksameRetention } from "./warteschlange.js";
 import { tagesSchluessel } from "./util.js";
 import { STANDARD_GESTALTUNG } from "./gestaltung.js";
 import { LERNZEIT_EREIGNIS } from "./lernzeit.js";
+import { kopienVon, naechsteStelle, tonKopien } from "./auswahl.js";
 
 const Zusammenhang = createContext(null);
 
@@ -66,6 +67,9 @@ export function DatenSpeicher({ children }) {
   const [pruefungen, setPruefungen] = useState([]);
   const [notenfaecher, setNotenfaecher] = useState([]);
   const merkeAenderung = useRef(() => {});
+  // Spiegel der Kartenzustaende fuer Rueckrufe, die sonst bei jeder Antwort
+  // neu entstuenden (siehe zustaendeNachziehen).
+  const zustaendeSpiegel = useRef({});
 
   /* ------------------------------ Laden ------------------------------ */
   useEffect(() => {
@@ -154,6 +158,27 @@ export function DatenSpeicher({ children }) {
     return s;
   }, []);
 
+  /*
+   * Kartenzustaende tragen Stapel und Fach mit sich, und Tageslimit, Pensum
+   * und Balken der Faecher lesen genau diese Felder. Wechselt eine Karte den
+   * Stapel oder ein Stapel das Fach, muessen die Zustaende nachziehen — sonst
+   * zaehlt die Karte stillschweigend weiter fuer das alte Fach.
+   */
+  const zustaendeNachziehen = useCallback(async (passt, aenderung) => {
+    const zeit = Date.now();
+    const geaendert = Object.values(zustaendeSpiegel.current)
+      .filter(passt)
+      .map((z) => ({ ...z, ...aenderung, updatedAt: zeit }));
+    if (!geaendert.length) return 0;
+    await db.putMany("cardstates", geaendert);
+    setZustaende((alt) => {
+      const neu = { ...alt };
+      for (const z of geaendert) neu[z.id] = z;
+      return neu;
+    });
+    return geaendert.length;
+  }, []);
+
   const stapelAendern = useCallback(async (kennung, aenderung) => {
     setStapel((alt) => alt.map((s) => {
       if (s.id !== kennung) return s;
@@ -161,8 +186,11 @@ export function DatenSpeicher({ children }) {
       db.put("sets", neu);
       return neu;
     }));
+    if ("subjectId" in aenderung)
+      await zustaendeNachziehen((z) => z.setId === kennung,
+        { subjectId: aenderung.subjectId || null });
     merkeAenderung.current();
-  }, []);
+  }, [zustaendeNachziehen]);
 
   const stapelLoeschen = useCallback(async (kennung) => {
     const zeit = Date.now();
@@ -193,6 +221,8 @@ export function DatenSpeicher({ children }) {
     }));
     await db.put("sets", kopie);
     await db.putMany("cards", neueKarten);
+    await toeneMitnehmen(karten.filter((k) => k.setId === kennung)
+      .map((k, i) => ({ alt: k.id, neu: neueKarten[i].id })));
     setStapel((alt) => [...alt, kopie]);
     setKarten((alt) => [...alt, ...neueKarten]);
     return kopie;
@@ -240,6 +270,73 @@ export function DatenSpeicher({ children }) {
     }));
     merkeAenderung.current();
   }, []);
+
+  /* ------------------------- Mehrere Karten -------------------------- */
+
+  /* Tonaufnahmen haengen an der Kennung der Karte. Eine Kopie bekaeme ohne
+     diesen Schritt die eigene Stimme nicht mit. */
+  const toeneMitnehmen = async (paare) => {
+    if (!paare.length) return;
+    const medien = (await db.all("media", { mitGeloeschten: true })).map((m) => m.id);
+    for (const { von, nach } of tonKopien(paare, medien)) {
+      const rec = await db.get("media", von);
+      if (!rec?.blob) continue;
+      const neu = nach.split("_");
+      await db.put("media", {
+        ...rec, id: nach, cardId: neu.slice(1, -1).join("_"), updatedAt: Date.now(),
+      });
+    }
+  };
+
+  /** Kopien in einen Stapel — derselbe fuers Duplizieren. Lernstand neu. */
+  const kartenKopieren = useCallback(async (kennungen, zielSetId) => {
+    const menge = new Set(kennungen);
+    const vorlagen = karten.filter((k) => menge.has(k.id) && !k.deleted)
+      .sort((a, b) => (a.setId === b.setId ? a.order - b.order : 0));
+    if (!vorlagen.length) return [];
+    const neue = kopienVon(vorlagen, zielSetId, {
+      start: naechsteStelle(karten, zielSetId), neueId: () => model.id("k"),
+    });
+    await db.putMany("cards", neue);
+    await toeneMitnehmen(vorlagen.map((v, i) => ({ alt: v.id, neu: neue[i].id })));
+    setKarten((alt) => [...alt, ...neue]);
+    merkeAenderung.current();
+    return neue;
+  }, [karten]);
+
+  /** Karten wechseln den Stapel. Sie bleiben dieselben, samt Lernstand. */
+  const kartenVerschieben = useCallback(async (kennungen, zielSetId) => {
+    const ziel = stapel.find((s) => s.id === zielSetId);
+    if (!ziel) return 0;
+    const menge = new Set(kennungen);
+    let stelle = naechsteStelle(karten, zielSetId);
+    const zeit = Date.now();
+    const bewegt = karten
+      .filter((k) => menge.has(k.id) && !k.deleted && k.setId !== zielSetId)
+      .sort((a, b) => a.order - b.order)
+      .map((k) => ({ ...k, setId: zielSetId, order: stelle++, updatedAt: zeit }));
+    if (!bewegt.length) return 0;
+    await db.putMany("cards", bewegt);
+    const nach = new Map(bewegt.map((k) => [k.id, k]));
+    setKarten((alt) => alt.map((k) => nach.get(k.id) || k));
+    await zustaendeNachziehen((z) => nach.has(z.cardId),
+      { setId: zielSetId, subjectId: ziel.subjectId || null });
+    merkeAenderung.current();
+    return bewegt.length;
+  }, [karten, stapel, zustaendeNachziehen]);
+
+  /** Mehrere Karten in den Papierkorb — als Grabsteine, wie eine einzelne. */
+  const kartenLoeschenViele = useCallback(async (kennungen) => {
+    const menge = new Set(kennungen);
+    const zeit = Date.now();
+    const weg = karten.filter((k) => menge.has(k.id) && !k.deleted)
+      .map((k) => ({ ...k, deleted: true, updatedAt: zeit }));
+    if (!weg.length) return 0;
+    await db.putMany("cards", weg);
+    setKarten((alt) => alt.filter((k) => !menge.has(k.id)));
+    merkeAenderung.current();
+    return weg.length;
+  }, [karten]);
 
   /** Neue Reihenfolge festlegen (Liste von Kartenkennungen). */
   const kartenOrdnen = useCallback(async (reihenfolge) => {
@@ -805,6 +902,8 @@ export function DatenSpeicher({ children }) {
     return s?.subjectId ? fachNachId.get(s.subjectId) || null : null;
   }, [stapelNachId, fachNachId]);
 
+  zustaendeSpiegel.current = zustaende;
+
   const setAenderungsMelder = useCallback((fn) => {
     merkeAenderung.current = fn || (() => {});
   }, []);
@@ -816,6 +915,7 @@ export function DatenSpeicher({ children }) {
     ordnerAnlegen, ordnerAendern, ordnerLoeschen,
     stapelAnlegen, stapelAendern, stapelLoeschen, stapelVervielfaeltigen,
     karteAnlegen, kartenAnlegenViele, karteAendern, karteLoeschen, kartenOrdnen,
+    kartenKopieren, kartenVerschieben, kartenLoeschenViele,
     seitenTauschen,
     antwortVerbuchen, standZuruecksetzen, sitzungMerken,
     papierkorbLesen, wiederherstellen,

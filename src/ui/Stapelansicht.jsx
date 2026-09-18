@@ -14,6 +14,7 @@ import {
   Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Bild, Stern, Leer, Dialog, Rueckfrage,
 } from "./basis.jsx";
 import Formel from "./Formel.jsx";
+import Auswahlleiste from "./Kartenauswahl.jsx";
 
 function herunterladen(name, inhalt, art = "text/plain") {
   const blob = new Blob([inhalt], { type: art + ";charset=utf-8" });
@@ -36,6 +37,8 @@ export default function Stapelansicht({ setId }) {
   const [loescht, setLoescht] = useState(false);
   const [setztZurueck, setSetztZurueck] = useState(false);
   const [angaben, setAngaben] = useState(false);
+  const [waehlt, setWaehlt] = useState(false);
+  const [ausgewaehlt, setAusgewaehlt] = useState(() => new Set());
 
   const derStapel = stapel.find((s) => s.id === setId);
   const karten = kartenVon(setId);
@@ -202,6 +205,13 @@ export default function Stapelansicht({ setId }) {
                 {markierte} markiert
               </Knopf>
             )}
+            {karten.length > 0 && (
+              <Knopf art={"klein" + (waehlt ? " voll" : "")} symbol="haken"
+                aria-pressed={waehlt}
+                onClick={() => { setWaehlt((w) => !w); setAusgewaehlt(new Set()); }}>
+                Auswählen
+              </Knopf>
+            )}
             <select className="feld" style={{ width: "auto" }} value={sortierung}
               onChange={(e) => setSortierung(e.target.value)}>
               <option value="eigen">Eigene Reihenfolge</option>
@@ -209,6 +219,13 @@ export default function Stapelansicht({ setId }) {
               <option value="schwierig">Schwerste zuerst</option>
             </select>
           </div>
+
+          {waehlt && (
+            <Auswahlleiste setId={setId} ausgewaehlt={ausgewaehlt}
+              alleKennungen={sortiert.map((k) => k.id)}
+              setAusgewaehlt={setAusgewaehlt}
+              aufBeenden={() => { setWaehlt(false); setAusgewaehlt(new Set()); }} />
+          )}
 
           <div style={{ display: "grid", gap: 8 }}>
             {sortiert.map((k) => {
@@ -219,8 +236,22 @@ export default function Stapelansicht({ setId }) {
               const s = (derStapel.richtungen || ["td"]).includes("dt")
                 ? Math.min(stufe(zTd), stufe(zDt)) : stufe(zTd);
               return (
-                <div key={k.id} className="karten-zeile"
-                  style={k.nichtRelevant ? { opacity: 0.45 } : undefined}>
+                <div key={k.id}
+                  className={"karten-zeile" + (waehlt ? " waehlbar" : "")
+                    + (ausgewaehlt.has(k.id) ? " gewaehlt" : "")}
+                  style={k.nichtRelevant && !waehlt ? { opacity: 0.45 } : undefined}
+                  role={waehlt ? "checkbox" : undefined}
+                  aria-checked={waehlt ? ausgewaehlt.has(k.id) : undefined}
+                  onClick={waehlt ? () => setAusgewaehlt((alt) => {
+                    const neu = new Set(alt);
+                    if (neu.has(k.id)) neu.delete(k.id); else neu.add(k.id);
+                    return neu;
+                  }) : undefined}>
+                  {waehlt && (
+                    <span className="auswahl-haken" aria-hidden="true">
+                      {ausgewaehlt.has(k.id) && <Symbol name="haken" groesse={16} />}
+                    </span>
+                  )}
                   <div className="seite">
                     <div className="inhalt"
                       style={k.nichtRelevant ? { textDecoration: "line-through" } : undefined}>
@@ -233,7 +264,7 @@ export default function Stapelansicht({ setId }) {
                     {k.defImage && <Bild kennung={k.defImage} klasse="" stil={{ maxHeight: 90, borderRadius: 8, marginTop: 8 }} />}
                     {k.hint && <div className="klein blass" style={{ marginTop: 6 }}>Hinweis: {k.hint}</div>}
                   </div>
-                  <div className="werkzeuge">
+                  {!waehlt && <div className="werkzeuge">
                     <span className="marke klein" title="Beherrschung"
                       style={{ color: ["var(--schrift-blass)", "var(--gelb)", "var(--akzent)", "var(--gruen)"][s] }}>
                       {STUFEN[s]}
@@ -252,7 +283,7 @@ export default function Stapelansicht({ setId }) {
                       onClick={() => karteAendern(k.id, { nichtRelevant: !k.nichtRelevant })} />
                     <SymbolKnopf symbol="stift" titel="Bearbeiten"
                       onClick={() => gehe("/stapel/" + setId + "/bearbeiten")} />
-                  </div>
+                  </div>}
                 </div>
               );
             })}

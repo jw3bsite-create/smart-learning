@@ -279,6 +279,15 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
     Hoch- und Tiefzahlen sind bewusst Unicode, kein Formelsatz: Sie lassen sich
     eintippen und überstehen jede Ausfuhr. Beim Schreiben von Python-Skripten
     mit `rac` aufpassen: `` wird sonst zum Seitenvorschub.
+35. **Kartenzustände tragen `setId` und `subjectId` mit** — und Tageslimit,
+    Pensum und die Balken der Fächer lesen genau diese Felder. Wechselt eine
+    Karte den Stapel oder ein Stapel das Fach, müssen die Zustände nachziehen
+    (`zustaendeNachziehen` in `core/store.jsx`). Vorher zählten umgehängte
+    Stapel stillschweigend weiter fürs alte Fach.
+36. **Eine Kopie ist eine neue Karte, eine verschobene bleibt dieselbe.**
+    Kopieren und Duplizieren geben eine neue Kennung, also neuen Lernstand;
+    Verschieben behält Kennung und Lernstand (`core/auswahl.js`). Tonaufnahmen
+    hängen an der Kennung und müssen beim Kopieren mitkopiert werden.
 
 ## Was ausdrücklich nicht gebaut wird
 

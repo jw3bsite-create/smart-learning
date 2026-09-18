@@ -780,3 +780,27 @@ html { -webkit-text-size-adjust: 100%; }
 .bauform-strich { height: 2px; background: var(--schrift-matt); border-radius: 1px; margin: 0 6px; }
 .bauform-vorschau { font-family: var(--schrift-karten); font-size: 18px; min-height: 1.4em; }
 .bauform-bild { font-family: var(--schrift-karten); }
+
+/* ------------------------------ Auswahl ------------------------------- */
+
+.auswahl-leiste {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 25;
+  background: var(--grund-2); border: 1px solid var(--akzent);
+  border-radius: calc(var(--rund) * 0.85); box-shadow: var(--schatten);
+  padding: 10px 12px; margin-bottom: 12px;
+}
+.karten-zeile.waehlbar {
+  grid-template-columns: 34px 1fr 1fr; cursor: pointer; user-select: none;
+}
+.karten-zeile.gewaehlt { border-color: var(--akzent); background: color-mix(in srgb, var(--akzent) 9%, var(--grund-2)); }
+.auswahl-haken {
+  width: 26px; height: 26px; border-radius: 8px; border: 2px solid var(--rand);
+  display: grid; place-items: center; align-self: center; color: var(--akzent-schrift);
+}
+.karten-zeile.gewaehlt .auswahl-haken { background: var(--akzent); border-color: var(--akzent); }
+.auswahl-ziel { display: flex; align-items: center; gap: 10px; flex-direction: row;
+  padding: 10px 12px; min-height: 0; }
+@media (max-width: 860px) {
+  .karten-zeile.waehlbar { grid-template-columns: 34px 1fr; }
+  .karten-zeile.waehlbar > .seite { grid-column: 2; }
+}
