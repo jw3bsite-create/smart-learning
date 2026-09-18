@@ -21,10 +21,14 @@ import Zeichenleiste from "./Zeichenleiste.jsx";
 import Formel from "./Formel.jsx";
 import { hatFormel } from "../core/formel.js";
 import KiGenerator from "./KiGenerator.jsx";
+import { useZiehen } from "./ziehen.js";
 
 /* ----------------------------- Eine Kartenzeile ------------------------ */
 
-function Zeile({ karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZeile }) {
+function Zeile({
+  karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZeile,
+  ziehGriff = null, ziehZeile = {},
+}) {
   const [term, setTerm] = useState(karte.term);
   const [definition, setDefinition] = useState(karte.definition);
   const [hinweis, setHinweis] = useState(karte.hint || "");
@@ -128,8 +132,13 @@ function Zeile({ karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZe
   );
 
   return (
-    <div className="karten-zeile" style={{ alignItems: "stretch" }}>
+    <div data-zieh={ziehZeile["data-zieh"]}
+      className={"karten-zeile" + (ziehZeile.className ? " " + ziehZeile.className : "")}
+      style={{ alignItems: "stretch", ...(ziehZeile.style || {}) }}>
       <div style={{ gridColumn: "1 / -1" }} className="reihe klein blass">
+        {ziehGriff && (
+          <span className="griff" {...ziehGriff}><Symbol name="griff" groesse={18} /></span>
+        )}
         <span className="mono">{nummer}</span>
         <div className="dehnen" />
         <Stern an={karte.starred} groesse={16}
@@ -197,6 +206,10 @@ export default function Bearbeiten({ setId }) {
   const derStapel = stapel.find((s) => s.id === setId);
   const karten = kartenVon(setId);
   const wartendeEntwuerfe = entwuerfe.filter((e) => e.setId === setId).length;
+  /* Vor der Pruefung unten: Hooks muessen in fester Zahl laufen. */
+  const { griff, zeile } = useZiehen({
+    kennungen: karten.map((k) => k.id), aufOrdnen: kartenOrdnen, abstand: 10,
+  });
 
   if (!derStapel) {
     return <div className="mitte"><Leer titel="Stapel nicht gefunden" /></div>;
@@ -271,7 +284,7 @@ export default function Bearbeiten({ setId }) {
       <div style={{ display: "grid", gap: 10 }}>
         {karten.map((k, i) => (
           <Zeile key={k.id} karte={k} nummer={i + 1} aendern={karteAendern}
-            loeschen={karteLoeschen}
+            loeschen={karteLoeschen} ziehGriff={griff(k.id)} ziehZeile={zeile(k.id, i)}
             aufHoch={() => verschieben(i, -1)} aufRunter={() => verschieben(i, 1)}
             aufNeueZeile={() => { if (i === karten.length - 1) neueKarte(); }} />
         ))}

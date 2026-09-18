@@ -813,3 +813,17 @@ html { -webkit-text-size-adjust: 100%; }
 }
 .zurueck-verweis:hover { color: var(--schrift); background: var(--grund-2); }
 @media (pointer: coarse) { .zurueck-verweis { min-height: 44px; padding-right: 12px; } }
+
+/* ------------------------------ Ziehen -------------------------------- */
+
+.griff {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; border-radius: 8px; color: var(--schrift-blass);
+  flex: none; user-select: none; -webkit-user-select: none;
+}
+.griff:hover { color: var(--schrift); background: var(--grund-3); }
+@media (pointer: coarse) { .griff { width: 44px; height: 44px; } }
+.karten-zeile.wird-gezogen {
+  box-shadow: var(--schatten); border-color: var(--akzent);
+  transition: none; opacity: 0.97;
+}

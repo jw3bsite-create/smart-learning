@@ -16,6 +16,7 @@ import {
 } from "./basis.jsx";
 import Formel from "./Formel.jsx";
 import Auswahlleiste from "./Kartenauswahl.jsx";
+import { useZiehen } from "./ziehen.js";
 
 function herunterladen(name, inhalt, art = "text/plain") {
   const blob = new Blob([inhalt], { type: art + ";charset=utf-8" });
@@ -53,6 +54,14 @@ export default function Stapelansicht({ setId }) {
         ((zustaende[a.id + ":td"]?.stability) ?? -1) - ((zustaende[b.id + ":td"]?.stability) ?? -1));
     return liste;
   }, [karten, sortierung, nurMarkierte, zustaende]);
+
+  /* Ziehen zum Umordnen — nur in der eigenen Reihenfolge und ohne Filter:
+     In einer alphabetischen Liste hiesse Verschieben nichts. Der Hook steht
+     vor der Pruefung unten, weil React Hooks in fester Zahl erwartet. */
+  const { griff, zeile } = useZiehen({
+    kennungen: karten.map((k) => k.id), aufOrdnen: kartenOrdnen, abstand: 8,
+  });
+  const ziehbar = sortierung === "eigen" && !nurMarkierte && !waehlt;
 
   if (!derStapel) {
     return <div className="mitte"><Leer titel="Stapel nicht gefunden"
@@ -242,7 +251,8 @@ export default function Stapelansicht({ setId }) {
           )}
 
           <div style={{ display: "grid", gap: 8 }}>
-            {sortiert.map((k) => {
+            {sortiert.map((k, i) => {
+              const zug = ziehbar ? zeile(k.id, i) : {};
               /* Die schwächere der beiden Richtungen entscheidet, wie eine
                  Karte hier dasteht. */
               const zTd = zustaende[k.id + ":td"];
@@ -250,10 +260,11 @@ export default function Stapelansicht({ setId }) {
               const s = (derStapel.richtungen || ["td"]).includes("dt")
                 ? Math.min(stufe(zTd), stufe(zDt)) : stufe(zTd);
               return (
-                <div key={k.id}
+                <div key={k.id} data-zieh={zug["data-zieh"]}
                   className={"karten-zeile" + (waehlt ? " waehlbar" : "")
-                    + (ausgewaehlt.has(k.id) ? " gewaehlt" : "")}
-                  style={k.nichtRelevant && !waehlt ? { opacity: 0.45 } : undefined}
+                    + (ausgewaehlt.has(k.id) ? " gewaehlt" : "")
+                    + (zug.className ? " " + zug.className : "")}
+                  style={{ ...(k.nichtRelevant && !waehlt ? { opacity: 0.45 } : {}), ...(zug.style || {}) }}
                   role={waehlt ? "checkbox" : undefined}
                   aria-checked={waehlt ? ausgewaehlt.has(k.id) : undefined}
                   onClick={waehlt ? () => setAusgewaehlt((alt) => {
@@ -279,6 +290,9 @@ export default function Stapelansicht({ setId }) {
                     {k.hint && <div className="klein blass" style={{ marginTop: 6 }}>Hinweis: {k.hint}</div>}
                   </div>
                   {!waehlt && <div className="werkzeuge">
+                    {ziehbar && (
+                      <span className="griff" {...griff(k.id)}><Symbol name="griff" groesse={18} /></span>
+                    )}
                     <span className="marke klein" title="Beherrschung"
                       style={{ color: ["var(--schrift-blass)", "var(--gelb)", "var(--akzent)", "var(--gruen)"][s] }}>
                       {STUFEN[s]}

@@ -31,6 +31,7 @@ const PFADE = {
   raster: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
   rakete: "M5 15c-1 2-1 4-1 4s2 0 4-1M9 15l-3-3 1.5-3A11 11 0 0 1 19 4a11 11 0 0 1-5 11.5L11 17z",
   laut: "M4 9v6h4l5 4V5L8 9zM17 9a4 4 0 0 1 0 6",
+  griff: "M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01",
   sigma: "M18 5H6l6 7-6 7h12",
   mikro: "M12 15a4 4 0 0 0 4-4V7a4 4 0 0 0-8 0v4a4 4 0 0 0 4 4zM5 11a7 7 0 0 0 14 0M12 18v3",
   stopp: "M7 7h10v10H7z",
