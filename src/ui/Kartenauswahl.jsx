@@ -15,62 +15,98 @@ import { Knopf, SymbolKnopf, Dialog, Rueckfrage, Symbol } from "./basis.jsx";
 /* ------------------------------ Zielwahl ------------------------------- */
 
 /*
- * Wohin kopieren oder verschieben? Alle Stapel, nach Fach geordnet, dazu
- * die Möglichkeit, gleich einen neuen anzulegen — sonst müsste man dafür
- * die Auswahl verlassen und alle Häkchen neu setzen.
+ * Wohin kopieren oder verschieben? Alle Fächer mit ihren Stapeln — auch
+ * Fächer, die noch gar keinen Stapel haben. Sonst ließe sich ausgerechnet
+ * dort nichts anlegen, wo man gerade anfangen will.
+ *
+ * Jedes Fach hat seinen eigenen Knopf für einen neuen Stapel. Der neue
+ * Stapel gehört dann zu genau diesem Fach, ohne dass man die Auswahl
+ * verlassen und alle Häkchen neu setzen muss.
  */
-function Zielwahl({ art, anzahlKarten, vonSetId, aufWaehlen, aufAbbrechen }) {
+function Zielwahl({ art, setArt, anzahlKarten, vonSetId, aufWaehlen, aufAbbrechen }) {
   const { stapel, faecher, stapelAnlegen, stapelAendern } = useDaten();
+  const [neuIn, setNeuIn] = useState(null);        // Fachkennung, "" für ohne Fach, null zu
   const [neuerName, setNeuerName] = useState("");
   const von = stapel.find((s) => s.id === vonSetId);
 
   const gruppen = useMemo(() => {
-    const nachFach = new Map();
-    for (const s of stapel) {
-      if (s.deleted || (art === "verschieben" && s.id === vonSetId)) continue;
-      const schluessel = s.subjectId || "";
-      if (!nachFach.has(schluessel)) nachFach.set(schluessel, []);
-      nachFach.get(schluessel).push(s);
-    }
-    const name = (id) => faecher.find((f) => f.id === id)?.name || "Ohne Fach";
-    return [...nachFach.entries()]
-      .map(([id, liste]) => ({
-        id, name: name(id),
-        liste: liste.sort((a, b) => (a.title || "").localeCompare(b.title || "", "de")),
-      }))
-      .sort((a, b) => (a.id === "" ? 1 : b.id === "" ? -1 : a.name.localeCompare(b.name, "de")));
+    const brauchbar = stapel.filter((s) => !s.deleted
+      && !(art === "verschieben" && s.id === vonSetId));
+    const sortiert = (liste) =>
+      liste.sort((a, b) => (a.title || "").localeCompare(b.title || "", "de"));
+    const mitFach = faecher
+      .filter((f) => !f.deleted)
+      .sort((a, b) => (a.name || "").localeCompare(b.name || "", "de"))
+      .map((f) => ({
+        id: f.id, name: f.name, farbe: f.farbe,
+        liste: sortiert(brauchbar.filter((s) => s.subjectId === f.id)),
+      }));
+    const bekannt = new Set(faecher.map((f) => f.id));
+    const ohne = sortiert(brauchbar.filter((s) => !s.subjectId || !bekannt.has(s.subjectId)));
+    return [...mitFach, { id: "", name: "Ohne Fach", liste: ohne }];
   }, [stapel, faecher, art, vonSetId]);
+
+  const oeffnen = (fachId) => { setNeuIn(fachId); setNeuerName(""); };
 
   const neuAnlegen = async (e) => {
     e.preventDefault();
     const titel = neuerName.trim();
-    if (!titel) return;
-    const s = await stapelAnlegen(titel, von?.folderId || null);
-    if (von?.subjectId) await stapelAendern(s.id, { subjectId: von.subjectId });
-    aufWaehlen(s);
+    if (!titel || neuIn === null) return;
+    /* Im selben Fach landet der neue Stapel neben dem alten im Ordner;
+       in einem anderen Fach gehört er dort nicht hin. */
+    const gleichesFach = (von?.subjectId || "") === neuIn;
+    const neu = await stapelAnlegen(titel, gleichesFach ? von?.folderId || null : null);
+    if (neuIn) await stapelAendern(neu.id, { subjectId: neuIn });
+    aufWaehlen(neu);
   };
 
   return (
     <Dialog titel={(art === "kopieren" ? "Kopieren nach" : "Verschieben nach") + " …"}
       aufSchliessen={aufAbbrechen}
       fuss={<Knopf onClick={aufAbbrechen}>Abbrechen</Knopf>}>
+      {/* Kopieren oder verschieben laesst sich hier noch umentscheiden, ohne
+          den Dialog zu schliessen und die Auswahl neu zu treffen. */}
+      <div className="reihe" style={{ gap: 6, marginBottom: 10 }} role="group">
+        {[["kopieren", "Kopieren"], ["verschieben", "Verschieben"]].map(([k, name]) => (
+          <Knopf key={k} art={"klein" + (art === k ? " voll" : "")} aria-pressed={art === k}
+            onClick={() => setArt(k)}>
+            {name}
+          </Knopf>
+        ))}
+      </div>
       <p className="klein matt" style={{ marginTop: 0 }}>
         {anzahl(anzahlKarten, "Karte", "Karten")}
         {art === "kopieren"
           ? " werden kopiert. Die Kopien lernst du neu, das Original bleibt."
           : " wechseln den Stapel und behalten ihren Lernstand."}
+        {" "}Wähle einen Stapel oder lege in einem Fach einen neuen an.
       </p>
 
-      <form className="reihe" style={{ gap: 8, marginBottom: 16 }} onSubmit={neuAnlegen}>
-        <input className="feld" value={neuerName} placeholder="Neuer Stapel, etwa Vokabeln Unit 6"
-          onChange={(e) => setNeuerName(e.target.value)} />
-        <Knopf art="voll" type="submit" symbol="plus" disabled={!neuerName.trim()}>Anlegen</Knopf>
-      </form>
-
-      <div style={{ display: "grid", gap: 14 }}>
+      <div style={{ display: "grid", gap: 16 }}>
         {gruppen.map((g) => (
           <div key={g.id || "ohne"}>
-            <div className="klein blass" style={{ marginBottom: 6 }}>{g.name}</div>
+            <div className="reihe" style={{ gap: 8, marginBottom: 6 }}>
+              <span style={{ width: 9, height: 9, borderRadius: 2, flex: "none",
+                background: g.farbe || "var(--rand)" }} />
+              <strong className="dehnen klein">{g.name}</strong>
+              {neuIn !== g.id && (
+                <Knopf art="klein" symbol="plus" onClick={() => oeffnen(g.id)}>
+                  Neuer Stapel
+                </Knopf>
+              )}
+            </div>
+
+            {neuIn === g.id && (
+              <form className="reihe" style={{ gap: 8, marginBottom: 8 }} onSubmit={neuAnlegen}>
+                <input className="feld" autoFocus value={neuerName}
+                  placeholder={"Neuer Stapel in " + g.name}
+                  onChange={(e) => setNeuerName(e.target.value)} />
+                <Knopf art="voll" type="submit" disabled={!neuerName.trim()}>Anlegen</Knopf>
+                <SymbolKnopf symbol="kreuz" titel="Abbrechen" art="leer klein"
+                  onClick={() => setNeuIn(null)} />
+              </form>
+            )}
+
             <div style={{ display: "grid", gap: 6 }}>
               {g.liste.map((s) => (
                 <button key={s.id} type="button" className="kachel auswahl-ziel"
@@ -80,6 +116,9 @@ function Zielwahl({ art, anzahlKarten, vonSetId, aufWaehlen, aufAbbrechen }) {
                   {s.id === vonSetId && <span className="marke klein">dieser Stapel</span>}
                 </button>
               ))}
+              {g.liste.length === 0 && neuIn !== g.id && (
+                <div className="klein blass">Noch kein Stapel in diesem Fach.</div>
+              )}
             </div>
           </div>
         ))}
@@ -163,7 +202,7 @@ export default function Auswahlleiste({ setId, ausgewaehlt, alleKennungen, setAu
       </div>
 
       {ziel && (
-        <Zielwahl art={ziel} anzahlKarten={zahl} vonSetId={setId}
+        <Zielwahl art={ziel} setArt={setZiel} anzahlKarten={zahl} vonSetId={setId}
           aufWaehlen={zielGewaehlt} aufAbbrechen={() => setZiel(null)} />
       )}
       {loescht && (
