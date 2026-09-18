@@ -10,6 +10,7 @@ import * as erinnerung from "./core/erinnerung.js";
 import { tagesLage } from "./core/straehne.js";
 import { istFaellig } from "./core/fsrs.js";
 import { anwenden as gestaltungAnwenden } from "./core/gestaltung.js";
+import { fortschreiben, vorheriger } from "./core/verlauf.js";
 import { Symbol, SymbolKnopf } from "./ui/basis.jsx";
 import Seitenleiste from "./ui/Seitenleiste.jsx";
 import Bibliothek from "./ui/Bibliothek.jsx";
@@ -65,10 +66,73 @@ export function gehe(weg) { window.location.hash = weg; }
    die App auf der Startseite. "#/" bleibt "Alle Stapel". */
 export const START = "/start";
 
+/*
+ * Der Verlauf, siehe core/verlauf.js.
+ *
+ * Jeder Eintrag im Browserverlauf bekommt seine Tiefe angeheftet. So weiss
+ * „Zurueck", ob es einen Schritt zurueck gibt und wohin er fuehrt — auch
+ * nach einem Neuladen, denn der Browser bewahrt die angehefteten Angaben,
+ * und die Wege liegen in der Sitzung.
+ */
+const VERLAUF = "sl:wege";
+let wege = (() => {
+  try { return JSON.parse(sessionStorage.getItem(VERLAUF)) || []; } catch (e) { return []; }
+})();
+let letzteTiefe = null;
+let ersetzend = false;
+
+function stelleFest() {
+  const weg = window.location.hash.slice(1) || START;
+  const zustand = window.history.state;
+  let tiefe;
+  let neu = false;
+  if (zustand && Number.isFinite(zustand.slTiefe)) {
+    tiefe = zustand.slTiefe;                       // zurueck, vor, neu geladen
+  } else {
+    tiefe = letzteTiefe === null ? 0 : ersetzend ? letzteTiefe : letzteTiefe + 1;
+    neu = letzteTiefe !== null && !ersetzend;
+    try { window.history.replaceState({ ...(zustand || {}), slTiefe: tiefe }, ""); } catch (e) { /* egal */ }
+  }
+  ersetzend = false;
+  letzteTiefe = tiefe;
+  wege = fortschreiben(wege, tiefe, weg, { neu });
+  try { sessionStorage.setItem(VERLAUF, JSON.stringify(wege)); } catch (e) { /* egal */ }
+}
+
+/** Der Weg vor dem jetzigen, oder null. */
+export function vorigerWeg() {
+  return vorheriger(wege, window.history.state?.slTiefe);
+}
+
+/** Den jetzigen Eintrag ersetzen, statt einen neuen anzulegen. */
+export function ersetze(weg) {
+  if ((window.location.hash.slice(1) || START) === weg) return;
+  ersetzend = true;
+  window.location.replace("#" + weg);
+}
+
+/** Einen Schritt zurück, wo es einen gibt; sonst zum Ersatz. */
+export function zurueck(ersatz) {
+  const tiefe = window.history.state?.slTiefe;
+  if (Number.isFinite(tiefe) && tiefe > 0) window.history.back();
+  else ersetze(ersatz);
+}
+
+/*
+ * Zurück zu einem bestimmten Ort — etwa vom Bearbeiten zum Stapel. Kam man
+ * genau von dort, ist das ein Schritt im Verlauf; sonst wird der jetzige
+ * Eintrag ersetzt. So entsteht nie „Stapel, Bearbeiten, Stapel", und das
+ * nächste Zurück führt dorthin, wo man vor dem Stapel war.
+ */
+export function zurueckZu(ziel) {
+  if (vorigerWeg() === ziel) window.history.back();
+  else ersetze(ziel);
+}
+
 function useWeg() {
-  const [weg, setWeg] = useState(() => window.location.hash.slice(1) || START);
+  const [weg, setWeg] = useState(() => { stelleFest(); return window.location.hash.slice(1) || START; });
   useEffect(() => {
-    const f = () => setWeg(window.location.hash.slice(1) || START);
+    const f = () => { stelleFest(); setWeg(window.location.hash.slice(1) || START); };
     window.addEventListener("hashchange", f);
     return () => window.removeEventListener("hashchange", f);
   }, []);
@@ -181,26 +245,26 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
   /* Das Abrufen ist der verbindliche Lernweg und bekommt die ganze Fläche. */
   if (teile[0] === "abrufen") {
     return <Abrufen fachId={teile[1] || null}
-      aufSchliessen={() => gehe(teile[1] ? "/faecher" : "/faecher")} />;
+      aufSchliessen={() => zurueck("/faecher")} />;
   }
 
   if (teile[0] === "erklaeren") {
     return <Feynman erklaerungId={teile[1] || null}
-      aufSchliessen={() => gehe(teile[1] ? "/erklaeren" : "/faecher")} />;
+      aufSchliessen={() => (teile[1] ? zurueckZu("/erklaeren") : zurueck("/faecher"))} />;
   }
 
   if (teile[0] === "pruefung") {
     return <Pruefung pruefungId={teile[1] || null}
-      aufSchliessen={() => gehe(teile[1] ? "/pruefung" : "/faecher")} />;
+      aufSchliessen={() => (teile[1] ? zurueckZu("/pruefung") : zurueck("/faecher"))} />;
   }
 
   if (teile[0] === "tutor") {
     return <Tutor tutorSchluessel={teile[1] || null}
-      aufSchliessen={() => gehe(teile[1] ? "/tutor" : "/faecher")} />;
+      aufSchliessen={() => (teile[1] ? zurueckZu("/tutor") : zurueck("/faecher"))} />;
   }
 
   if (teile[0] === "vorab" && teile[1]) {
-    return <Pretest setId={teile[1]} aufSchliessen={() => gehe("/stapel/" + teile[1])} />;
+    return <Pretest setId={teile[1]} aufSchliessen={() => zurueckZu("/stapel/" + teile[1])} />;
   }
 
   /* Lernmodi bekommen die ganze Fläche. */
@@ -208,8 +272,7 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
     && teile[2] !== "entwuerfe") {
     const setId = teile[1];
     const modus = teile[2];
-    const zurueck = () => gehe("/stapel/" + setId);
-    const gemeinsam = { setId, aufSchliessen: zurueck };
+    const gemeinsam = { setId, aufSchliessen: () => zurueckZu("/stapel/" + setId) };
     if (modus === "karten") return <Karteikarten {...gemeinsam} />;
     if (modus === "lernen") return <Lernen {...gemeinsam} />;
     if (modus === "schreiben") return <Schreiben {...gemeinsam} />;
@@ -238,7 +301,7 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
     inhalt = <Fragen
       bereichArt={teile[1] === "fehler" ? "fehler" : teile[1] ? "fach" : "alles"}
       bereichId={teile[1] === "fehler" ? (teile[2] || null) : (teile[1] || null)}
-      aufSchliessen={() => gehe(teile[1] === "fehler" ? "/fehler" : "/")} />;
+      aufSchliessen={() => zurueck(teile[1] === "fehler" ? "/fehler" : "/")} />;
 
   return (
     <div className="huelle">

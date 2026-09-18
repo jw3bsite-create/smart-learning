@@ -9,7 +9,8 @@ import { stapelStand } from "../core/warteschlange.js";
 import { anzahl, datumKurz, mische } from "../core/util.js";
 import { alsCsv, alsText, alsAnkiText, alsCsvMitPlan } from "../core/importer.js";
 import { sprich, SPRACHEN } from "../core/speech.js";
-import { gehe, MODI } from "../App.jsx";
+import { gehe, MODI, zurueck, ersetze, vorigerWeg } from "../App.jsx";
+import { wegName } from "../core/verlauf.js";
 import {
   Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Bild, Stern, Leer, Dialog, Rueckfrage,
 } from "./basis.jsx";
@@ -61,6 +62,15 @@ export default function Stapelansicht({ setId }) {
   const stand = stapelStand(karten, zustaende, derStapel);
   const anteile = anteileNachStufe(stand.zustaende);
   const derOrdner = ordner.find((o) => o.id === derStapel.folderId);
+  const vorherName = wegName(vorigerWeg(), {
+    fach: (id) => fachVon(id)?.name,
+    ordner: (id) => ordner.find((o) => o.id === id)?.name,
+    stapel: (id) => stapel.find((x) => x.id === id)?.title,
+  });
+  const ersatzWeg = derOrdner ? "/ordner/" + derOrdner.id
+    : derStapel.subjectId && fachVon(derStapel.subjectId) ? "/fach/" + derStapel.subjectId : "/";
+  const ersatzName = derOrdner ? derOrdner.name
+    : fachVon(derStapel.subjectId)?.name || "Alle Stapel";
   const markierte = karten.filter((k) => k.starred).length;
 
   const ausfuhr = (art) => {
@@ -79,11 +89,15 @@ export default function Stapelansicht({ setId }) {
   return (
     <div className="mitte">
       <div className="kopfzeile">
-        <div style={{ width: "100%" }} className="klein matt">
-          <span style={{ cursor: "pointer" }} onClick={() => gehe("/")}>Alle Stapel</span>
-          {derOrdner && <> {" › "}
-            <span style={{ cursor: "pointer" }} onClick={() => gehe("/ordner/" + derOrdner.id)}>
-              {derOrdner.name}</span></>}
+        {/* Zurueck dorthin, wo man herkam — Fach, Ordner, Start, Fehlerheft.
+            Ohne bekannten Vorgaenger (etwa nach dem Neuladen) zum Ordner des
+            Stapels, sonst zu seinem Fach, sonst zu allen Stapeln. */}
+        <div style={{ width: "100%" }}>
+          <button type="button" className="zurueck-verweis"
+            onClick={() => (vorherName ? zurueck(ersatzWeg) : ersetze(ersatzWeg))}>
+            <Symbol name="zurueck" groesse={15} />
+            {vorherName || ersatzName}
+          </button>
         </div>
         <h1 style={{ flex: 1 }}>{derStapel.title || "Ohne Titel"}</h1>
         <Knopf symbol="stift" onClick={() => gehe("/stapel/" + setId + "/bearbeiten")}>

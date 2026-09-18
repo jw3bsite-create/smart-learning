@@ -11,7 +11,7 @@ import { useDaten } from "../core/store.jsx";
 import { bildAufnehmen, bildLoeschen, dateiAusEreignis } from "../core/media.js";
 import { anzahl } from "../core/util.js";
 import { kartenArt, KARTENARTEN } from "../core/model.js";
-import { gehe } from "../App.jsx";
+import { gehe, zurueckZu } from "../App.jsx";
 import {
   Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Bild, Stern, Leer, Dialog, useMerker,
 } from "./basis.jsx";
@@ -219,7 +219,7 @@ export default function Bearbeiten({ setId }) {
     <div className="mitte">
       <div className="kopfzeile">
         <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer"
-          onClick={() => gehe("/stapel/" + setId)} />
+          onClick={() => zurueckZu("/stapel/" + setId)} />
         <h1 style={{ flex: 1 }}>Bearbeiten</h1>
         <Knopf symbol="hinauf" onClick={() => setTextEinfuhr(true)}>Text einfügen</Knopf>
         <Knopf symbol="kamera" onClick={() => setBildEinfuhr(true)}>Aus Bild</Knopf>
@@ -228,7 +228,7 @@ export default function Bearbeiten({ setId }) {
           title="Mathematische Zeichen" onClick={() => setZeichen((z) => !z)}>
           Zeichen
         </Knopf>
-        <Knopf art="voll" symbol="haken" onClick={() => gehe("/stapel/" + setId)}>Fertig</Knopf>
+        <Knopf art="voll" symbol="haken" onClick={() => zurueckZu("/stapel/" + setId)}>Fertig</Knopf>
         <Menue knopf={<SymbolKnopf symbol="mehr" titel="Mehr" art="klein" />}>
           <MenuePunkt symbol="hinauf" onClick={() => setQuizlet(true)}>
             Aus Quizlet …</MenuePunkt>

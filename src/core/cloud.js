@@ -462,7 +462,8 @@ export async function rueckkehrVerarbeiten() {
   // Verlauf, wo sie beim Zurueckblaettern wieder auftauchten.
   if (typeof window !== "undefined") {
     const ziel = window.location.pathname + window.location.search + "#/einstellungen";
-    window.history.replaceState(null, "", ziel);
+    // Den angehefteten Zustand behalten: Er traegt die Tiefe im Verlauf.
+    window.history.replaceState(window.history.state, "", ziel);
     window.dispatchEvent(new HashChangeEvent("hashchange"));
     window.dispatchEvent(new Event(RUECKKEHR_SCHLUESSEL));
   }

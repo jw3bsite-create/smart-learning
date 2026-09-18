@@ -16,7 +16,7 @@ import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { normalisiere } from "../core/text.js";
 import { anzahl } from "../core/util.js";
-import { gehe } from "../App.jsx";
+import { gehe, zurueckZu } from "../App.jsx";
 import { Symbol, SymbolKnopf, Knopf, Bild, Leer, Dialog, useMerker } from "./basis.jsx";
 import Zeichenleiste from "./Zeichenleiste.jsx";
 
@@ -146,7 +146,7 @@ export default function Entwuerfe({ setId }) {
     <div className="mitte" style={{ maxWidth: 900 }}>
       <div className="kopfzeile">
         <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer"
-          onClick={() => gehe("/stapel/" + setId)} />
+          onClick={() => zurueckZu("/stapel/" + setId)} />
         <div style={{ flex: 1 }}>
           <h1>Entwürfe</h1>
           <div className="klein matt">{derStapel.title}</div>
