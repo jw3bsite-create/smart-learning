@@ -166,3 +166,60 @@ export function hochAlsPotenz(text) {
   return String(text ?? "").replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿ]+/g,
     (m) => "^" + [...m].map((z) => RUECK_HOCH[z] ?? z).join(""));
 }
+
+/* ===================================================================== */
+/*  Formel-Editor                                                        */
+/* ===================================================================== */
+
+/*
+ * Der Formel-Editor (MathLive) schreibt ein paar eigene Befehle, die KaTeX
+ * nicht kennt. Sie werden hier in gewöhnliches LaTeX übersetzt, ehe die
+ * Formel in die Karte geht — sonst stünde später eine rote Fehlermeldung
+ * statt des Integrals da.
+ */
+const EIGENE_BEFEHLE = [
+  [/\\differentialD\b/g, "\\mathrm{d}"],
+  [/\\exponentialE\b/g, "\\mathrm{e}"],
+  [/\\imaginaryI\b/g, "\\mathrm{i}"],
+  [/\\imaginaryJ\b/g, "\\mathrm{j}"],
+  [/\\placeholder(\[[^\]]*\])?\{[^{}]*\}/g, ""],
+];
+
+export function editorZuKatex(latex) {
+  let s = String(latex ?? "");
+  for (const [muster, ersatz] of EIGENE_BEFEHLE) s = s.replace(muster, ersatz);
+  return s.trim();
+}
+
+/**
+ * Wo im Kartentext die Formeln stehen. → [{ anfang, ende, inhalt }]
+ * `anfang` zeigt auf das öffnende, `ende` hinter das schließende
+ * Dollarzeichen. Damit lässt sich eine Formel gezielt ersetzen, ohne den
+ * Text drumherum anzufassen.
+ */
+export function formelStellen(text) {
+  const s = String(text ?? "");
+  const stellen = [];
+  let i = 0;
+  while (i < s.length) {
+    if (s[i] === "\\" && s[i + 1] === "$") { i += 2; continue; }
+    if (s[i] === "$") {
+      let j = i + 1;
+      while (j < s.length && !(s[j] === "$" && s[j - 1] !== "\\")) j++;
+      if (j < s.length && j > i + 1) {
+        stellen.push({ anfang: i, ende: j + 1, inhalt: s.slice(i + 1, j) });
+        i = j + 1;
+        continue;
+      }
+    }
+    i += 1;
+  }
+  return stellen;
+}
+
+/** Ersetzt eine Formel an ihrer Stelle; leer heißt: Formel entfernen. */
+export function ersetzeFormel(text, stelle, latex) {
+  const s = String(text ?? "");
+  const neu = editorZuKatex(latex);
+  return s.slice(0, stelle.anfang) + (neu ? "$" + neu + "$" : "") + s.slice(stelle.ende);
+}

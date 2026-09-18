@@ -32,14 +32,28 @@ function setze(formel) {
   return html;
 }
 
-export default function Formel({ text }) {
+/*
+ * `aufFormel` macht jede Formel antippbar — im Editor, um sie zu ändern.
+ * Gezählt wird nur über die Formeln, nicht über den Text dazwischen.
+ */
+export default function Formel({ text, aufFormel = null }) {
   const stuecke = useMemo(() => teile(text), [text]);
   if (!stuecke.some((s) => s.formel)) return text ?? null;
+  let nummer = -1;
   return (
     <>
-      {stuecke.map((s, i) => (s.formel
-        ? <span key={i} className="formel" dangerouslySetInnerHTML={{ __html: setze(s.inhalt) }} />
-        : <React.Fragment key={i}>{s.inhalt}</React.Fragment>))}
+      {stuecke.map((s, i) => {
+        if (!s.formel) return <React.Fragment key={i}>{s.inhalt}</React.Fragment>;
+        nummer += 1;
+        const n = nummer;
+        return aufFormel
+          ? <span key={i} className="formel klickbar" role="button" tabIndex={0}
+              title="Formel bearbeiten"
+              onClick={() => aufFormel(n)}
+              onKeyDown={(e) => { if (e.key === "Enter") aufFormel(n); }}
+              dangerouslySetInnerHTML={{ __html: setze(s.inhalt) }} />
+          : <span key={i} className="formel" dangerouslySetInnerHTML={{ __html: setze(s.inhalt) }} />;
+      })}
     </>
   );
 }

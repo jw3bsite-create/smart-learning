@@ -9,9 +9,8 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { ZEICHEN, anzeige, einfuegen } from "../core/zeichen.js";
-import { bruch, hoch, tief } from "../core/formel.js";
-import { Knopf, SymbolKnopf, useMerker } from "./basis.jsx";
-import Formel from "./Formel.jsx";
+import { SymbolKnopf, useMerker } from "./basis.jsx";
+import FormelEditor from "./FormelEditor.jsx";
 
 const IST_FELD = (el) => el && (el.tagName === "TEXTAREA"
   || (el.tagName === "INPUT" && /^(text|search|)$/i.test(el.type || "")));
@@ -30,64 +29,10 @@ function schreibeIn(feld, zeichen) {
   try { feld.setSelectionRange(marke, marke); } catch (e) { /* nicht jedes Feld kann das */ }
 }
 
-/*
- * Bruch, Hoch- und Tiefzahl: ein kleines Formular in der Leiste.
- *
- * Man tippt Zähler und Nenner (oder die Hochzahl) in eigene Felder und sieht
- * sofort, was daraus wird. Die Formelschreibweise selbst muss niemand kennen.
- */
-function Bauform({ art, aufEinfuegen, aufAbbrechen }) {
-  const [a, setA] = useState("");
-  const [b, setB] = useState("");
-  const erstes = useRef(null);
-  useEffect(() => { erstes.current?.focus(); }, [art]);
-
-  const ergebnis = art === "bruch"
-    ? (a.trim() || b.trim() ? bruch(a, b) : "")
-    : (art === "hoch" ? hoch(a) : tief(a)).text;
-  const fehlt = art === "bruch" ? [] : (art === "hoch" ? hoch(a) : tief(a)).fehlt;
-
-  const einfuegen = (e) => {
-    e?.preventDefault();
-    if (ergebnis) aufEinfuegen(ergebnis);
-  };
-
-  return (
-    <form className="bauform" onSubmit={einfuegen}>
-      {art === "bruch" ? (
-        <div className="bauform-bruch">
-          <input ref={erstes} className="feld" value={a} placeholder="Zähler, etwa x+1"
-            onChange={(e) => setA(e.target.value)} />
-          <div className="bauform-strich" />
-          <input className="feld" value={b} placeholder="Nenner, etwa 2"
-            onChange={(e) => setB(e.target.value)} />
-        </div>
-      ) : (
-        <input ref={erstes} className="feld" value={a}
-          placeholder={art === "hoch" ? "Hochzahl, etwa 12 oder -3 oder n+1" : "Index, etwa 1 oder n"}
-          onChange={(e) => setA(e.target.value)} />
-      )}
-      <div className="reihe umbruch" style={{ gap: 8, marginTop: 8 }}>
-        <span className="klein matt">Wird zu:</span>
-        <span className="bauform-vorschau">{ergebnis ? <Formel text={ergebnis} /> : "…"}</span>
-        <div className="dehnen" />
-        <Knopf art="klein" type="button" onClick={aufAbbrechen}>Abbrechen</Knopf>
-        <Knopf art="klein voll" type="submit" disabled={!ergebnis}>Einfügen</Knopf>
-      </div>
-      {fehlt.length > 0 && (
-        <div className="klein blass" style={{ marginTop: 6 }}>
-          {fehlt.join(" ")} gibt es nicht
-          {art === "hoch" ? " hochgestellt" : " tiefgestellt"}, das bleibt normal stehen.
-        </div>
-      )}
-    </form>
-  );
-}
-
 export default function Zeichenleiste({ aufSchliessen }) {
   const letztes = useRef(null);
   const wurzel = useRef(null);
-  const [bau, setBau] = useState(null);          // "bruch" | "hoch" | "tief" | null
+  const [editor, setEditor] = useState(false);
   /* Auf dem Telefon steht immer nur eine Gruppe da; welche, merkt sich das Geraet. */
   const [gruppe, setGruppe] = useMerker("zeichenGruppe", ZEICHEN[0].gruppe);
 
@@ -113,7 +58,9 @@ export default function Zeichenleiste({ aufSchliessen }) {
   /* Fokus bleibt im Kartenfeld — ausser man tippt in die eigenen Felder
      der Leiste (Zaehler, Nenner, Hochzahl). */
   const halten = (e) => {
-    if (!e.target.closest?.("input, textarea, select, .bauform")) e.preventDefault();
+    /* Im Formel-Editor (einem Dialog ueber allem) nichts festhalten —
+       sonst kaeme sein eigenes Formelfeld nie an den Fokus. */
+    if (!e.target.closest?.("input, textarea, select, .schleier")) e.preventDefault();
   };
 
   const setzen = (zeichen) => {
@@ -132,26 +79,23 @@ export default function Zeichenleiste({ aufSchliessen }) {
         <SymbolKnopf symbol="kreuz" titel="Zeichen schließen" art="leer klein"
           onClick={aufSchliessen} />
       </div>
-      <div className="reihe umbruch" style={{ gap: 6, marginBottom: 8 }}>
-        {[["bruch", "Bruch", "a/b"], ["hoch", "Hochzahl", "xⁿ"], ["tief", "Tiefzahl", "xₙ"]].map(([k, name, bild]) => (
-          <button key={k} type="button"
-            className={"knopf klein" + (bau === k ? " voll" : "")}
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={() => {
-              /* Das Formular nimmt gleich den Fokus. Vorher festhalten, in
-                 welchem Kartenfeld die Schreibmarke stand. */
-              const aktiv = document.activeElement;
-              if (IST_FELD(aktiv) && !wurzel.current?.contains(aktiv)) letztes.current = aktiv;
-              setBau(bau === k ? null : k);
-            }}>
-            <span className="bauform-bild">{bild}</span> {name}
-          </button>
-        ))}
-      </div>
-      {bau && (
-        <Bauform key={bau} art={bau}
-          aufAbbrechen={() => { setBau(null); letztes.current?.focus(); }}
-          aufEinfuegen={(text) => { setzen(text); setBau(null); }} />
+      {/* Die Formel als eigener, großer Knopf: Brüche, Hochzahlen, Wurzeln —
+          alles, was nicht in eine Textzeile passt. Die Zeichen darunter
+          bleiben für gewöhnlichen Text. */}
+      <button type="button" className="knopf voll formel-oeffnen"
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => {
+          const aktiv = document.activeElement;
+          if (IST_FELD(aktiv) && !wurzel.current?.contains(aktiv)) letztes.current = aktiv;
+          setEditor(true);
+        }}>
+        <span className="formel-oeffnen-bild">½ xⁿ √</span> Formel einfügen
+        <span className="klein" style={{ opacity: 0.8 }}>Bruch, Hochzahl, Wurzel …</span>
+      </button>
+      {editor && (
+        <FormelEditor
+          aufAbbrechen={() => { setEditor(false); letztes.current?.focus(); }}
+          aufFertig={(latex) => { setEditor(false); if (latex) setzen("$" + latex + "$"); }} />
       )}
 
       {/* Reiter nur auf schmalen Schirmen, siehe stil.css. Mit offener

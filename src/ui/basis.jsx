@@ -98,7 +98,7 @@ export function SymbolKnopf({ symbol, titel, art = "leer klein", groesse = 18, .
 
 /* -------------------------------- Dialog ------------------------------- */
 
-export function Dialog({ titel, kinder, children, fuss, aufSchliessen, weit = false }) {
+export function Dialog({ titel, kinder, children, fuss, aufSchliessen, weit = false, oben = false }) {
   useEffect(() => {
     const taste = (e) => { if (e.key === "Escape") { e.stopPropagation(); aufSchliessen?.(); } };
     window.addEventListener("keydown", taste, true);
@@ -106,7 +106,8 @@ export function Dialog({ titel, kinder, children, fuss, aufSchliessen, weit = fa
   }, [aufSchliessen]);
 
   return (
-    <div className="schleier" onMouseDown={(e) => { if (e.target === e.currentTarget) aufSchliessen?.(); }}>
+    <div className={"schleier" + (oben ? " oben" : "")}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) aufSchliessen?.(); }}>
       <div className={"dialog" + (weit ? " weit" : "")} onMouseDown={(e) => e.stopPropagation()}>
         <div className="dialog-kopf">
           <h2 style={{ flex: 1 }}>{titel}</h2>

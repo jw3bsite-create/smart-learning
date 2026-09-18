@@ -44,3 +44,64 @@ export function einfuegen(text, anfang, ende, zeichen) {
   const b = Math.max(a, Math.min(Number.isFinite(ende) ? ende : a, t.length));
   return { text: t.slice(0, a) + zeichen + t.slice(b), marke: a + zeichen.length };
 }
+
+/* ===================================================================== */
+/*  Für den Formel-Editor                                                */
+/* ===================================================================== */
+
+/*
+ * Bausteine: [Name, was eingefügt wird, wie das Bild auf dem Knopf aussieht].
+ *
+ * `#@` nimmt, was links von der Schreibmarke steht (aus „3" wird „3 hoch …"),
+ * `#0` nimmt, was markiert ist, `#?` ist ein leeres Feld zum Ausfüllen.
+ */
+export const FORMEL_BAUSTEINE = [
+  ["Bruch", "\\frac{#@}{#?}", "\\frac{a}{b}"],
+  ["Hochzahl", "#@^{#?}", "x^{n}"],
+  ["Tiefzahl", "#@_{#?}", "x_{n}"],
+  ["Wurzel", "\\sqrt{#0}", "\\sqrt{x}"],
+  ["n-te Wurzel", "\\sqrt[#?]{#0}", "\\sqrt[n]{x}"],
+  ["Klammern", "\\left(#0\\right)", "(x)"],
+  ["Betrag", "\\left|#0\\right|", "|x|"],
+  ["Integral", "\\int_{#?}^{#?}#0\\,\\mathrm{d}x", "\\int_{a}^{b}"],
+  ["Summe", "\\sum_{#?}^{#?}#0", "\\sum_{i}^{n}"],
+  ["Grenzwert", "\\lim_{#? \\to #?}#0", "\\lim_{x\\to a}"],
+  ["Vektor", "\\vec{#0}", "\\vec{v}"],
+  ["Ableitung", "#@'", "f'"],
+];
+
+/*
+ * Dieselben Zeichen wie in der Zeichenleiste, jeweils mit dem Befehl, den
+ * der Editor versteht: [Zeichen auf dem Knopf, Befehl].
+ */
+export const FORMEL_ZEICHEN = [
+  { gruppe: "Rechnen", zeichen: [
+    ["·", "\\cdot"], ["×", "\\times"], ["÷", "\\div"], ["±", "\\pm"], ["∓", "\\mp"],
+    ["≠", "\\ne"], ["≈", "\\approx"], ["≡", "\\equiv"], ["≤", "\\le"], ["≥", "\\ge"],
+    ["≪", "\\ll"], ["≫", "\\gg"], ["√", "\\sqrt{#0}"], ["∛", "\\sqrt[3]{#0}"],
+    ["∞", "\\infty"], ["%", "\\%"], ["°", "^{\\circ}"],
+  ] },
+  { gruppe: "Analysis", zeichen: [
+    ["∫", "\\int"], ["∬", "\\iint"], ["∮", "\\oint"], ["∑", "\\sum"], ["∏", "\\prod"],
+    ["∂", "\\partial"], ["∇", "\\nabla"], ["Δ", "\\Delta"], ["lim", "\\lim"], ["→", "\\to"],
+    ["d", "\\mathrm{d}"], ["′", "'"], ["″", "''"], ["ƒ", "f"], ["e", "\\mathrm{e}"],
+  ] },
+  { gruppe: "Mengen & Logik", zeichen: [
+    ["∈", "\\in"], ["∉", "\\notin"], ["⊂", "\\subset"], ["⊆", "\\subseteq"], ["⊃", "\\supset"],
+    ["⊇", "\\supseteq"], ["∪", "\\cup"], ["∩", "\\cap"], ["∅", "\\emptyset"], ["∀", "\\forall"],
+    ["∃", "\\exists"], ["¬", "\\neg"], ["∧", "\\land"], ["∨", "\\lor"], ["⇒", "\\Rightarrow"],
+    ["⇔", "\\Leftrightarrow"], ["ℕ", "\\mathbb{N}"], ["ℤ", "\\mathbb{Z}"], ["ℚ", "\\mathbb{Q}"], ["ℝ", "\\mathbb{R}"],
+    ["ℂ", "\\mathbb{C}"],
+  ] },
+  { gruppe: "Griechisch", zeichen: [
+    ["α", "\\alpha"], ["β", "\\beta"], ["γ", "\\gamma"], ["δ", "\\delta"], ["ε", "\\varepsilon"],
+    ["θ", "\\theta"], ["λ", "\\lambda"], ["μ", "\\mu"], ["π", "\\pi"], ["ρ", "\\rho"],
+    ["σ", "\\sigma"], ["τ", "\\tau"], ["φ", "\\varphi"], ["χ", "\\chi"], ["ψ", "\\psi"],
+    ["ω", "\\omega"], ["Γ", "\\Gamma"], ["Θ", "\\Theta"], ["Λ", "\\Lambda"], ["Π", "\\Pi"],
+    ["Σ", "\\Sigma"], ["Φ", "\\Phi"], ["Ω", "\\Omega"],
+  ] },
+  { gruppe: "Geometrie", zeichen: [
+    ["⊥", "\\perp"], ["∥", "\\parallel"], ["∠", "\\angle"], ["≙", "\\triangleq"],
+    ["∝", "\\propto"], ["°", "^{\\circ}"], ["△", "\\triangle"],
+  ] },
+];

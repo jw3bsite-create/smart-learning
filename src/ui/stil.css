@@ -827,3 +827,47 @@ html { -webkit-text-size-adjust: 100%; }
   box-shadow: var(--schatten); border-color: var(--akzent);
   transition: none; opacity: 0.97;
 }
+
+/* ---------------------------- Formel-Editor --------------------------- */
+
+.formel-halter { min-height: 64px; }
+math-field.formel-feld {
+  display: block; width: 100%; font-size: 28px; padding: 10px 12px;
+  border: 1px solid var(--rand); border-radius: calc(var(--rund) * 0.7);
+  background: var(--grund); color: var(--schrift);
+  --caret-color: var(--akzent); --selection-background-color: color-mix(in srgb, var(--akzent) 30%, transparent);
+  --contains-highlight-background-color: transparent;
+}
+math-field.formel-feld:focus-within { border-color: var(--akzent); outline: none; }
+math-field.formel-feld::part(menu-toggle) { display: none; }
+.formel-bausteine {
+  display: grid; gap: 6px; margin-bottom: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+}
+.formel-baustein {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  min-height: 64px; padding: 6px; border: 1px solid var(--rand); border-radius: 10px;
+  background: var(--grund); color: var(--schrift); cursor: pointer;
+}
+.formel-baustein:hover { border-color: var(--akzent); }
+.formel-baustein-bild { font-size: 17px; min-height: 30px; display: flex; align-items: center; }
+.formel-baustein-name { font-size: 11px; color: var(--schrift-matt); }
+.formel-reiter { display: flex; margin-bottom: 8px; }
+.formel-zeichen { max-width: none; }
+.formel.klickbar { cursor: pointer; border-radius: 6px; padding: 0 2px; }
+.formel.klickbar:hover, .formel.klickbar:focus-visible {
+  background: color-mix(in srgb, var(--akzent) 16%, transparent); outline: none;
+}
+.formel-oeffnen { width: 100%; justify-content: flex-start; flex-wrap: wrap; margin-bottom: 10px; }
+.formel-oeffnen-bild { font-family: var(--schrift-karten); font-size: 17px; }
+
+/* Auf dem Telefon oben, damit die Mathematik-Tastatur unten Platz hat. */
+@media (max-width: 640px) {
+  .schleier.oben { align-items: flex-start; }
+  .schleier.oben .dialog {
+    border-radius: 0 0 calc(var(--rund) * 1.15) calc(var(--rund) * 1.15);
+    max-height: 58dvh; border-top: 0; border-bottom: 1px solid var(--rand);
+  }
+  .schleier.oben .dialog-fuss { position: static; padding-bottom: 14px; }
+  .formel-bausteine { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}

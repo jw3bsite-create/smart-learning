@@ -19,7 +19,8 @@ import { TextEinfuhr, BildEinfuhr, QuizletEinfuhr } from "./Einfuhr.jsx";
 import Tonaufnahme from "./Tonaufnahme.jsx";
 import Zeichenleiste from "./Zeichenleiste.jsx";
 import Formel from "./Formel.jsx";
-import { hatFormel } from "../core/formel.js";
+import { hatFormel, formelStellen, ersetzeFormel } from "../core/formel.js";
+import FormelEditor from "./FormelEditor.jsx";
 import KiGenerator from "./KiGenerator.jsx";
 import { useZiehen } from "./ziehen.js";
 
@@ -39,6 +40,8 @@ function Zeile({
       .join("\n"));
   const uhr = useRef(null);
   const vorderesFeld = useRef(null);
+  // Welche Formel gerade bearbeitet wird: { welche, feldName, index }
+  const [formel, setFormel] = useState(null);
 
   // Änderungen von außen (Einfuhr, Abgleich) übernehmen.
   useEffect(() => { setTerm(karte.term); }, [karte.term]);
@@ -100,7 +103,13 @@ function Zeile({
       {/* Enthaelt das Feld eine Formel, steht darunter, wie sie aussehen wird —
           im Feld selbst sieht man ja nur die Schreibweise. */}
       {hatFormel(wert) && (
-        <div className="formel-vorschau"><Formel text={wert} /></div>
+        <div className="formel-vorschau">
+          <Formel text={wert}
+            aufFormel={(index) => setFormel({ welche, feldName, index, wert, setWert })} />
+          <div className="klein blass" style={{ marginTop: 4 }}>
+            Tippe auf eine Formel, um sie zu ändern.
+          </div>
+        </div>
       )}
       {/* Bild und Aufnahme in einer Zeile: Auf dem Telefon waere sonst jede
           Karte doppelt so hoch, und man scrollt sich durch die Liste. */}
@@ -131,10 +140,26 @@ function Zeile({
     </div>
   );
 
+  const formelStelle = formel ? formelStellen(formel.wert)[formel.index] : null;
+  const formelSetzen = (latex) => {
+    const neu = ersetzeFormel(formel.wert, formelStelle, latex);
+    formel.setWert(neu);
+    // Der Rechenweg wird als Schritte gespeichert, nicht als Text.
+    if (formel.feldName === "schritte") sofortSchritte(neu);
+    else sofort({ [formel.feldName]: neu });
+    setFormel(null);
+  };
+
   return (
     <div data-zieh={ziehZeile["data-zieh"]}
       className={"karten-zeile" + (ziehZeile.className ? " " + ziehZeile.className : "")}
       style={{ alignItems: "stretch", ...(ziehZeile.style || {}) }}>
+      {formelStelle && (
+        <FormelEditor titel="Formel ändern" anfang={formelStelle.inhalt}
+          aufAbbrechen={() => setFormel(null)}
+          aufEntfernen={() => formelSetzen("")}
+          aufFertig={(latex) => formelSetzen(latex)} />
+      )}
       <div style={{ gridColumn: "1 / -1" }} className="reihe klein blass">
         {ziehGriff && (
           <span className="griff" {...ziehGriff}><Symbol name="griff" groesse={18} /></span>
@@ -164,6 +189,15 @@ function Zeile({
             style={{ minHeight: 96, fontFamily: "ui-monospace, monospace" }}
             onChange={(e) => { setSchritteText(e.target.value); merkenSchritte(e.target.value); }}
             onBlur={(e) => sofortSchritte(e.target.value)} />
+          {hatFormel(schritteText) && (
+            <div className="formel-vorschau" style={{ whiteSpace: "pre-wrap" }}>
+              <Formel text={schritteText}
+                aufFormel={(index) => setFormel({
+                  welche: "hinten", feldName: "schritte", index,
+                  wert: schritteText, setWert: setSchritteText,
+                })} />
+            </div>
+          )}
           <p className="klein blass" style={{ marginTop: 6 }}>
             Jede Zeile wird einzeln abgefragt. Ein Doppelpunkt trennt eine
             Anweisung von ihrem Ergebnis: <em>ableiten: f'(x) = 2x</em>
