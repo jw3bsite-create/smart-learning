@@ -880,3 +880,11 @@ math-field.formel-feld::part(menu-toggle) { display: none; }
 .knopf.aktiv { color: var(--akzent); }
 .formel-vorschau { position: relative; padding-right: 26px; }
 .formel-stift { position: absolute; top: 8px; right: 8px; color: var(--schrift-blass); }
+
+/* Farbwahl (Fächer) */
+.farbfeld {
+  width: 32px; height: 32px; border-radius: 9px; cursor: pointer;
+  border: 1px solid var(--rand); padding: 0;
+}
+.farbfeld.gewaehlt { border: 2px solid var(--schrift); box-shadow: 0 0 0 2px var(--grund-2) inset; }
+@media (pointer: coarse) { .farbfeld { width: 40px; height: 40px; } }

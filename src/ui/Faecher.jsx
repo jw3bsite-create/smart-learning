@@ -40,6 +40,78 @@ const VORSCHLAG = [
   ["Gemeinschaftskunde", "#ef5b6b"],
 ];
 
+/*
+ * Farben für Fächer. Zehn, die sich auch klein als Punkt in der Seitenleiste
+ * noch auseinanderhalten lassen, dazu eine eigene nach Wahl.
+ */
+export const FACHFARBEN = [
+  ["#5b8bff", "Blau"], ["#3fbf7f", "Grün"], ["#e8b84b", "Gelb"], ["#ef5b6b", "Rot"],
+  ["#a97bf0", "Violett"], ["#4bc6d8", "Türkis"], ["#f08a5b", "Orange"],
+  ["#e36bb3", "Pink"], ["#9ccc65", "Hellgrün"], ["#8b97a8", "Grau"],
+];
+
+/** Die erste Farbe, die noch kein Fach trägt — damit ein neues Fach auffällt. */
+export function freieFarbe(faecher) {
+  const vergeben = new Set(faecher.filter((f) => !f.deleted).map((f) => (f.farbe || "").toLowerCase()));
+  return (FACHFARBEN.find(([f]) => !vergeben.has(f)) || FACHFARBEN[0])[0];
+}
+
+export function Farbwahl({ wert, setzen }) {
+  const eigenes = React.useRef(null);
+  const eigene = wert && !FACHFARBEN.some(([f]) => f.toLowerCase() === wert.toLowerCase());
+  return (
+    <div className="reihe umbruch" style={{ gap: 8 }}>
+      {FACHFARBEN.map(([farbe, name]) => (
+        <button key={farbe} type="button" title={name} aria-label={name}
+          aria-pressed={(wert || "").toLowerCase() === farbe}
+          className={"farbfeld" + ((wert || "").toLowerCase() === farbe ? " gewaehlt" : "")}
+          style={{ background: farbe }}
+          onClick={() => setzen(farbe)} />
+      ))}
+      <button type="button" title="Eigene Farbe" aria-label="Eigene Farbe"
+        className={"farbfeld" + (eigene ? " gewaehlt" : "")}
+        style={{ background: eigene ? wert
+          : "conic-gradient(#ef5b6b,#e8b84b,#3fbf7f,#4bc6d8,#5b8bff,#a97bf0,#ef5b6b)" }}
+        onClick={() => eigenes.current?.click()} />
+      <input ref={eigenes} type="color" value={wert || "#5b8bff"}
+        style={{ width: 0, height: 0, opacity: 0, position: "absolute" }}
+        onChange={(e) => setzen(e.target.value)} />
+    </div>
+  );
+}
+
+/* Ein neues Fach: Name und Farbe auf einmal, statt eines kahlen Eingabefensters. */
+function NeuesFach({ aufSchliessen }) {
+  const { faecher, fachAnlegen } = useDaten();
+  const [name, setName] = useState("");
+  const [farbe, setFarbe] = useState(() => freieFarbe(faecher));
+  const anlegen = async (e) => {
+    e?.preventDefault();
+    if (!name.trim()) return;
+    await fachAnlegen(name.trim(), farbe);
+    aufSchliessen();
+  };
+  return (
+    <Dialog titel="Neues Fach" aufSchliessen={aufSchliessen}
+      fuss={<>
+        <Knopf onClick={aufSchliessen}>Abbrechen</Knopf>
+        <Knopf art="voll" disabled={!name.trim()} onClick={anlegen}>Anlegen</Knopf>
+      </>}>
+      <form onSubmit={anlegen}>
+        <label className="beschriftung">Name</label>
+        <input className="feld" autoFocus value={name} placeholder="etwa Physik oder Spanisch"
+          onChange={(e) => setName(e.target.value)} />
+        <label className="beschriftung" style={{ marginTop: 16 }}>Farbe</label>
+        <Farbwahl wert={farbe} setzen={setFarbe} />
+        <div className="reihe" style={{ gap: 8, marginTop: 14 }}>
+          <span style={{ width: 12, height: 12, borderRadius: 3, background: farbe }} />
+          <span className="klein matt">{name.trim() || "So erscheint das Fach"}</span>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
 export function FachEinstellungen({ fach, aufSchliessen }) {
   const { fachAendern, notenfaecher } = useDaten();
   const punkte = punkteZuLernfach(notenfaecher, fach.id);
@@ -52,6 +124,9 @@ export function FachEinstellungen({ fach, aufSchliessen }) {
       <label className="beschriftung">Name</label>
       <input className="feld" value={fach.name}
         onChange={(e) => fachAendern(fach.id, { name: e.target.value })} />
+
+      <label className="beschriftung" style={{ marginTop: 16 }}>Farbe</label>
+      <Farbwahl wert={fach.farbe} setzen={(farbe) => fachAendern(fach.id, { farbe })} />
 
       <label className="beschriftung" style={{ marginTop: 16 }}>
         Ziel-Behaltenswahrscheinlichkeit: {Math.round(fach.zielRetention * 100)} %
@@ -156,6 +231,7 @@ export default function Faecher() {
   const [einstellungenFuer, setEinstellungenFuer] = useState(null);
   const [loescht, setLoescht] = useState(null);
   const [zuordnen, setZuordnen] = useState(false);
+  const [neuesFach, setNeuesFach] = useState(false);
   const [kalenderAus, setKalenderAus] = useState(false);
 
   const alleZustaende = useMemo(() => Object.values(zustaende), [zustaende]);
@@ -198,12 +274,11 @@ export default function Faecher() {
             <Knopf art="voll gross" symbol="plus" onClick={faecherAnlegen}>
               Die sechs Schulfächer anlegen
             </Knopf>
-            <Knopf art="gross" symbol="plus" onClick={async () => {
-              const name = window.prompt("Name des Fachs");
-              if (name) await fachAnlegen(name.trim());
-            }}>Einzelnes Fach</Knopf>
+            <Knopf art="gross" symbol="plus" onClick={() => setNeuesFach(true)}>
+              Einzelnes Fach</Knopf>
           </div>
         </Leer>
+        {neuesFach && <NeuesFach aufSchliessen={() => setNeuesFach(false)} />}
       </div>
     );
   }
@@ -215,10 +290,7 @@ export default function Faecher() {
         <Knopf symbol="papier" onClick={() => setKalenderAus(true)}>
           Termine in den Kalender
         </Knopf>
-        <Knopf symbol="plus" onClick={async () => {
-          const name = window.prompt("Name des Fachs");
-          if (name) await fachAnlegen(name.trim());
-        }}>Fach</Knopf>
+        <Knopf symbol="plus" onClick={() => setNeuesFach(true)}>Fach</Knopf>
         {gesamt.faellig + gesamt.neu > 0 && (
           <Knopf art="voll" symbol="blitz" onClick={() => gehe("/abrufen")}>
             Alles abrufen ({gesamt.faellig + Math.min(gesamt.neu, 20)})
@@ -379,6 +451,7 @@ export default function Faecher() {
       )}
 
       {kalenderAus && <Kalenderausfuhr aufSchliessen={() => setKalenderAus(false)} />}
+      {neuesFach && <NeuesFach aufSchliessen={() => setNeuesFach(false)} />}
 
       {zuordnen && (
         <Dialog weit titel="Stapel den Fächern zuordnen" aufSchliessen={() => setZuordnen(false)}
