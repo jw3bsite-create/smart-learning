@@ -14,7 +14,7 @@ import { gehe } from "../App.jsx";
 import { Knopf, SymbolKnopf, Symbol, Stern, Leer, useTastatur } from "../ui/basis.jsx";
 import {
   useModus, useBrauchbar, ModusRahmen, Seite, Ergebnis, Wahl,
-  RICHTUNGEN, seitenFuer, sprachenFuer,
+  RICHTUNGEN, seitenFuer, sprachenFuer, Hinweis,
 } from "./gemeinsam.jsx";
 import Formel from "../ui/Formel.jsx";
 
@@ -171,9 +171,7 @@ export default function Schreiben({ setId, aufSchliessen }) {
         </div>
         <Seite text={seiten.frage} bild={seiten.frageBild} sprache={sprachen.frage} />
         {hilfe && <div className="matt mono">{schablone(seiten.antwort)}</div>}
-        {aufgabe.karte.hint && (
-          <div className="klein blass">Hinweis: {aufgabe.karte.hint}</div>
-        )}
+        <Hinweis text={aufgabe.karte.hint} />
       </div>
 
       <input ref={feld} className="feld" style={{ fontSize: 18, padding: "14px 16px" }}

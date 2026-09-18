@@ -106,9 +106,8 @@ function Zeile({
         <div className="formel-vorschau">
           <Formel text={wert}
             aufFormel={(index) => setFormel({ welche, feldName, index, wert, setWert })} />
-          <div className="klein blass" style={{ marginTop: 4 }}>
-            Tippe auf eine Formel, um sie zu ändern.
-          </div>
+          {/* Ein Stift statt eines Satzes: Die Formel ist antippbar. */}
+          <Symbol name="stift" groesse={13} className="formel-stift" />
         </div>
       )}
       {/* Bild und Aufnahme in einer Zeile: Auf dem Telefon waere sonst jede

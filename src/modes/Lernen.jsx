@@ -17,7 +17,7 @@ import { gehe } from "../App.jsx";
 import { Knopf, SymbolKnopf, Symbol, Balken, Bild, Leer, Stern, useTastatur } from "../ui/basis.jsx";
 import {
   useModus, useBrauchbar, ModusRahmen, Seite, Wahl,
-  RICHTUNGEN, seitenFuer, sprachenFuer,
+  RICHTUNGEN, seitenFuer, sprachenFuer, Hinweis,
 } from "./gemeinsam.jsx";
 import Formel from "../ui/Formel.jsx";
 
@@ -291,12 +291,7 @@ export default function Lernen({ setId, aufSchliessen }) {
               : "Stimmt das?"}
         </div>
         <Seite text={seiten.frage} bild={seiten.frageBild} sprache={sprachen.frage} />
-        {aufgabe.karte.hint && phase === "frage" && (
-          <details className="klein blass">
-            <summary style={{ cursor: "pointer" }}>Hinweis</summary>
-            {aufgabe.karte.hint}
-          </details>
-        )}
+        {phase === "frage" && <Hinweis text={aufgabe.karte.hint} />}
         <div style={{ position: "absolute" }} />
       </div>
 

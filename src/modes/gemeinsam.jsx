@@ -3,7 +3,7 @@
  * Kartenseite, Ergebnisbild am Ende und ein paar Beschaffungshelfer.
  */
 
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { sprich, schweig } from "../core/speech.js";
 import { istUebbar } from "../core/kartenseiten.js";
@@ -67,6 +67,32 @@ export function ModusRahmen({ titel, symbol, aufSchliessen, anteil = null, recht
       )}
       <div className="modus-flaeche">{children}</div>
     </div>
+  );
+}
+
+/*
+ * Der Hinweis einer Karte, erst auf Wunsch.
+ *
+ * Steht er gleich neben der Frage, liest man ihn mit, ehe man es selbst
+ * versucht hat — und das Abrufen wird zum Wiedererkennen. Ein Druck auf den
+ * Knopf zeigt ihn; bei der nächsten Karte ist er wieder zu.
+ */
+export function Hinweis({ text }) {
+  const [offen, setOffen] = useState(false);
+  useEffect(() => { setOffen(false); }, [text]);
+  if (!text) return null;
+  if (offen) {
+    return (
+      <div className="klein blass hinweis-text" onClick={(e) => e.stopPropagation()}>
+        Hinweis: <Formel text={text} />
+      </div>
+    );
+  }
+  return (
+    <button type="button" className="knopf klein leer hinweis-knopf"
+      onClick={(e) => { e.stopPropagation(); setOffen(true); }}>
+      <Symbol name="auge" groesse={15} /> Hinweis zeigen
+    </button>
   );
 }
 

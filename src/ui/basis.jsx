@@ -31,6 +31,7 @@ const PFADE = {
   raster: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
   rakete: "M5 15c-1 2-1 4-1 4s2 0 4-1M9 15l-3-3 1.5-3A11 11 0 0 1 19 4a11 11 0 0 1-5 11.5L11 17z",
   laut: "M4 9v6h4l5 4V5L8 9zM17 9a4 4 0 0 1 0 6",
+  frage: "M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z",
   griff: "M9 6h.01M15 6h.01M9 12h.01M15 12h.01M9 18h.01M15 18h.01",
   sigma: "M18 5H6l6 7-6 7h12",
   mikro: "M12 15a4 4 0 0 0 4-4V7a4 4 0 0 0-8 0v4a4 4 0 0 0 4 4zM5 11a7 7 0 0 0 14 0M12 18v3",
@@ -117,6 +118,25 @@ export function Dialog({ titel, kinder, children, fuss, aufSchliessen, weit = fa
         {fuss && <div className="dialog-fuss">{fuss}</div>}
       </div>
     </div>
+  );
+}
+
+/*
+ * Ein Bedienhinweis hinter einem „?".
+ *
+ * Wer eine Leiste zum zehnten Mal öffnet, braucht nicht zum zehnten Mal den
+ * Satz, wie sie funktioniert. Offen oder zu merkt sich das Gerät.
+ */
+export function Tipp({ kennung, children }) {
+  const [offen, setOffen] = useMerker("tipp:" + kennung, false);
+  return (
+    <>
+      <SymbolKnopf symbol="frage" titel={offen ? "Hinweis ausblenden" : "Hinweis einblenden"}
+        art={"leer klein" + (offen ? " aktiv" : "")} aria-pressed={offen}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => setOffen((o) => !o)} />
+      {offen && <div className="tipp-text klein matt">{children}</div>}
+    </>
   );
 }
 

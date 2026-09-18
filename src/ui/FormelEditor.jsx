@@ -18,7 +18,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { editorZuKatex } from "../core/formel.js";
 import { FORMEL_BAUSTEINE, FORMEL_ZEICHEN } from "../core/zeichen.js";
-import { Dialog, Knopf, useMerker } from "./basis.jsx";
+import { Dialog, Knopf, Tipp, useMerker } from "./basis.jsx";
 import Formel from "./Formel.jsx";
 
 let geladen = null;
@@ -101,11 +101,15 @@ export default function FormelEditor({ anfang = "", titel = "Formel", aufFertig,
       </div>
       {fehler && <div className="rueckmeldung schlecht klein">{fehler}</div>}
 
-      <p className="klein blass" style={{ margin: "8px 0 12px" }}>
-        Tippen geht auch: <strong>/</strong> macht einen Bruch, <strong>^</strong> eine
-        Hochzahl, <strong>pi</strong> wird zu π. Mit den Pfeiltasten wechselst du
-        zwischen Zähler und Nenner.
-      </p>
+      <div className="reihe umbruch" style={{ margin: "8px 0 10px", gap: 6 }}>
+        <span className="klein blass dehnen">Tippe in das Feld, dann auf einen Baustein.</span>
+        <Tipp kennung="formeleditor">
+          Mit der Tastatur geht es schneller: <strong>/</strong> macht einen Bruch,
+          <strong> ^</strong> eine Hochzahl, <strong>_</strong> eine Tiefzahl,
+          <strong> pi</strong> wird zu π. Mit den Pfeiltasten wechselst du zwischen
+          Zähler und Nenner.
+        </Tipp>
+      </div>
 
       <div className="formel-bausteine" onMouseDown={halten} onPointerDown={halten}>
         {FORMEL_BAUSTEINE.map(([name, latex, bild]) => (

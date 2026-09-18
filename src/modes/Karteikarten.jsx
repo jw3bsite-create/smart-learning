@@ -14,7 +14,7 @@ import Tonaufnahme from "../ui/Tonaufnahme.jsx";
 import { gehe } from "../App.jsx";
 import { Knopf, SymbolKnopf, Symbol, Stern, Leer, useTastatur } from "../ui/basis.jsx";
 import {
-  useModus, useBrauchbar, ModusRahmen, Seite, Ergebnis, ModusLeiste, Wahl,
+  useModus, useBrauchbar, ModusRahmen, Seite, Ergebnis, ModusLeiste, Wahl, Hinweis,
   RICHTUNGEN, seitenFuer, sprachenFuer,
 } from "./gemeinsam.jsx";
 
@@ -160,9 +160,7 @@ export default function Karteikarten({ setId, aufSchliessen }) {
               ? (derStapel.defLabel || "Rückseite") : (derStapel.termLabel || "Vorderseite")}</div>
             <Seite text={seiten.frage} bild={seiten.frageBild} sprache={sprachen.frage}
               klasse="karte-text" />
-            {karte.hint && gedreht === false && (
-              <div className="klein blass">Hinweis: {karte.hint}</div>
-            )}
+            {gedreht === false && <Hinweis text={karte.hint} />}
             <div style={{ position: "absolute", top: 8, right: 10 }}>
               <Stern an={karte.starred} aufKlick={() => karteAendern(karte.id, { starred: !karte.starred })} />
             </div>

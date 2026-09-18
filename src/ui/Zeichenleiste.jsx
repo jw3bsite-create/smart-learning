@@ -9,7 +9,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { ZEICHEN, anzeige, einfuegen } from "../core/zeichen.js";
-import { SymbolKnopf, useMerker } from "./basis.jsx";
+import { SymbolKnopf, Tipp, useMerker } from "./basis.jsx";
 import FormelEditor from "./FormelEditor.jsx";
 
 const IST_FELD = (el) => el && (el.tagName === "TEXTAREA"
@@ -72,10 +72,13 @@ export default function Zeichenleiste({ aufSchliessen }) {
 
   return (
     <div className="zeichenleiste" ref={wurzel} onMouseDown={halten} onPointerDown={halten}>
-      <div className="reihe" style={{ marginBottom: 6 }}>
-        <span className="klein matt dehnen">
-          Tippe in ein Feld, dann auf ein Zeichen.
-        </span>
+      <div className="reihe umbruch" style={{ marginBottom: 6 }}>
+        <strong className="klein dehnen">Zeichen und Formeln</strong>
+        <Tipp kennung="zeichenleiste">
+          Tippe zuerst in das Feld der Karte, dann auf ein Zeichen. Es landet an
+          der Schreibmarke. Brüche, Hochzahlen und Wurzeln baust du mit
+          „Formel einfügen“.
+        </Tipp>
         <SymbolKnopf symbol="kreuz" titel="Zeichen schließen" art="leer klein"
           onClick={aufSchliessen} />
       </div>
