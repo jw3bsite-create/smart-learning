@@ -272,6 +272,13 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
     den Wert wieder. Und die Leiste muss `mousedown`/`pointerdown` abfangen,
     sonst verliert das Feld den Fokus und auf dem Telefon klappt die Tastatur
     bei jedem Zeichen zu.
+34. **Formeln stehen zwischen `$…$` und werden nur angezeigt, nie verglichen.**
+    Überall, wo Kartentext erscheint, läuft er durch `ui/Formel.jsx`
+    (gewöhnlicher Text bleibt dabei unverändert). Verglichen und vorgelesen
+    wird der Klartext aus `core/formel.js` (`rac{1}{2}` → „1/2", „1 durch 2").
+    Hoch- und Tiefzahlen sind bewusst Unicode, kein Formelsatz: Sie lassen sich
+    eintippen und überstehen jede Ausfuhr. Beim Schreiben von Python-Skripten
+    mit `rac` aufpassen: `` wird sonst zum Seitenvorschub.
 
 ## Was ausdrücklich nicht gebaut wird
 

@@ -13,6 +13,7 @@ import { gehe, MODI } from "../App.jsx";
 import {
   Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Bild, Stern, Leer, Dialog, Rueckfrage,
 } from "./basis.jsx";
+import Formel from "./Formel.jsx";
 
 function herunterladen(name, inhalt, art = "text/plain") {
   const blob = new Blob([inhalt], { type: art + ";charset=utf-8" });
@@ -223,12 +224,12 @@ export default function Stapelansicht({ setId }) {
                   <div className="seite">
                     <div className="inhalt"
                       style={k.nichtRelevant ? { textDecoration: "line-through" } : undefined}>
-                      {k.term}
+                      <Formel text={k.term} />
                     </div>
                     {k.termImage && <Bild kennung={k.termImage} klasse="" stil={{ maxHeight: 90, borderRadius: 8, marginTop: 8 }} />}
                   </div>
                   <div className="seite">
-                    <div className="inhalt matt">{k.definition}</div>
+                    <div className="inhalt matt"><Formel text={k.definition} /></div>
                     {k.defImage && <Bild kennung={k.defImage} klasse="" stil={{ maxHeight: 90, borderRadius: 8, marginTop: 8 }} />}
                     {k.hint && <div className="klein blass" style={{ marginTop: 6 }}>Hinweis: {k.hint}</div>}
                   </div>

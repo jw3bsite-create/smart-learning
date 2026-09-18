@@ -17,6 +17,7 @@ import { richtungName } from "../core/model.js";
 import { anzahl, datumKurz } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import { Symbol, Knopf, Leer, useMerker } from "./basis.jsx";
+import Formel from "./Formel.jsx";
 
 function Wahl({ werte, wert, setWert }) {
   return (
@@ -148,7 +149,7 @@ export default function Fehlerheft({ fachId = null }) {
                   return (
                     <div key={e.schluessel} className="kachel" style={{ cursor: "default" }}>
                       <div className="reihe umbruch" style={{ gap: 8 }}>
-                        <strong className="dehnen">{frage || "(ohne Text)"}</strong>
+                        <strong className="dehnen"><Formel text={frage || "(ohne Text)"} /></strong>
                         {e.ueberschaetzt > 0 && (
                           <span className="marke rot">
                             {e.ueberschaetzt}× „sicher“ und falsch
@@ -156,7 +157,7 @@ export default function Fehlerheft({ fachId = null }) {
                         )}
                         <span className="marke">{anzahl(e.fehler, "Fehler", "Fehler")}</span>
                       </div>
-                      <div className="matt">{loesung}</div>
+                      <div className="matt"><Formel text={loesung} /></div>
                       <div className="reihe umbruch klein blass" style={{ gap: 8 }}>
                         <span>{stapel?.title || "Stapel gelöscht"}</span>
                         <span>· {richtungName(e.richtung, stapel)}</span>

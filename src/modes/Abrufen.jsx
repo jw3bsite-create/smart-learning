@@ -38,6 +38,7 @@ import {
   Knopf, SymbolKnopf, Symbol, Bild, Stern, Leer, useTastatur, useMerker,
 } from "../ui/basis.jsx";
 import { ModusRahmen } from "./gemeinsam.jsx";
+import Formel from "../ui/Formel.jsx";
 
 /* ------------------------- Was gefragt, was gesucht --------------------- */
 
@@ -460,7 +461,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
             {teile.frageBild && <Bild kennung={teile.frageBild} />}
             {teile.frage && (
               <div className={"frage-text" + (teile.frage.length > 90 ? " lang" : "")}>
-                {teile.frage}
+                <Formel text={teile.frage} />
               </div>
             )}
           </>
@@ -509,7 +510,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
                   <Symbol name={schrittErgebnisse[i] ? "haken" : "kreuz"} groesse={15}
                     style={{ color: schrittErgebnisse[i] ? "var(--gruen)" : "var(--rot)" }} />
                   <span className="matt">{s.frage || "Schritt " + (i + 1)}</span>
-                  <span className="dehnen mono" style={{ textAlign: "right" }}>{s.antwort}</span>
+                  <span className="dehnen mono" style={{ textAlign: "right" }}><Formel text={s.antwort} /></span>
                 </div>
               ))}
             </div>
@@ -579,8 +580,8 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
                       style={{ color: schrittErgebnisse[i] ? "var(--gruen)" : "var(--rot)",
                         marginTop: 3 }} />
                     <div className="dehnen">
-                      {s.frage && <div className="blass">{s.frage}</div>}
-                      <div className="mono" style={{ fontSize: 15 }}>{s.antwort}</div>
+                      {s.frage && <div className="blass"><Formel text={s.frage} /></div>}
+                      <div className="mono" style={{ fontSize: 15 }}><Formel text={s.antwort} /></div>
                     </div>
                   </div>
                 ))}
@@ -605,14 +606,14 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
                 </div>
                 <div>
                   <div className="klein matt">Lösung</div>
-                  <div style={{ fontSize: 17 }}>{teile.loesung}</div>
+                  <div style={{ fontSize: 17 }}><Formel text={teile.loesung} /></div>
                   {teile.loesungBild && <Bild kennung={teile.loesungBild}
                     klasse="" stil={{ maxHeight: 120, borderRadius: 8, marginTop: 6 }} />}
                 </div>
               </div>
             )}
             {teile.zusatz && teile.art === "cloze" && (
-              <div className="klein matt" style={{ marginTop: 10 }}>{teile.zusatz}</div>
+              <div className="klein matt" style={{ marginTop: 10 }}><Formel text={teile.zusatz} /></div>
             )}
             {aufgabe.karte.hint && (
               <div className="klein blass" style={{ marginTop: 6 }}>Hinweis: {aufgabe.karte.hint}</div>

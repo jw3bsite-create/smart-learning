@@ -10,6 +10,7 @@ import { istUebbar } from "../core/kartenseiten.js";
 import { istRelevant } from "../core/model.js";
 import { gehe } from "../App.jsx";
 import { Symbol, SymbolKnopf, Knopf, Bild } from "../ui/basis.jsx";
+import Formel from "../ui/Formel.jsx";
 
 /** Ein Notstapel, damit ein fehlender Stapel keinen Absturz auslöst. */
 const LEERER_STAPEL = {
@@ -77,7 +78,7 @@ export function Seite({ text, bild, sprache, vorlesen = true, klasse = "frage-te
       {bild && <Bild kennung={bild} />}
       {text && (
         <div className={klasse + (lang ? " lang" : "")}>
-          {text}
+          <Formel text={text} />
           {vorlesen && (
             <SymbolKnopf symbol="laut" titel="Vorlesen" art="leer klein"
               onClick={(e) => { e.stopPropagation(); sprich(text, sprache); }} />

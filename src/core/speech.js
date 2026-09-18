@@ -6,6 +6,8 @@
  * Die Liste der Stimmen trifft verzögert ein — darum das Ereignis unten.
  */
 
+import { alsSprache } from "./formel.js";
+
 let stimmenListe = [];
 const horcher = new Set();
 
@@ -39,6 +41,8 @@ function waehleStimme(sprache) {
 /** Liest einen Text vor. Bricht Vorheriges ab. */
 export function sprich(text, sprache = "de", tempo = 1) {
   if (!sprachAusgabeDa() || !text) return;
+  // Formeln liest keine Stimme vor; „1 durch 2" schon.
+  text = alsSprache(text);
   try {
     speechSynthesis.cancel();
     const spruch = new SpeechSynthesisUtterance(String(text).slice(0, 400));

@@ -763,3 +763,20 @@ html { -webkit-text-size-adjust: 100%; }
   .zeichenleiste-titel { display: none; }
   .zeichenleiste-knoepfe { max-width: none; }
 }
+
+/* ------------------------------- Formeln ------------------------------ */
+
+.formel .katex { font-size: 1.08em; }
+.formel-vorschau {
+  margin-top: 6px; padding: 8px 10px; border-radius: 8px;
+  background: var(--grund); border: 1px dashed var(--rand);
+  font-family: var(--schrift-karten); font-size: 17px; overflow-x: auto;
+}
+.bauform {
+  border: 1px solid var(--rand); border-radius: 10px; padding: 10px;
+  margin-bottom: 10px; background: var(--grund);
+}
+.bauform-bruch { display: grid; gap: 4px; max-width: 360px; }
+.bauform-strich { height: 2px; background: var(--schrift-matt); border-radius: 1px; margin: 0 6px; }
+.bauform-vorschau { font-family: var(--schrift-karten); font-size: 18px; min-height: 1.4em; }
+.bauform-bild { font-family: var(--schrift-karten); }

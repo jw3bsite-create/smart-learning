@@ -12,6 +12,7 @@ import { ziehe } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import { Knopf, Symbol, Leer, useMerker } from "../ui/basis.jsx";
 import { useModus, useBrauchbar, ModusRahmen, Wahl, RICHTUNGEN, seitenFuer } from "./gemeinsam.jsx";
+import Formel from "../ui/Formel.jsx";
 
 const LEBEN = 3;
 const HOEHE = 460;
@@ -208,7 +209,7 @@ export default function Meteor({ setId, aufSchliessen }) {
         {brocken.map((b) => (
           <div key={b.id} className={"meteor" + (b.y > 72 ? " gefahr" : "")}
             style={{ left: b.x + "%", top: `calc(${b.y}% - 20px)` }}>
-            {b.text}
+            <Formel text={b.text} />
           </div>
         ))}
         <div className="boden" />
@@ -224,8 +225,8 @@ export default function Meteor({ setId, aufSchliessen }) {
         <div className={"rueckmeldung " + (meldung.art === "richtig" ? "gut" : "schlecht")}>
           <div className="reihe">
             <Symbol name={meldung.art === "richtig" ? "haken" : "kreuz"} />
-            <strong>{meldung.frage}</strong>
-            <span className="matt">→ {meldung.antwort}</span>
+            <strong><Formel text={meldung.frage} /></strong>
+            <span className="matt">→ <Formel text={meldung.antwort} /></span>
             <div className="dehnen" />
             {meldung.gewinn && <span className="marke gruen">+{meldung.gewinn}</span>}
           </div>

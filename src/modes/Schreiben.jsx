@@ -16,6 +16,7 @@ import {
   useModus, useBrauchbar, ModusRahmen, Seite, Ergebnis, Wahl,
   RICHTUNGEN, seitenFuer, sprachenFuer,
 } from "./gemeinsam.jsx";
+import Formel from "../ui/Formel.jsx";
 
 export default function Schreiben({ setId, aufSchliessen }) {
   const {
@@ -213,7 +214,7 @@ export default function Schreiben({ setId, aufSchliessen }) {
             <Stern an={aufgabe.karte.starred}
               aufKlick={() => karteAendern(aufgabe.karte.id, { starred: !aufgabe.karte.starred })} />
           </div>
-          <div style={{ marginTop: 8, fontSize: 17 }}>{seiten.antwort}</div>
+          <div style={{ marginTop: 8, fontSize: 17 }}><Formel text={seiten.antwort} /></div>
           {urteil.status !== "richtig" && (
             <div className="reihe" style={{ marginTop: 10 }}>
               {eingabe.trim() && <span className="klein matt">Getippt: „{eingabe}“</span>}

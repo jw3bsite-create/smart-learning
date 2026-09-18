@@ -14,6 +14,7 @@ import { Knopf, Symbol, Bild, Leer } from "../ui/basis.jsx";
 import {
   useModus, useBrauchbar, ModusRahmen, Seite, Wahl, RICHTUNGEN, seitenFuer, sprachenFuer,
 } from "./gemeinsam.jsx";
+import Formel from "../ui/Formel.jsx";
 
 /** Baut die Fragen zusammen. */
 function baueFragen(karten, { anzahl, arten, richtung }) {
@@ -233,7 +234,7 @@ export default function Test({ setId, aufSchliessen }) {
                     return (
                       <div key={paar.karte.id} className="reihe umbruch" style={{ gap: 10 }}>
                         <div style={{ flex: 1, minWidth: 140 }}>
-                          {paar.frage}
+                          <Formel text={paar.frage} />
                           {paar.frageBild && <Bild kennung={paar.frageBild} klasse=""
                             stil={{ maxHeight: 60, borderRadius: 6, display: "block", marginTop: 4 }} />}
                         </div>
@@ -249,7 +250,7 @@ export default function Test({ setId, aufSchliessen }) {
                           ))}
                         </select>
                         {auswertung && !gut && (
-                          <span className="klein" style={{ color: "var(--gruen)" }}>{paar.antwort}</span>
+                          <span className="klein" style={{ color: "var(--gruen)" }}><Formel text={paar.antwort} /></span>
                         )}
                       </div>
                     );
@@ -269,7 +270,7 @@ export default function Test({ setId, aufSchliessen }) {
                         onChange={(e) => antwortSetzen(frage.id, e.target.value)} />
                       {auswertung && !bewertet && (
                         <div className="klein" style={{ marginTop: 8, color: "var(--gruen)" }}>
-                          Richtig wäre: {frage.seiten.antwort}
+                          Richtig wäre: <Formel text={frage.seiten.antwort} />
                         </div>
                       )}
                     </>
@@ -286,7 +287,7 @@ export default function Test({ setId, aufSchliessen }) {
                         return (
                           <button key={m.id} className={klasse} disabled={Boolean(auswertung)}
                             onClick={() => antwortSetzen(frage.id, m.id)}>
-                            <span>{m.antwort}
+                            <span><Formel text={m.antwort} />
                               {m.antwortBild && <Bild kennung={m.antwortBild} klasse=""
                                 stil={{ maxHeight: 60, borderRadius: 6, display: "block", marginTop: 4 }} />}
                             </span>
@@ -299,7 +300,7 @@ export default function Test({ setId, aufSchliessen }) {
                   {frage.art === "wahrFalsch" && (
                     <>
                       <div className="frage-block" style={{ minHeight: 60, padding: 16, marginBottom: 12 }}>
-                        <div className="frage-text lang">{frage.behauptung.text}</div>
+                        <div className="frage-text lang"><Formel text={frage.behauptung.text} /></div>
                         {frage.behauptung.bild && <Bild kennung={frage.behauptung.bild} />}
                       </div>
                       <div className="antwort-gitter">

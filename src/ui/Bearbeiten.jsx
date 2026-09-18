@@ -18,6 +18,8 @@ import {
 import { TextEinfuhr, BildEinfuhr, QuizletEinfuhr } from "./Einfuhr.jsx";
 import Tonaufnahme from "./Tonaufnahme.jsx";
 import Zeichenleiste from "./Zeichenleiste.jsx";
+import Formel from "./Formel.jsx";
+import { hatFormel } from "../core/formel.js";
 import KiGenerator from "./KiGenerator.jsx";
 
 /* ----------------------------- Eine Kartenzeile ------------------------ */
@@ -91,6 +93,11 @@ function Zeile({ karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZe
           if (datei) { e.preventDefault(); bildWaehlen(welche === "vorn" ? "termImage" : "defImage", datei); }
         }}
       />
+      {/* Enthaelt das Feld eine Formel, steht darunter, wie sie aussehen wird —
+          im Feld selbst sieht man ja nur die Schreibweise. */}
+      {hatFormel(wert) && (
+        <div className="formel-vorschau"><Formel text={wert} /></div>
+      )}
       {/* Bild und Aufnahme in einer Zeile: Auf dem Telefon waere sonst jede
           Karte doppelt so hoch, und man scrollt sich durch die Liste. */}
       <div className="reihe umbruch zeile-werkzeuge">

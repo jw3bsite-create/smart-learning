@@ -10,6 +10,7 @@ import { mische, ziehe, zeitLang } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import { Knopf, Symbol, Bild, Leer, useMerker } from "../ui/basis.jsx";
 import { useModus, useBrauchbar, ModusRahmen } from "./gemeinsam.jsx";
+import Formel from "../ui/Formel.jsx";
 
 const PAARE = 6;
 
@@ -139,7 +140,7 @@ export default function Zuordnen({ setId, aufSchliessen }) {
               <div key={p.id} className={klasse} onClick={() => anklicken(p)}>
                 <div>
                   {p.bild && <Bild kennung={p.bild} klasse="" stil={{ maxHeight: 64, borderRadius: 6 }} />}
-                  <div>{p.text}</div>
+                  <div><Formel text={p.text} /></div>
                 </div>
               </div>
             );

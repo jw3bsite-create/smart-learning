@@ -7,6 +7,8 @@
  * Ausgänge: richtig, fast richtig (Tippfehler) und falsch.
  */
 
+import { alsKlartext, hochAlsPotenz } from "./formel.js";
+
 const ARTIKEL = new Set([
   "der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem", "einer", "eines",
   "the", "a", "an", "to",
@@ -30,7 +32,8 @@ export function normalisiere(text, opt = {}) {
     ohneKlammern = true, ohneArtikel = true,
     zeichenEgal = true, satzzeichenEgal = true,
   } = opt;
-  let s = String(text || "").toLowerCase().trim();
+  // Eine Formel wird als Klartext verglichen: niemand tippt Formelbefehle.
+  let s = alsKlartext(String(text || "")).toLowerCase().trim();
   if (ohneKlammern) s = s.replace(/[([{][^)\]}]*[)\]}]/g, " ");
   if (satzzeichenEgal) s = s.replace(/[.,;:!?¡¿"'`´„“”«»…\-–—_*]/g, " ");
   s = umschrift(s);
@@ -150,7 +153,7 @@ export function schablone(text) {
  * Bewerten — dieselbe Regel wie überall in dieser App.
  */
 export function normalisiereFormel(text) {
-  return String(text || "")
+  return hochAlsPotenz(alsKlartext(String(text || "")))
     .toLowerCase()
     .replace(/\s+/g, "")
     .replace(/[´`'′]/g, "'")            // Ableitungsstrich in allen Formen

@@ -19,6 +19,7 @@ import {
   useModus, useBrauchbar, ModusRahmen, Seite, Wahl,
   RICHTUNGEN, seitenFuer, sprachenFuer,
 } from "./gemeinsam.jsx";
+import Formel from "../ui/Formel.jsx";
 
 export default function Lernen({ setId, aufSchliessen }) {
   const {
@@ -310,7 +311,7 @@ export default function Lernen({ setId, aufSchliessen }) {
             return (
               <button key={m.id} className={klasse} onClick={() => antwortAuswahl(m)}>
                 <span className="ziffer">{i + 1}</span>
-                <span>{m.text}{m.bild && <Bild kennung={m.bild} klasse=""
+                <span><Formel text={m.text} />{m.bild && <Bild kennung={m.bild} klasse=""
                   stil={{ maxHeight: 70, borderRadius: 6, marginTop: 6, display: "block" }} />}</span>
               </button>
             );
@@ -368,7 +369,7 @@ export default function Lernen({ setId, aufSchliessen }) {
               aufKlick={() => karteAendern(aufgabe.karte.id, { starred: !aufgabe.karte.starred })} />
           </div>
           <div style={{ marginTop: 8 }}>
-            <span className="matt klein">Richtige Antwort: </span>{seiten.antwort}
+            <span className="matt klein">Richtige Antwort: </span><Formel text={seiten.antwort} />
           </div>
           {aufgabe.art === "schreiben" && urteil.status !== "richtig" && eingabe.trim() && (
             <div className="reihe" style={{ marginTop: 10 }}>

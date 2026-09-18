@@ -23,6 +23,7 @@ import { fachPunkte } from "../core/noten.js";
 import { pruefe } from "../core/text.js";
 import { anzahl } from "../core/util.js";
 import { Knopf, SymbolKnopf, Symbol, Leer } from "../ui/basis.jsx";
+import Formel from "../ui/Formel.jsx";
 
 /** Die Punkte eines Lernfachs — für die Gewichtung und den Hinweis. */
 function punkteJeFach(notenfaecher) {
@@ -303,7 +304,7 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
             <Symbol name={stimmt ? "haken" : "kreuz"} />
             <strong>{stimmt ? "Richtig" : "Die Antwort lautet"}</strong>
           </div>
-          <div style={{ marginTop: 6, whiteSpace: "pre-wrap" }}>{seiten.antwort}</div>
+          <div style={{ marginTop: 6, whiteSpace: "pre-wrap" }}><Formel text={seiten.antwort} /></div>
           {jetzt.karte.hint && (
             <div className="klein blass" style={{ marginTop: 8 }}>{jetzt.karte.hint}</div>
           )}

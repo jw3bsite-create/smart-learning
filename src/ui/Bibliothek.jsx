@@ -13,6 +13,7 @@ import { gehe } from "../App.jsx";
 import {
   Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Leer, Dialog, Rueckfrage,
 } from "./basis.jsx";
+import Formel from "./Formel.jsx";
 
 /* ---------------------------- Eine Stapelkachel ------------------------ */
 
@@ -98,8 +99,8 @@ function Suchergebnis({ begriff }) {
             {treffer.kartenTreffer.map((k) => (
               <div key={k.id} className="karten-zeile" style={{ cursor: "pointer" }}
                 onClick={() => gehe("/stapel/" + k.setId)}>
-                <div className="seite"><div className="inhalt">{k.term}</div></div>
-                <div className="seite"><div className="inhalt matt">{k.definition}</div></div>
+                <div className="seite"><div className="inhalt"><Formel text={k.term} /></div></div>
+                <div className="seite"><div className="inhalt matt"><Formel text={k.definition} /></div></div>
                 <div className="klein blass">{nameVon(k.setId)}</div>
               </div>
             ))}

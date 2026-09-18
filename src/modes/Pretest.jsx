@@ -20,6 +20,7 @@ import { ziehe } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import { Knopf, Symbol, Bild, Leer, useTastatur } from "../ui/basis.jsx";
 import { ModusRahmen } from "./gemeinsam.jsx";
+import Formel from "../ui/Formel.jsx";
 
 const WIE_VIELE = 5;
 
@@ -138,7 +139,7 @@ export default function Pretest({ setId, aufSchliessen }) {
 
       <div className="frage-block">
         {frageBild && <Bild kennung={frageBild} />}
-        <div className={"frage-text" + (frage.length > 90 ? " lang" : "")}>{frage}</div>
+        <div className={"frage-text" + (frage.length > 90 ? " lang" : "")}><Formel text={frage} /></div>
       </div>
 
       {!aufgedeckt ? (
@@ -156,7 +157,7 @@ export default function Pretest({ setId, aufSchliessen }) {
         <>
           <div className="rueckmeldung gut">
             <div className="klein matt">Die Antwort</div>
-            <div style={{ fontSize: 18, marginTop: 4 }}>{loesung}</div>
+            <div style={{ fontSize: 18, marginTop: 4 }}><Formel text={loesung} /></div>
             {eingabe.trim() && (
               <div className="klein blass" style={{ marginTop: 8 }}>
                 Du hattest geschrieben: „{eingabe}“
