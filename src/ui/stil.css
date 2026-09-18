@@ -721,3 +721,45 @@ html { -webkit-text-size-adjust: 100%; }
 /* Bild- und Tonknopf einer Kartenseite stehen in einer Zeile. */
 .zeile-werkzeuge { gap: 6px; margin-top: 6px; }
 .zeile-werkzeuge .ton-zeile { margin-top: 0; }
+
+/* ----------------------------- Zeichenleiste -------------------------- */
+
+/*
+ * Sie klebt oben, waehrend man durch die Karten scrollt — sonst muesste man
+ * fuer jedes Integralzeichen zurueck an den Seitenanfang.
+ */
+.zeichenleiste {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 25;
+  background: var(--grund-2); border: 1px solid var(--rand);
+  border-radius: calc(var(--rund) * 0.85); box-shadow: var(--schatten);
+  padding: 10px 12px; margin-bottom: 16px;
+  max-height: 42vh; overflow-y: auto;
+}
+.zeichenleiste-gruppen { display: flex; flex-wrap: wrap; gap: 14px; }
+.zeichenleiste-titel { font-size: 11px; color: var(--schrift-blass); margin-bottom: 5px; }
+.zeichenleiste-knoepfe { display: flex; flex-wrap: wrap; gap: 4px; max-width: 320px; }
+.zeichen-knopf {
+  min-width: 32px; height: 32px; padding: 0 6px;
+  background: var(--grund); border: 1px solid var(--rand); color: var(--schrift);
+  border-radius: 8px; cursor: pointer;
+  font-family: var(--schrift-karten); font-size: 16px;
+}
+.zeichen-knopf:hover { border-color: var(--akzent); }
+.zeichen-knopf:active { background: var(--grund-3); }
+@media (pointer: coarse) {
+  .zeichen-knopf { min-width: 42px; height: 42px; font-size: 18px; }
+  .zeichen-knopf:hover { border-color: var(--rand); }
+}
+.zeichenleiste-reiter { display: none; }
+@media (max-width: 640px) {
+  .zeichenleiste { max-height: none; padding: 8px 10px; }
+  .zeichenleiste-reiter {
+    display: flex; gap: 6px; overflow-x: auto; margin-bottom: 8px;
+    padding-bottom: 2px; scrollbar-width: none;
+  }
+  .zeichenleiste-reiter .knopf { flex: none; }
+  .zeichenleiste-gruppen > div { display: none; }
+  .zeichenleiste-gruppen > div.aktiv { display: block; }
+  .zeichenleiste-titel { display: none; }
+  .zeichenleiste-knoepfe { max-width: none; }
+}

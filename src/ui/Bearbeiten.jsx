@@ -12,9 +12,12 @@ import { bildAufnehmen, bildLoeschen, dateiAusEreignis } from "../core/media.js"
 import { anzahl } from "../core/util.js";
 import { kartenArt, KARTENARTEN } from "../core/model.js";
 import { gehe } from "../App.jsx";
-import { Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Bild, Stern, Leer, Dialog } from "./basis.jsx";
+import {
+  Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Bild, Stern, Leer, Dialog, useMerker,
+} from "./basis.jsx";
 import { TextEinfuhr, BildEinfuhr, QuizletEinfuhr } from "./Einfuhr.jsx";
 import Tonaufnahme from "./Tonaufnahme.jsx";
+import Zeichenleiste from "./Zeichenleiste.jsx";
 import KiGenerator from "./KiGenerator.jsx";
 
 /* ----------------------------- Eine Kartenzeile ------------------------ */
@@ -178,6 +181,7 @@ export default function Bearbeiten({ setId }) {
   } = useDaten();
   const [textEinfuhr, setTextEinfuhr] = useState(false);
   const [quizlet, setQuizlet] = useState(false);
+  const [zeichen, setZeichen] = useMerker("zeichenleisteOffen", false);
   const [bildEinfuhr, setBildEinfuhr] = useState(false);
   const [generator, setGenerator] = useState(false);
   const [hilfe, setHilfe] = useState(false);
@@ -213,6 +217,10 @@ export default function Bearbeiten({ setId }) {
         <Knopf symbol="hinauf" onClick={() => setTextEinfuhr(true)}>Text einfügen</Knopf>
         <Knopf symbol="kamera" onClick={() => setBildEinfuhr(true)}>Aus Bild</Knopf>
         <Knopf symbol="blitz" onClick={() => setGenerator(true)}>Aus Vorlage</Knopf>
+        <Knopf symbol="sigma" art={zeichen ? "voll" : ""} aria-pressed={zeichen}
+          title="Mathematische Zeichen" onClick={() => setZeichen((z) => !z)}>
+          Zeichen
+        </Knopf>
         <Knopf art="voll" symbol="haken" onClick={() => gehe("/stapel/" + setId)}>Fertig</Knopf>
         <Menue knopf={<SymbolKnopf symbol="mehr" titel="Mehr" art="klein" />}>
           <MenuePunkt symbol="hinauf" onClick={() => setQuizlet(true)}>
@@ -220,6 +228,8 @@ export default function Bearbeiten({ setId }) {
           <MenuePunkt symbol="auge" onClick={() => setHilfe(true)}>Tastenkürzel</MenuePunkt>
         </Menue>
       </div>
+
+      {zeichen && <Zeichenleiste aufSchliessen={() => setZeichen(false)} />}
 
       <input className="feld" value={derStapel.title}
         placeholder="Titel des Stapels, etwa „Englisch Vokabeln Unit 5“"

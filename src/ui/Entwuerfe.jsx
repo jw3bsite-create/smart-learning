@@ -17,7 +17,8 @@ import { useDaten } from "../core/store.jsx";
 import { normalisiere } from "../core/text.js";
 import { anzahl } from "../core/util.js";
 import { gehe } from "../App.jsx";
-import { Symbol, SymbolKnopf, Knopf, Bild, Leer, Dialog } from "./basis.jsx";
+import { Symbol, SymbolKnopf, Knopf, Bild, Leer, Dialog, useMerker } from "./basis.jsx";
+import Zeichenleiste from "./Zeichenleiste.jsx";
 
 /* ---------------------------- Ein einzelner Entwurf --------------------- */
 
@@ -129,6 +130,7 @@ function EntwurfKarte({ entwurf, aufFertig }) {
 export default function Entwuerfe({ setId }) {
   const { entwuerfe, stapel, entwurfVerwerfen } = useDaten();
   const [alleVerwerfen, setAlleVerwerfen] = useState(false);
+  const [zeichen, setZeichen] = useMerker("zeichenleisteOffen", false);
 
   const derStapel = stapel.find((s) => s.id === setId);
   const meine = useMemo(
@@ -149,12 +151,19 @@ export default function Entwuerfe({ setId }) {
           <h1>Entwürfe</h1>
           <div className="klein matt">{derStapel.title}</div>
         </div>
+        <Knopf art={"klein" + (zeichen ? " voll" : "")} symbol="sigma"
+          aria-pressed={zeichen} title="Mathematische Zeichen"
+          onClick={() => setZeichen((z) => !z)}>
+          Zeichen
+        </Knopf>
         {meine.length > 0 && (
           <Knopf art="leer klein gefahr" onClick={() => setAlleVerwerfen(true)}>
             Alle verwerfen
           </Knopf>
         )}
       </div>
+
+      {zeichen && <Zeichenleiste aufSchliessen={() => setZeichen(false)} />}
 
       {meine.length === 0 ? (
         <Leer symbol="papier" titel="Keine Entwürfe"

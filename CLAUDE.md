@@ -266,6 +266,12 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
 32. **Der Fehlerheft-Bereich im Fragemodus reicht Schlüssel herein**
     (`bereich.schluessel`, Format `<karte>:<richtung>`). Geübt wird daraus als
     Übung; die Termine im Abrufen bleiben beim Plan (Regel 7).
+33. **Zeichen in ein Feld einsetzen, das React steuert, geht nur über ein
+    input-Ereignis** (`ui/Zeichenleiste.jsx`). Wert setzen über den Setter des
+    Prototyps, dann `input` auslösen; sonst überschreibt das nächste Zeichnen
+    den Wert wieder. Und die Leiste muss `mousedown`/`pointerdown` abfangen,
+    sonst verliert das Feld den Fokus und auf dem Telefon klappt die Tastatur
+    bei jedem Zeichen zu.
 
 ## Was ausdrücklich nicht gebaut wird
 
