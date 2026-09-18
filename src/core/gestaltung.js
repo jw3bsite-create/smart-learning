@@ -232,6 +232,44 @@ export const STANDARD_GESTALTUNG = {
   ruhig: false,                  // Übergänge abschalten
 };
 
+/* ------------------------- Eigene Erscheinungsbilder --------------------- */
+
+/*
+ * Ein Erscheinungsbild ist eine Momentaufnahme der Gestaltung: dieselben
+ * Schlüssel wie STANDARD_GESTALTUNG, nicht mehr. Die vorgegebenen lassen
+ * sich ausblenden, aber nicht zerstören — sie stehen im Code, und wer sich
+ * verklickt, soll sie zurückholen können.
+ */
+
+/** Die Gestaltungswerte aus den Einstellungen. */
+export function gestaltungAus(einstellungen = {}) {
+  return Object.fromEntries(Object.keys(STANDARD_GESTALTUNG)
+    .map((k) => [k, einstellungen[k] ?? STANDARD_GESTALTUNG[k]]));
+}
+
+/** Passt die jetzige Gestaltung zu einem Erscheinungsbild? */
+export function istAktiv(werte = {}, einstellungen = {}) {
+  const eintraege = Object.entries(werte);
+  return eintraege.length > 0 && eintraege.every(([k, v]) =>
+    (einstellungen[k] ?? STANDARD_GESTALTUNG[k]) === v);
+}
+
+/** Vorgegebene (ohne die ausgeblendeten) und eigene, in dieser Reihenfolge. */
+export function sichtbareBilder(eigene = [], ausgeblendet = []) {
+  const vorgegeben = PALETTEN
+    .filter((p) => !ausgeblendet.includes(p.name))
+    .map((p) => ({ ...p, id: "vorgabe:" + p.name, eigenes: false }));
+  return [...vorgegeben, ...(eigene || []).map((b) => ({ ...b, eigenes: true }))];
+}
+
+export function neuesBild(name, einstellungen, jetzt = Date.now()) {
+  return {
+    id: "eb_" + jetzt.toString(36),
+    name: String(name || "").trim() || "Eigenes",
+    werte: gestaltungAus(einstellungen),
+  };
+}
+
 /** Etwas dunkler für den gedrückten Zustand eines Knopfes. */
 function abdunkeln(farbe, anteil = 0.16) {
   const treffer = /^#?([0-9a-f]{6})$/i.exec(String(farbe || "").trim());

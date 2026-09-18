@@ -288,6 +288,15 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
     Kopieren und Duplizieren geben eine neue Kennung, also neuen Lernstand;
     Verschieben behält Kennung und Lernstand (`core/auswahl.js`). Tonaufnahmen
     hängen an der Kennung und müssen beim Kopieren mitkopiert werden.
+37. **Der Formel-Editor (MathLive) lädt keine eigenen Schriften.** Er erkennt
+    die KaTeX-Schriften, die `ui/Formel.jsx` über `katex.min.css` einbindet,
+    und nutzt sie mit (`fontsDirectory = null`). Fällt diese Einbindung weg,
+    steht der Editor ohne Schrift da. Seine Sonderbefehle (`\differentialD`,
+    `\placeholder` …) übersetzt `editorZuKatex`; `test/formeleditor.test.js`
+    setzt jeden Baustein und jedes Zeichen mit KaTeX.
+38. **Zurück geht über den Verlauf** (`zurueck`, `zurueckZu`, `ersetze` in
+    `App.jsx`). Einen festen Zielweg nur als Ersatz angeben, wenn es keinen
+    Vorgänger gibt; sonst landet man bei „Alle Stapel" statt im Fach.
 
 ## Was ausdrücklich nicht gebaut wird
 

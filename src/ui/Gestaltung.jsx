@@ -14,10 +14,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import {
-  SCHRIFTEN, SCHRIFT_GRUPPEN, DICHTEN, BREITEN, PALETTEN, STANDARD_GESTALTUNG,
-  anwenden, schriftenZurWahl, stapelVorhanden,
+  SCHRIFTEN, SCHRIFT_GRUPPEN, DICHTEN, BREITEN, STANDARD_GESTALTUNG,
+  anwenden, schriftenZurWahl, stapelVorhanden, sichtbareBilder, istAktiv, neuesBild,
 } from "../core/gestaltung.js";
-import { Symbol, Knopf, Rueckfrage, useMerker } from "./basis.jsx";
+import { Symbol, SymbolKnopf, Knopf, Rueckfrage, useMerker } from "./basis.jsx";
 
 const AKZENTE = [
   ["#5b8bff", "Blau"], ["#a97bf0", "Violett"], ["#3fbf7f", "Grün"],
@@ -266,6 +266,9 @@ function Vorschau({ werte }) {
 export default function Gestaltung() {
   const { einstellungen, setzeEinstellung } = useDaten();
   const [zuruecksetzen, setZuruecksetzen] = useState(false);
+  const [speichert, setSpeichert] = useState(false);
+  const [bildName, setBildName] = useState("");
+  const [loeschtBild, setLoeschtBild] = useState(null);
   const [offen, setOffen] = useMerker("gestaltungOffen", []);
   const farbfeld = useRef(null);
 
@@ -289,25 +292,79 @@ export default function Gestaltung() {
   };
 
   const eigeneFarbe = !AKZENTE.some(([f]) => f === einstellungen.akzent);
+  const eigene = einstellungen.eigeneErscheinungsbilder || [];
+  const ausgeblendet = einstellungen.ausgeblendeteErscheinungsbilder || [];
+  const bilder = sichtbareBilder(eigene, ausgeblendet);
+
+  const bildLoeschen = (b) => {
+    if (b.eigenes) setzen("eigeneErscheinungsbilder", eigene.filter((x) => x.id !== b.id));
+    else setzen("ausgeblendeteErscheinungsbilder", [...ausgeblendet, b.name]);
+    setLoeschtBild(null);
+  };
 
   return (
     <>
-      {/* --------------------------- Paletten --------------------------- */}
-      <label className="beschriftung">Fertige Zusammenstellungen</label>
-      <div className="gitter" style={{ gridTemplateColumns:
-        "repeat(auto-fill, minmax(170px, 1fr))", gap: 8, marginBottom: 22 }}>
-        {PALETTEN.map((p) => (
-          <button key={p.name} className="kachel" style={{ minHeight: 0, padding: 12 }}
-            onClick={() => paletteAnlegen(p.werte)}>
-            <div className="reihe" style={{ gap: 8 }}>
-              <span style={{ width: 14, height: 14, borderRadius: 4, flex: "none",
-                background: p.werte.akzent, display: "block" }} />
-              <strong>{p.name}</strong>
-            </div>
-            <div className="klein blass">{p.beschreibung}</div>
-          </button>
-        ))}
+      {/* ------------------------ Erscheinungsbilder ---------------------- */}
+      <div className="reihe umbruch" style={{ gap: 8, marginBottom: 8 }}>
+        <label className="beschriftung dehnen" style={{ margin: 0 }}>Erscheinungsbilder</label>
+        {!speichert && (
+          <Knopf art="klein" symbol="plus" onClick={() => { setSpeichert(true); setBildName(""); }}>
+            Aktuelles speichern
+          </Knopf>
+        )}
       </div>
+
+      {/* Das Speichern nimmt die Gestaltung, wie sie gerade eingestellt ist —
+          erst einstellen, dann benennen. */}
+      {speichert && (
+        <form className="reihe" style={{ gap: 8, marginBottom: 10 }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!bildName.trim()) return;
+            setzen("eigeneErscheinungsbilder",
+              [...eigene, neuesBild(bildName, einstellungen)]);
+            setSpeichert(false);
+          }}>
+          <input className="feld" autoFocus value={bildName}
+            placeholder="Name, etwa Abends oder Prüfungszeit"
+            onChange={(e) => setBildName(e.target.value)} />
+          <Knopf art="voll" type="submit" disabled={!bildName.trim()}>Speichern</Knopf>
+          <SymbolKnopf symbol="kreuz" titel="Abbrechen" art="leer klein"
+            onClick={() => setSpeichert(false)} />
+        </form>
+      )}
+
+      <div className="gitter" style={{ gridTemplateColumns:
+        "repeat(auto-fill, minmax(170px, 1fr))", gap: 8, marginBottom: 8 }}>
+        {bilder.map((b) => {
+          const aktiv = istAktiv(b.werte, einstellungen);
+          return (
+            <div key={b.id} role="button" tabIndex={0}
+              className={"kachel erscheinungsbild" + (aktiv ? " aktiv" : "")}
+              style={{ minHeight: 0, padding: 12 }}
+              onClick={() => paletteAnlegen(b.werte)}
+              onKeyDown={(e) => { if (e.key === "Enter") paletteAnlegen(b.werte); }}>
+              <div className="reihe" style={{ gap: 8 }}>
+                <span style={{ width: 14, height: 14, borderRadius: 4, flex: "none",
+                  background: b.werte.akzent, display: "block" }} />
+                <strong className="dehnen">{b.name}</strong>
+                <SymbolKnopf symbol="kreuz" titel={"„" + b.name + "“ löschen"} art="leer klein"
+                  onClick={(e) => { e.stopPropagation(); setLoeschtBild(b); }} />
+              </div>
+              <div className="klein blass">
+                {aktiv ? "eingestellt" : b.eigenes ? "eigenes" : b.beschreibung}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {ausgeblendet.length > 0 && (
+        <button type="button" className="zurueck-verweis klein" style={{ marginBottom: 14 }}
+          onClick={() => setzen("ausgeblendeteErscheinungsbilder", [])}>
+          Vorgegebene wiederherstellen ({ausgeblendet.length})
+        </button>
+      )}
+      <div style={{ marginBottom: 14 }} />
 
       <div className="antwort-gitter" style={{ gap: 26, alignItems: "start" }}>
         {/* ------------------------ Die Stellschrauben ------------------- */}
@@ -412,6 +469,14 @@ export default function Gestaltung() {
           <Vorschau werte={einstellungen} />
         </div>
       </div>
+
+      {loeschtBild && (
+        <Rueckfrage titel={"„" + loeschtBild.name + "“ löschen?"} bestaetigung="Löschen"
+          text={loeschtBild.eigenes
+            ? "Das Erscheinungsbild verschwindet. Die Gestaltung, die gerade eingestellt ist, bleibt."
+            : "Das vorgegebene Erscheinungsbild wird ausgeblendet. Unter „Vorgegebene wiederherstellen“ kommt es zurück."}
+          aufNein={() => setLoeschtBild(null)} aufJa={() => bildLoeschen(loeschtBild)} />
+      )}
 
       {zuruecksetzen && (
         <Rueckfrage titel="Gestaltung zurücksetzen?" bestaetigung="Zurücksetzen"

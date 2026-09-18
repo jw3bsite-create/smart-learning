@@ -888,3 +888,7 @@ math-field.formel-feld::part(menu-toggle) { display: none; }
 }
 .farbfeld.gewaehlt { border: 2px solid var(--schrift); box-shadow: 0 0 0 2px var(--grund-2) inset; }
 @media (pointer: coarse) { .farbfeld { width: 40px; height: 40px; } }
+
+/* Erscheinungsbilder */
+.kachel.erscheinungsbild.aktiv { border-color: var(--akzent); }
+.kachel.erscheinungsbild:focus-visible { outline: 2px solid var(--akzent); outline-offset: 2px; }

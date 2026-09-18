@@ -44,6 +44,8 @@ export const STANDARD_EINSTELLUNGEN = {
   sitzungsUmfang: 30,            // Aufgaben je Abrufsitzung
   faecherAngelegt: false,        // ob der Vorschlag der sechs Fächer schon kam
   letzteSicherung: 0,            // wann zuletzt eine Sicherungsdatei geschrieben wurde
+  eigeneErscheinungsbilder: [],  // selbst gespeicherte Gestaltungen
+  ausgeblendeteErscheinungsbilder: [],  // Namen vorgegebener, die weg sollen
 };
 
 export function DatenSpeicher({ children }) {
