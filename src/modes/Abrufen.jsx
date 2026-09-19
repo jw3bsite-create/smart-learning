@@ -39,6 +39,8 @@ import {
 } from "../ui/basis.jsx";
 import { ModusRahmen } from "./gemeinsam.jsx";
 import Formel from "../ui/Formel.jsx";
+import Zeichenleiste from "../ui/Zeichenleiste.jsx";
+import { hatFormel } from "../core/formel.js";
 
 /* ------------------------- Was gefragt, was gesucht --------------------- */
 
@@ -95,10 +97,34 @@ function ClozeText({ stuecke, luecke, aufgedeckt, eingabe }) {
             color: aufgedeckt ? "var(--gruen)" : "var(--schrift-blass)",
             fontWeight: aufgedeckt ? 600 : 400,
           }}>
-            {aufgedeckt ? s.text : (eingabe || "…")}
+            {aufgedeckt ? <Formel text={s.text} /> : (eingabe ? <Formel text={eingabe} /> : "…")}
           </span>
         );
       })}
+    </div>
+  );
+}
+
+/* Knopf, der die Zeichenleiste unter dem Antwortfeld auf- und zuklappt. */
+function ZeichenSchalter({ an, setzen }) {
+  return (
+    <Knopf art={"klein" + (an ? " voll" : "")} symbol="sigma" aria-pressed={an}
+      title="Mathematische Zeichen und Formeln"
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={() => setzen(!an)}>
+      Zeichen
+    </Knopf>
+  );
+}
+
+/* Steht eine Formel in der Antwort, sieht man sie gleich gesetzt — im
+   Eingabefeld selbst stünde nur ihr Quelltext. */
+function Antwortvorschau({ eingabe }) {
+  if (!hatFormel(eingabe)) return null;
+  return (
+    <div className="formel-vorschau" style={{ marginTop: 8 }}>
+      <span className="klein blass">So sieht deine Antwort aus: </span>
+      <Formel text={eingabe} />
     </div>
   );
 }
@@ -128,6 +154,8 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
   const [schrittNr, setSchrittNr] = useState(0);
   const [schrittErgebnisse, setSchrittErgebnisse] = useState([]);
   const feld = useRef(null);
+  // Zeichenleiste unter dem Antwortfeld: bleibt offen, wenn man sie einmal braucht.
+  const [zeichen, setZeichen] = useMerker("abrufZeichen", false);
   const beginn = useRef(Date.now());
 
   const faecherVon = useCallback(() => faecher, [faecher]);
@@ -252,7 +280,11 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
     2: () => (phase === "konfidenz" ? konfidenzWaehlen(KONFIDENZ.UNSICHER) : bewerten(NOTEN.SCHWER)),
     3: () => (phase === "konfidenz" ? konfidenzWaehlen(KONFIDENZ.KEINE_AHNUNG) : bewerten(NOTEN.GUT)),
     4: () => phase === "aufgedeckt" && bewerten(NOTEN.LEICHT),
-    " ": { auchBeimTippen: true, fn: () => phase === "tippen" && aufdecken() },
+    /* Leertaste deckt nur auf, solange noch nichts geschrieben ist — wer
+       „die Zelle" tippt, braucht das Leerzeichen. Beim Rechenweg nie. */
+    " ": { auchBeimTippen: true,
+      wenn: () => phase === "tippen" && !istMehrschritt && !eingabe.trim(),
+      fn: () => aufdecken() },
     Enter: { auchBeimTippen: true, fn: () => {
       if (phase === "tippen") { if (istMehrschritt) schrittPruefen(); else aufdecken(); }
       else if (phase === "aufgedeckt") bewerten(stimmtGenau ? NOTEN.GUT : NOTEN.NOCHMAL);
@@ -524,7 +556,9 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
             style={{ fontSize: 19, padding: "14px 16px", fontFamily: "ui-monospace, monospace" }}
             placeholder="Diesen Schritt schreiben"
             value={eingabe} onChange={(e) => setEingabe(e.target.value)} />
+          <Antwortvorschau eingabe={eingabe} />
           <div className="reihe" style={{ marginTop: 12 }}>
+            <ZeichenSchalter an={zeichen} setzen={setZeichen} />
             <span className="klein blass nur-breit">
               Schreibweise ist egal: 2·x, 2*x und 2x gelten gleich.
             </span>
@@ -534,24 +568,28 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
               <span className="tastenhilfe nur-breit">↵</span>
             </Knopf>
           </div>
+          {zeichen && <Zeichenleiste feld={feld} aufSchliessen={() => setZeichen(false)} />}
         </>
       )}
 
       {phase === "tippen" && !istMehrschritt && (
         <>
           <input ref={feld} className="feld" style={{ fontSize: 19, padding: "14px 16px" }}
-            placeholder="Antwort schreiben, dann Leertaste zum Aufdecken"
+            placeholder="Antwort schreiben, dann Enter zum Aufdecken"
             value={eingabe} onChange={(e) => setEingabe(e.target.value)} />
+          <Antwortvorschau eingabe={eingabe} />
           <div className="reihe" style={{ marginTop: 12 }}>
+            <ZeichenSchalter an={zeichen} setzen={setZeichen} />
             <span className="klein blass nur-breit">
               Eingeschätzt als <strong>{konfidenz === 1 ? "sicher"
                 : konfidenz === 2 ? "unsicher" : "keine Ahnung"}</strong>
             </span>
             <div className="dehnen" />
             <Knopf art="voll" onClick={aufdecken}>
-              Aufdecken <span className="tastenhilfe nur-breit">Leertaste</span>
+              Aufdecken <span className="tastenhilfe nur-breit">↵</span>
             </Knopf>
           </div>
+          {zeichen && <Zeichenleiste feld={feld} aufSchliessen={() => setZeichen(false)} />}
         </>
       )}
 
@@ -602,7 +640,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
               <div className="antwort-gitter" style={{ gap: 14 }}>
                 <div>
                   <div className="klein matt">Deine Antwort</div>
-                  <div style={{ fontSize: 17 }}>{eingabe.trim() || <em className="blass">nichts geschrieben</em>}</div>
+                  <div style={{ fontSize: 17 }}>{eingabe.trim() ? <Formel text={eingabe} /> : <em className="blass">nichts geschrieben</em>}</div>
                 </div>
                 <div>
                   <div className="klein matt">Lösung</div>

@@ -29,7 +29,9 @@ function schreibeIn(feld, zeichen) {
   try { feld.setSelectionRange(marke, marke); } catch (e) { /* nicht jedes Feld kann das */ }
 }
 
-export default function Zeichenleiste({ aufSchliessen }) {
+/* `feld` (eine Referenz) ist das Feld, in das geschrieben wird, solange noch
+   keines benutzt wurde, etwa das Antwortfeld beim Abrufen. */
+export default function Zeichenleiste({ aufSchliessen, feld: vorgabe }) {
   const letztes = useRef(null);
   const wurzel = useRef(null);
   const [editor, setEditor] = useState(false);
@@ -65,7 +67,8 @@ export default function Zeichenleiste({ aufSchliessen }) {
 
   const setzen = (zeichen) => {
     const aktiv = document.activeElement;
-    const feld = IST_FELD(aktiv) && !wurzel.current?.contains(aktiv) ? aktiv : letztes.current;
+    const feld = IST_FELD(aktiv) && !wurzel.current?.contains(aktiv) ? aktiv
+      : letztes.current || vorgabe?.current;
     if (!feld || !document.contains(feld)) return;
     schreibeIn(feld, zeichen);
   };
@@ -97,7 +100,7 @@ export default function Zeichenleiste({ aufSchliessen }) {
       </button>
       {editor && (
         <FormelEditor
-          aufAbbrechen={() => { setEditor(false); letztes.current?.focus(); }}
+          aufAbbrechen={() => { setEditor(false); (letztes.current || vorgabe?.current)?.focus(); }}
           aufFertig={(latex) => { setEditor(false); if (latex) setzen("$" + latex + "$"); }} />
       )}
 

@@ -256,11 +256,17 @@ export function useTastatur(karte, aktiv = true) {
     if (!aktiv) return;
     const hoeren = (e) => {
       const ziel = e.target;
+      /* In einem Dialog (etwa dem Formel-Editor) gelten die Tasten dem Dialog,
+         nicht der Seite dahinter — sonst deckte Enter im Formelfeld die Karte auf. */
+      if (ziel?.closest?.(".schleier")) return;
       const tippt = ziel && (ziel.tagName === "INPUT" || ziel.tagName === "TEXTAREA" ||
         ziel.isContentEditable);
       const handlung = merker.current[e.key] || merker.current[e.code];
       if (!handlung) return;
       if (tippt && !handlung.auchBeimTippen) return;
+      /* `wenn` entscheidet im Einzelfall; sagt es nein, bleibt die Taste,
+         was sie ist — ein Leerzeichen bleibt ein Leerzeichen. */
+      if (handlung.wenn && !handlung.wenn(e, tippt)) return;
       const fn = typeof handlung === "function" ? handlung : handlung.fn;
       if (!fn) return;
       e.preventDefault();

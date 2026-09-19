@@ -297,6 +297,11 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
 38. **Zurück geht über den Verlauf** (`zurueck`, `zurueckZu`, `ersetze` in
     `App.jsx`). Einen festen Zielweg nur als Ersatz angeben, wenn es keinen
     Vorgänger gibt; sonst landet man bei „Alle Stapel" statt im Fach.
+39. **Tastenkürzel nie auf Zeichen legen, die man beim Tippen braucht.**
+    Die Leertaste deckte beim Abrufen auch mitten im Satz auf; mehrwortige
+    Antworten waren unmöglich. Solche Kürzel mit `wenn` eingrenzen (etwa nur
+    bei leerem Feld). `useTastatur` schweigt außerdem, solange ein Dialog
+    (`.schleier`) den Fokus hat, sonst deckt Enter im Formel-Editor die Karte auf.
 
 ## Was ausdrücklich nicht gebaut wird
 
