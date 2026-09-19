@@ -137,6 +137,11 @@ Tagesbudget begrenzt die Zahl.
 3. In *Project Settings → API* die Adresse und den *anon public*-Schlüssel in
    die Einstellungen der App eintragen.
 4. Kennung anlegen, auf jedem Gerät dieselbe.
+5. Danach unter *Authentication → Sign In / Providers* die Option *Allow new
+   users to sign up* abschalten.
+
+Kommt eine neue Fassung von `wolke.sql`, führst du sie einfach noch einmal
+aus; deine Daten bleiben dabei.
 
 Ohne diesen Schritt bleibt alles auf dem Gerät; zum Umziehen dient die
 Sicherungsdatei.
@@ -150,6 +155,6 @@ aus dem Bildungsplan oder von den Fachlehrkräften hast.
 ## Prüfen
 
 ```
-npm test        # 122 Prüfungen, darunter Golden-Tests gegen ts-fsrs
+npm test        # 424 Prüfungen: Kern, Speicher, Abgleich, Sicherung
 npm run lint
 ```

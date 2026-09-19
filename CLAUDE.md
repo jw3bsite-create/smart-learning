@@ -27,7 +27,7 @@ Sprache, soweit sie die Sache benennen (`karten`, `zustaende`, `abrufVerbuchen`)
 ```
 npm install
 npm run dev      # http://localhost:5180
-npm test         # 169 Prüfungen für den Kern
+npm test         # 424 Prüfungen (Kern, Speicher, Abgleich)
 npm run lint
 npm run symbole  # Symbole aus "Smart Learning Logo.pdf" (braucht: pip install pymupdf pillow)
 ```
@@ -76,16 +76,24 @@ src/core/     Rechnender Kern, ohne React, ohne Browserfenster, vollständig pr�
   drift.js       Erkennt, wenn ein Tutor seine Regeln verlässt
   noten.js       Punkte der Kursstufe: Halbjahre, Leistungen, Schnitte
   mischen.js     Der Fragemodus: Gewichtung nach Termin, Punkten, Dringlichkeit
-  cloud.js       Abgleich mit Supabase
+  cloud.js       Abgleich mit Supabase (Verbindung, Anmeldung, Ablauf)
+  abgleich.js    Die Regeln des Abgleichs als reine Rechnung
+  bestand.js     **Alle Daten und jede Änderung daran** — ohne React
+  migrationen.js Nummerierte Umstellungen am Datenbestand, mit Kopie davor
+  sicherung.js   Sicherungsdatei: Format, Prüfung, Zusammenführen
+  notsicherung.js  Alles in eine Datei, wenn die App nicht mehr steht
+  aktualisierung.js  Neue Fassungen melden statt still umschalten
+  datei.js       Eine Datei zum Herunterladen anbieten
   beispiel.js    Beispielbestand: Maschinerie und durchgerechnete Historie
   beispiel-stoff.js  Der Stoff dazu (Kant, Hauptstädte) — reine Daten
-  store.jsx      Gemeinsamer Datenbestand
+  store.jsx      Nur noch die Brücke von `bestand.js` zu React
 prompts/      Die Systemanweisungen als eigene Dateien, versioniert
 src/modes/    Abrufen, Fragen, Feynman, Pretest, Tutor, Pruefung + die sieben
               Übungsmodi
 src/ui/       Bildschirme und Bausteine
-test/         169 Prüfungen (npm test)
-werkzeug/     Erzeugt die PNG-Symbole
+test/         424 Prüfungen (npm test), darunter der ganze Weg der Daten
+              gegen einen Testspeicher (fake-indexeddb)
+werkzeug/     Erzeugt die Symbole aus dem Logo (Python: pymupdf, pillow)
 ```
 
 ## Datenmodell
@@ -110,7 +118,17 @@ aus, ohne dass eine Schemafassung nötig war: Fehlt das Feld, gilt der
 Normalfall.
 
 Jeder Datensatz trägt `updatedAt` und darf `deleted: true` tragen. Gelöschtes
-bleibt als Grabstein, sonst käme es beim Abgleich zurück.
+bleibt als Grabstein, sonst käme es beim Abgleich zurück. Das gilt auch für
+gelöschte Tonaufnahmen in `media`.
+
+Weitere Felder, die ohne Schemafassung dazukamen: `reviews.fassung` (nach
+welchen Regeln eine Antwort entstand), `reviews.ohneEingabe` (im Kopf statt
+getippt), `cardstates.eingefuehrt` (wann zum ersten Mal gewertet — daraus
+zählt das Tageslimit) und `cardstates.lapsesFreigabe` (Rückfälle beim letzten
+Freigeben einer stillgelegten Karte).
+
+Die Einstellung `datenFassung` sagt, welche Umstellungen aus
+`core/migrationen.js` schon gelaufen sind.
 
 ## Regeln, die nicht verhandelbar sind
 
@@ -303,6 +321,29 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
     bei leerem Feld). `useTastatur` schweigt außerdem, solange ein Dialog
     (`.schleier`) den Fokus hat, sonst deckt Enter im Formel-Editor die Karte auf.
 
+40. **Geschrieben wird über `bestand.js`, nie aus der Oberfläche heraus.**
+    Eine Änderung wird im Arbeitsspeicher sichtbar **und** geschrieben; ein
+    Fehler landet in `speicherfehler` und wird oben angezeigt. Wer in einer
+    Komponente `db.put` aufruft, umgeht beides.
+41. **Was zusammengehört, in einem Zug** (`db.schreibeMehrere`): Antwort und
+    Termin, Karte und Lernstand, eine Seite geholter Daten. Ein Zug gelingt
+    ganz oder gar nicht — und er wird ausdrücklich abgeschlossen (`commit`),
+    sonst verwirft ihn ein Neuladen mitten im Tippen.
+42. **Zwei Uhren beim Abgleich, und sie sind verschieden.** `updatedAt` ist
+    die Änderungszeit auf dem Gerät und entscheidet, welcher Stand gewinnt.
+    `geaendert` stempelt der Server beim Ankommen und entscheidet, was man
+    schon geholt hat. Wer beides verwechselt, verliert offline Gelerntes.
+43. **Änderungen an der Form von Einträgen gehören in `migrationen.js`**, mit
+    neuer Nummer und Prüfung, nicht als Flicken beim Laden. Eine
+    veröffentlichte Umstellung wird nie geändert, nur eine neue angehängt.
+44. **Vokabelregeln gelten nicht für Rechnungen.** `normalisiere` wirft
+    Klammern, Minuszeichen und Tippfehler weg — für „(sich) erinnern" richtig,
+    für „x = −3" falsch. Für Rechnungen und Zahlen entscheidet
+    `gleichwertig`/`istMathe` in `text.js`, streng.
+45. **Ein leeres Antwortfeld ist kein Durchklicken.** Wer im Kopf antwortet
+    und sich ehrlich bewertet, hat abgerufen; bei Rechenweg-Karten ist das
+    Feld am Ende ohnehin leer. Unecht ist nur, was zu schnell kommt.
+
 ## Stapel aus Lernmaterial (im Chat)
 
 Der Nutzer schickt ein Arbeitsblatt (PDF, Foto) und nennt die Aufgaben, die
@@ -339,6 +380,14 @@ Spezifikation gerade erodiert — dann Rückfrage, kein Alleingang.
 
 - FSRS-Parameteroptimierung aus der eigenen Historie — dafür braucht es erst
   ein paar hundert Reviews.
+- Übungsmodi rechnen weiter mit dem alten Fächersystem (`progress`,
+  `scheduler.js`), der Plan mit FSRS. Beides nebeneinander ist gewollt, aber
+  auf Dauer eine Quelle von Missverständnissen; die Namen sind inzwischen
+  getrennt (`uebungsStufe`, `uebungsAnteile`).
+- Eine Rücknahme der letzten Bewertung gibt es nicht: Dafür müsste ein Review
+  den Zustand davor mitführen.
+- Falsch Beantwortetes kommt erst in der nächsten Sitzung wieder, nicht
+  innerhalb derselben.
 
 ## Vorgehen
 
