@@ -15,6 +15,7 @@ import {
   letzteText, sicherungFaellig, ERINNERUNG_TAGE,
 } from "../core/sicherung.js";
 import { alsCsvMitPlan } from "../core/importer.js";
+import { sicherungen as kopienLesen, kopieAlsSicherung } from "../core/db.js";
 import * as beispiel from "../core/beispiel.js";
 import { datumKurz } from "../core/util.js";
 import { Symbol, Knopf, SymbolKnopf, Dialog } from "./basis.jsx";
@@ -682,6 +683,16 @@ function Beispielteil() {
 
 /* ---------------------------- Sicherungsteil ---------------------------- */
 
+/** Wofür eine automatische Kopie angelegt wurde, in Worten. */
+function kopieGrund(grund) {
+  const g = String(grund || "");
+  if (g === "umbau") return "vor einem Umbau";
+  if (g === "vor-ersetzen") return "vor dem Ersetzen";
+  if (g === "vor-dazulegen") return "vor dem Dazulegen";
+  if (g.startsWith("vor-umstellung")) return "vor einer Umstellung";
+  return "Kopie";
+}
+
 /*
  * Die Sicherung als Datei, gleich unter der Cloud.
  *
@@ -694,9 +705,10 @@ function Beispielteil() {
 function Sicherungsteil() {
   const {
     einstellungen, setzeEinstellung, alsSicherung, ausSicherung,
-    stapel, karten, zustaende, stapelVon, fachVon,
+    stapel, karten, zustaende, stapelVon, fachVon, dauerhaft,
   } = useDaten();
   const [platz, setPlatz] = useState(null);
+  const [kopien, setKopien] = useState([]);
   const [einlesen, setEinlesen] = useState(null);
   const [pruefung, setPruefung] = useState(null);
   const [meldung, setMeldung] = useState("");
@@ -706,6 +718,7 @@ function Sicherungsteil() {
 
   useEffect(() => {
     navigator.storage?.estimate?.().then(setPlatz).catch(() => {});
+    kopienLesen().then(setKopien).catch(() => {});
   }, []);
 
   const herunterladen = (text, name, typ) => {
@@ -769,16 +782,47 @@ function Sicherungsteil() {
   };
 
   /* Vor dem Ersetzen der jetzige Stand als Datei — ohne Rueckfrage, denn wer
-     hier irrt, hat sonst nichts mehr, worauf er zurueckgreifen koennte. */
-  const ersetzen = async () => {
+     hier irrt, hat sonst nichts mehr, worauf er zurueckgreifen koennte.
+     Zusaetzlich legt der Speicher selbst eine Kopie im Browser ab. */
+  const einlesenMit = async (ersetzen) => {
+    setFehler(""); setMeldung(""); setLaeuft("einlesen");
     try {
-      const vorher = await alsSicherung({ mitMedien: true });
-      herunterladen(JSON.stringify(vorher), dateiname("vorher"), "application/json");
-    } catch (e) { /* lieber ohne Schutzkopie als gar nicht */ }
-    await ausSicherung(einlesen, true);
-    setEinlesen(null); setPruefung(null);
-    setMeldung("Eingelesen. Der vorherige Stand liegt jetzt als Datei mit dem Zusatz "
-      + "vor-dem-einlesen in deinen Downloads.");
+      if (ersetzen) {
+        try {
+          const vorher = await alsSicherung({ mitMedien: true });
+          herunterladen(JSON.stringify(vorher), dateiname("vorher"), "application/json");
+        } catch (e) { /* die Kopie im Browser entsteht trotzdem */ }
+      }
+      const b = await ausSicherung(einlesen, ersetzen);
+      setEinlesen(null); setPruefung(null);
+      setMeldung(ersetzen
+        ? "Ersetzt. Was vorher da war, liegt im Papierkorb und als Datei mit dem Zusatz "
+          + "vor-dem-einlesen in deinen Downloads."
+        : "Dazugelegt: " + b.geschrieben + " Einträge neu oder neuer als hier"
+          + (b.aelter ? ", " + b.aelter + " waren hier schon aktueller und sind geblieben" : "")
+          + (b.medien ? ", " + b.medien + " Bilder und Aufnahmen" : "") + ".");
+      if (b.ungueltig) setFehler(b.ungueltig + " Einträge in der Datei waren unbrauchbar und wurden übergangen.");
+      kopienLesen().then(setKopien).catch(() => {});
+    } catch (e) {
+      setFehler("Das Einlesen ist gescheitert, dein Bestand ist unverändert: " + (e?.message || e));
+    } finally { setLaeuft(""); }
+  };
+  const ersetzen = () => einlesenMit(true);
+
+  /* Aus einer automatischen Kopie im Browser zurueckholen. */
+  const ausKopie = async (k) => {
+    if (!window.confirm("Den Stand vom " + new Date(k.zeit).toLocaleString("de-DE")
+      + " zurückholen? Der jetzige Stand wandert in den Papierkorb, Bilder und Aufnahmen bleiben.")) return;
+    setFehler(""); setMeldung("");
+    try {
+      const datei = await kopieAlsSicherung(k.id);
+      if (!datei) { setFehler("Diese Kopie ist nicht mehr da."); return; }
+      await ausSicherung(datei, true);
+      setMeldung("Zurückgeholt: der Stand vom " + new Date(k.zeit).toLocaleString("de-DE") + ".");
+      kopienLesen().then(setKopien).catch(() => {});
+    } catch (e) {
+      setFehler("Das Zurückholen ist gescheitert, dein Bestand ist unverändert: " + (e?.message || e));
+    }
   };
 
   const faellig = sicherungFaellig(einstellungen.letzteSicherung);
@@ -799,6 +843,16 @@ function Sicherungsteil() {
               {" " + karten.filter((k) => !k.deleted).length} Karten
               {belegt ? " · " + belegt + " im Browser belegt" : ""}
             </div>
+            {dauerhaft === true && (
+              <div className="klein blass">Der Browser hält den Speicher dauerhaft.</div>
+            )}
+            {dauerhaft === false && (
+              <div className="klein" style={{ color: "var(--gelb)" }}>
+                Der Browser darf den Speicher räumen, wenn der Platz knapp wird. Installiere
+                Smart Learning als App (im Browsermenü „Installieren“ oder „Zum
+                Home-Bildschirm“), dann nicht mehr, und sichere regelmäßig als Datei.
+              </div>
+            )}
           </div>
           <Knopf art="voll" symbol="herunter" disabled={laeuft === "voll"}
             onClick={() => sichern(true)}>
@@ -846,6 +900,31 @@ function Sicherungsteil() {
         Sicherung, die neben den Daten liegt, hilft gegen einen verlorenen Rechner nicht.
       </p>
 
+      {kopien.length > 0 && (
+        <details style={{ marginTop: 6 }}>
+          <summary className="klein matt" style={{ cursor: "pointer" }}>
+            Automatische Kopien im Browser ({kopien.length})
+          </summary>
+          <p className="klein blass" style={{ margin: "8px 0" }}>
+            Vor jeder Umstellung der Daten und vor jedem Einlesen legt die App selbst
+            eine Kopie ab, ohne Bilder und Aufnahmen. Sie liegt im selben Browser, ersetzt
+            also keine Datei, hilft aber, wenn eine Umstellung schiefgeht.
+          </p>
+          <div style={{ display: "grid", gap: 6 }}>
+            {kopien.map((k) => (
+              <div key={k.id} className="reihe klein" style={{ gap: 8 }}>
+                <span className="dehnen">
+                  {new Date(k.zeit).toLocaleString("de-DE", { day: "2-digit", month: "2-digit",
+                    year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                  {" · " + (k.umfang?.cards ?? 0) + " Karten · " + kopieGrund(k.grund)}
+                </span>
+                <Knopf art="klein" onClick={() => ausKopie(k)}>Zurückholen</Knopf>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+
       {meldung && <div className="rueckmeldung gut klein" style={{ marginTop: 10 }}>{meldung}</div>}
       {fehler && <div className="rueckmeldung schlecht klein" style={{ marginTop: 10 }}>{fehler}</div>}
 
@@ -853,12 +932,10 @@ function Sicherungsteil() {
         <Dialog titel="Sicherung einlesen" aufSchliessen={() => { setEinlesen(null); setPruefung(null); }}
           fuss={<>
             <Knopf onClick={() => { setEinlesen(null); setPruefung(null); }}>Abbrechen</Knopf>
-            <Knopf disabled={!pruefung?.gut} onClick={async () => {
-              await ausSicherung(einlesen, false);
-              setEinlesen(null); setPruefung(null);
-              setMeldung("Dazugelegt, der vorhandene Bestand ist unberührt.");
-            }}>Dazulegen</Knopf>
-            <Knopf art="voll" disabled={!pruefung?.gut} onClick={ersetzen}>Alles ersetzen</Knopf>
+            <Knopf disabled={!pruefung?.gut || Boolean(laeuft)} onClick={() => einlesenMit(false)}>
+              Dazulegen</Knopf>
+            <Knopf art="voll" disabled={!pruefung?.gut || Boolean(laeuft)} onClick={ersetzen}>
+              Alles ersetzen</Knopf>
           </>}>
           <p>
             Die Datei enthält {angabeText(inhaltsangabe(einlesen))}
@@ -872,10 +949,11 @@ function Sicherungsteil() {
             </div>
           )}
           <p className="klein matt">
-            <strong>Dazulegen</strong> behält, was schon da ist, und ergänzt es.
-            <strong> Alles ersetzen</strong> wirft den jetzigen Bestand weg; davor
-            schreibt die App ungefragt eine Datei mit dem jetzigen Stand in deine
-            Downloads.
+            <strong>Dazulegen</strong> ergänzt, was fehlt, und übernimmt nur, was in
+            der Datei neuer ist. Dein jetziger Lernstand bleibt, wo er aktueller ist.
+            <strong> Alles ersetzen</strong> macht die Datei zum Stand. Was jetzt da ist,
+            wandert in den Papierkorb, und davor schreibt die App eine Datei mit dem
+            jetzigen Stand in deine Downloads.
           </p>
         </Dialog>
       )}

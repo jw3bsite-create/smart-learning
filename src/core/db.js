@@ -9,6 +9,10 @@
  * `deleted: true` tragen. Gelöschtes wird also nicht sofort entfernt, sondern
  * als Grabstein behalten — sonst käme es beim Abgleich mit der Wolke von einem
  * anderen Gerät wieder zurück.
+ *
+ * Was zusammengehört, wird in einem Zug geschrieben (`schreibeMehrere`):
+ * Eine Antwort und der neue Termin, eine verschobene Karte und ihr Lernstand.
+ * Ein Zug gelingt ganz oder gar nicht — bricht er ab, bleibt der alte Stand.
  */
 
 /*
@@ -20,6 +24,9 @@
 const DB_NAME = "karteikasten";
 const SICHERUNG_DB = "karteikasten-sicherung";
 const VERSION = 7;
+
+/** So viele automatische Sicherungen bleiben liegen; ältere werden weggeräumt. */
+const SICHERUNGEN_HOECHSTENS = 8;
 
 /**
  * Alle Ablagen und ihre Verzeichnisse.
@@ -34,9 +41,8 @@ const VERSION = 7;
  * Fassung 6: noten (Punkte der Kursstufe, ein Satz je Fach und Halbjahr)
  * Fassung 7: lernzeit (Zeitbloecke: wie lange gelernt, wie lange erstellt)
  *
- * `progress` bleibt bestehen und unangetastet: davon leben die sieben
- * Übungsmodi weiter. Über Wiederholungstermine entscheidet ab Fassung 2
- * ausschließlich `cardstates`.
+ * Diese Fassung betrifft nur den Aufbau der Ablagen. Änderungen an der Form
+ * der Einträge selbst regelt core/migrationen.js.
  */
 const SCHEMA = {
   folders: { keyPath: "id", indexes: { parent: "parentId" } },
@@ -76,6 +82,9 @@ export const SYNCED = ["folders", "sets", "cards", "progress", "subjects",
  * `noten` dazukam, fehlte sie prompt in allen dreien, und eine Sicherung
  * haette die Punkte kommentarlos nicht enthalten.
  *
+ * `sitzungen` fehlte bis Fassung 8 der Sicherungsdatei; ältere Dateien haben
+ * das Feld nicht, und das ist in Ordnung.
+ *
  * Die Namen sind Teil des Dateiformats und duerfen sich nicht mehr aendern.
  */
 export const SICHERUNG_FELDER = {
@@ -91,59 +100,103 @@ export const SICHERUNG_FELDER = {
   exams: "pruefungen",
   noten: "notenfaecher",
   lernzeit: "lernzeiten",
+  sessions: "sitzungen",
 };
+
+/* ------------------------------ Meldungen ------------------------------ */
+
+/*
+ * Zwei Lagen, die nur die Datenbank bemerkt und die Oberfläche doch zeigen
+ * muss:
+ *
+ *   "blockiert"    Eine neue Fassung will den Speicher umbauen, aber ein
+ *                  anderer Reiter hält ihn noch offen. Ohne Meldung stünde
+ *                  „wird geöffnet …" für immer da.
+ *   "neueFassung"  Umgekehrt: Dieser Reiter ist der alte. Er gibt den
+ *                  Speicher frei und bittet ums Neuladen.
+ */
+const beobachter = new Set();
+export function beobachte(fn) {
+  beobachter.add(fn);
+  return () => beobachter.delete(fn);
+}
+function melde(art) {
+  for (const fn of beobachter) { try { fn(art); } catch (e) { /* weiter */ } }
+}
+
+/* ------------------------------ Öffnen --------------------------------- */
 
 let dbPromise = null;
 
-/**
- * Vor jeder Schemaänderung eine vollständige Kopie in eine zweite Datenbank.
- * Bilder bleiben außen vor — sie sind groß und werden von Migrationen nicht
- * angefasst.
- */
-async function sichereVorMigration(alteVersion) {
-  const alteDaten = {};
-  const alt = await new Promise((fertig, schief) => {
-    const req = indexedDB.open(DB_NAME);        // ohne Version: nimmt die vorhandene
+function oeffneRoh(name, version, aufUpgrade) {
+  return new Promise((fertig, schief) => {
+    const req = version ? indexedDB.open(name, version) : indexedDB.open(name);
+    if (aufUpgrade) req.onupgradeneeded = () => aufUpgrade(req);
+    req.onblocked = () => melde("blockiert");
     req.onsuccess = () => fertig(req.result);
     req.onerror = () => schief(req.error);
   });
-  try {
-    const vorhandene = [...alt.objectStoreNames].filter((n) => n !== "media");
-    if (vorhandene.length) {
-      await new Promise((fertig, schief) => {
-        const t = alt.transaction(vorhandene, "readonly");
-        for (const name of vorhandene) {
-          const req = t.objectStore(name).getAll();
-          req.onsuccess = () => { alteDaten[name] = req.result; };
-        }
-        t.oncomplete = () => fertig();
-        t.onerror = () => schief(t.error);
-      });
-    }
-  } finally {
-    alt.close();
-  }
+}
 
-  const sicherung = await new Promise((fertig, schief) => {
-    const req = indexedDB.open(SICHERUNG_DB, 1);
-    req.onupgradeneeded = () => {
-      if (!req.result.objectStoreNames.contains("stand"))
-        req.result.createObjectStore("stand", { keyPath: "id" });
-    };
-    req.onsuccess = () => fertig(req.result);
-    req.onerror = () => schief(req.error);
+function oeffneSicherungsDb() {
+  return oeffneRoh(SICHERUNG_DB, 1, (req) => {
+    if (!req.result.objectStoreNames.contains("stand"))
+      req.result.createObjectStore("stand", { keyPath: "id" });
   });
-  await new Promise((fertig, schief) => {
-    const t = sicherung.transaction("stand", "readwrite");
-    t.objectStore("stand").put({
-      id: "v" + alteVersion + "-" + new Date().toISOString().slice(0, 19),
-      vonFassung: alteVersion, nachFassung: VERSION, zeit: Date.now(), daten: alteDaten,
-    });
-    t.oncomplete = () => fertig();
+}
+
+/** Alle Einträge der genannten Ablagen einer offenen Datenbank, in einem Zug. */
+function allesLesen(verbindung, namen) {
+  const daten = {};
+  if (!namen.length) return Promise.resolve(daten);
+  return new Promise((fertig, schief) => {
+    const t = verbindung.transaction(namen, "readonly");
+    for (const name of namen) {
+      const req = t.objectStore(name).getAll();
+      req.onsuccess = () => { daten[name] = req.result || []; };
+    }
+    t.oncomplete = () => fertig(daten);
     t.onerror = () => schief(t.error);
+    t.onabort = () => schief(t.error);
   });
-  sicherung.close();
-  console.info("Sicherung vor der Migration abgelegt (Fassung " + alteVersion + ").");
+}
+
+/**
+ * Legt eine vollständige Kopie in eine zweite Datenbank — vor jeder
+ * Umstellung, vor dem Einlesen einer Sicherung. Bilder bleiben außen vor,
+ * sie sind groß und werden dabei nicht angefasst.
+ *
+ * Die zweite Datenbank liegt im selben Browser. Gegen einen Browser, der
+ * aufräumt, hilft sie nicht (dafür gibt es die Sicherungsdatei), wohl aber
+ * gegen eine Umstellung, die schiefgeht.
+ */
+async function kopieAblegen(verbindung, grund, vonFassung = VERSION) {
+  const namen = [...verbindung.objectStoreNames].filter((n) => n !== "media");
+  const daten = await allesLesen(verbindung, namen);
+  const sicherung = await oeffneSicherungsDb();
+  try {
+    await new Promise((fertig, schief) => {
+      const t = sicherung.transaction("stand", "readwrite");
+      const ablage = t.objectStore("stand");
+      const zeit = Date.now();
+      ablage.put({
+        id: "v" + vonFassung + "-" + new Date(zeit).toISOString().slice(0, 19) + "-" + grund,
+        vonFassung, nachFassung: VERSION, grund, zeit, daten,
+      });
+      // Nur die jüngsten behalten, sonst wächst die zweite Datenbank mit
+      // jeder Umstellung um den ganzen Bestand.
+      const alle = ablage.getAll();
+      alle.onsuccess = () => {
+        const liste = (alle.result || []).sort((a, b) => (b.zeit || 0) - (a.zeit || 0));
+        for (const alt of liste.slice(SICHERUNGEN_HOECHSTENS)) ablage.delete(alt.id);
+      };
+      t.oncomplete = () => fertig();
+      t.onerror = () => schief(t.error);
+      t.onabort = () => schief(t.error);
+    });
+  } finally {
+    sicherung.close();
+  }
 }
 
 /** Welche Fassung liegt gerade vor? 0, wenn es die Datenbank noch nicht gibt. */
@@ -166,67 +219,122 @@ function openDb() {
   dbPromise = (async () => {
     const fassung = await vorhandeneFassung();
     if (fassung > 0 && fassung < VERSION) {
-      try { await sichereVorMigration(fassung); } catch (e) {
-        console.warn("Sicherung vor der Migration misslungen:", e);
+      try {
+        const alt = await oeffneRoh(DB_NAME);
+        try { await kopieAblegen(alt, "umbau", fassung); } finally { alt.close(); }
+      } catch (e) {
+        console.warn("Sicherung vor dem Umbau misslungen:", e);
       }
     }
-    return new Promise((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, VERSION);
-      req.onupgradeneeded = () => {
-        const db = req.result;
-        for (const [name, def] of Object.entries(SCHEMA)) {
-          const store = db.objectStoreNames.contains(name)
-            ? req.transaction.objectStore(name)
-            : db.createObjectStore(name, { keyPath: def.keyPath });
-          for (const [idx, feld] of Object.entries(def.indexes))
-            if (!store.indexNames.contains(idx)) store.createIndex(idx, feld);
-        }
-      };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
+    const verbindung = await oeffneRoh(DB_NAME, VERSION, (req) => {
+      const d = req.result;
+      for (const [name, def] of Object.entries(SCHEMA)) {
+        const store = d.objectStoreNames.contains(name)
+          ? req.transaction.objectStore(name)
+          : d.createObjectStore(name, { keyPath: def.keyPath });
+        for (const [idx, feld] of Object.entries(def.indexes))
+          if (!store.indexNames.contains(idx)) store.createIndex(idx, feld);
+      }
     });
+    // Eine neuere Fassung in einem anderen Reiter will umbauen: freigeben.
+    verbindung.onversionchange = () => {
+      verbindung.close();
+      dbPromise = null;
+      melde("neueFassung");
+    };
+    return verbindung;
   })();
+  // Ein misslungenes Öffnen soll beim nächsten Versuch neu probiert werden.
+  dbPromise.catch(() => { dbPromise = null; });
   return dbPromise;
+}
+
+/** Nur für Prüfungen: Verbindung schließen und vergessen. */
+export async function _zuruecksetzen() {
+  if (dbPromise) {
+    try { (await dbPromise).close(); } catch (e) { /* egal */ }
+  }
+  dbPromise = null;
+}
+
+/* ------------------------- Sicherungen im Browser ----------------------- */
+
+/** Eine Kopie des jetzigen Bestands in die zweite Datenbank legen. */
+export async function sicherungAnlegen(grund = "hand") {
+  const verbindung = await openDb();
+  await kopieAblegen(verbindung, grund);
 }
 
 /** Die abgelegten Sicherungen — für den Notfall und zur Beruhigung. */
 export async function sicherungen() {
   try {
-    const db = await new Promise((fertig, schief) => {
-      const req = indexedDB.open(SICHERUNG_DB, 1);
-      req.onupgradeneeded = () => {
-        if (!req.result.objectStoreNames.contains("stand"))
-          req.result.createObjectStore("stand", { keyPath: "id" });
-      };
-      req.onsuccess = () => fertig(req.result);
-      req.onerror = () => schief(req.error);
-    });
-    const liste = await new Promise((fertig, schief) => {
-      const t = db.transaction("stand", "readonly");
-      const req = t.objectStore("stand").getAll();
-      req.onsuccess = () => fertig(req.result || []);
-      t.onerror = () => schief(t.error);
-    });
-    db.close();
-    return liste.map(({ id, vonFassung, nachFassung, zeit, daten }) => ({
-      id, vonFassung, nachFassung, zeit,
+    const d = await oeffneSicherungsDb();
+    const liste = await allesLesen(d, ["stand"]).then((x) => x.stand);
+    d.close();
+    return liste.map(({ id, vonFassung, nachFassung, zeit, grund, daten }) => ({
+      id, vonFassung, nachFassung, zeit, grund,
       umfang: Object.fromEntries(Object.entries(daten || {}).map(([k, v]) => [k, v.length])),
-    }));
+    })).sort((a, b) => (b.zeit || 0) - (a.zeit || 0));
   } catch (e) {
     return [];
   }
 }
 
-function tx(store, mode, fn) {
-  return openDb().then((db) => new Promise((resolve, reject) => {
-    const t = db.transaction(store, mode);
-    let ergebnis;
-    const zurueck = fn(t.objectStore(store), t);
-    if (zurueck && typeof zurueck.then === "function") zurueck.then((v) => { ergebnis = v; });
-    else if (zurueck && "result" in zurueck) t.addEventListener("complete", () => { ergebnis = zurueck.result; });
-    t.oncomplete = () => resolve(ergebnis !== undefined ? ergebnis : (zurueck && zurueck.result));
+/**
+ * Eine abgelegte Kopie in der Form einer Sicherungsdatei — zum Zurückholen.
+ * Bilder und Aufnahmen sind nicht darin; `ohneMedien` lässt sie beim
+ * Ersetzen darum unangetastet.
+ */
+export async function kopieAlsSicherung(kennung) {
+  const d = await oeffneSicherungsDb();
+  try {
+    const rec = await new Promise((fertig, schief) => {
+      const req = d.transaction("stand", "readonly").objectStore("stand").get(kennung);
+      req.onsuccess = () => fertig(req.result || null);
+      req.onerror = () => schief(req.error);
+    });
+    if (!rec) return null;
+    const datei = { fassung: 8, erzeugt: rec.zeit, ohneMedien: true, bilder: [] };
+    for (const [ablage, feld] of Object.entries(SICHERUNG_FELDER))
+      if (Array.isArray(rec.daten?.[ablage])) datei[feld] = rec.daten[ablage];
+    const e = (rec.daten?.settings || []).find((s) => s.key === "einstellungen");
+    if (e) datei.einstellungen = e.value;
+    return datei;
+  } finally {
+    d.close();
+  }
+}
+
+/* ------------------------------ Zugriffe -------------------------------- */
+
+/**
+ * Ein Zug über eine oder mehrere Ablagen.
+ * `fn` bekommt die Ablage (bei einem Namen) oder ein Verzeichnis Name → Ablage.
+ */
+function tx(ablagen, mode, fn) {
+  const namen = Array.isArray(ablagen) ? ablagen : [ablagen];
+  return openDb().then((d) => new Promise((resolve, reject) => {
+    let t;
+    try { t = d.transaction(namen, mode); } catch (e) { reject(e); return; }
+    let zurueck;
+    try {
+      const ablageVon = Object.fromEntries(namen.map((n) => [n, t.objectStore(n)]));
+      zurueck = fn(Array.isArray(ablagen) ? ablageVon : ablageVon[ablagen], t);
+    } catch (e) {
+      try { t.abort(); } catch (e2) { /* schon zu */ }
+      reject(e);
+      return;
+    }
+    /* Ausdrücklich abschließen: Alle Aufträge sind gestellt. Ohne das wartet
+       der Browser, ob noch etwas kommt — und wird die Seite in diesem Moment
+       verlassen oder neu geladen, verwirft er den ganzen Zug. Genau das
+       geschah mit dem zuletzt Getippten beim Wegwischen der App. */
+    if (mode === "readwrite" && typeof t.commit === "function") {
+      try { t.commit(); } catch (e) { /* ältere Browser: schließt von selbst */ }
+    }
+    t.oncomplete = () => resolve(zurueck && "result" in zurueck ? zurueck.result : undefined);
     t.onerror = () => reject(t.error);
-    t.onabort = () => reject(t.error);
+    t.onabort = () => reject(t.error || new Error("Der Speichervorgang wurde abgebrochen."));
   }));
 }
 
@@ -237,13 +345,21 @@ export async function all(store, { mitGeloeschten = false } = {}) {
   return mitGeloeschten ? daten : daten.filter((d) => !d.deleted);
 }
 
+/** Mehrere Ablagen in einem Zug lesen — ein Stand, der zusammenpasst. */
+export async function lesenMehrere(ablagen, { mitGeloeschten = false } = {}) {
+  const d = await openDb();
+  const roh = await allesLesen(d, ablagen);
+  if (mitGeloeschten) return roh;
+  return Object.fromEntries(Object.entries(roh).map(([k, v]) => [k, v.filter((x) => !x.deleted)]));
+}
+
 export async function get(store, id) {
   const rec = await tx(store, "readonly", (s) => s.get(id));
   return rec === undefined ? null : rec;
 }
 
 export async function put(store, rec) {
-  await tx(store, "readwrite", (s) => s.put(rec));
+  await tx(store, "readwrite", (s) => { s.put(rec); });
   return rec;
 }
 
@@ -252,13 +368,38 @@ export async function putMany(store, recs) {
   await tx(store, "readwrite", (s) => { for (const r of recs) s.put(r); });
 }
 
+/**
+ * Schreibt in mehrere Ablagen in einem Zug: { cards: [...], cardstates: [...] }.
+ * Gelingt ganz oder gar nicht.
+ */
+export async function schreibeMehrere(eintraege) {
+  const namen = Object.keys(eintraege).filter((n) => eintraege[n]?.length);
+  if (!namen.length) return;
+  await tx(namen, "readwrite", (ablagen) => {
+    for (const n of namen) for (const r of eintraege[n]) ablagen[n].put(r);
+  });
+}
+
+/**
+ * Leert Ablagen und schreibt neu, in einem Zug. Für das Einlesen einer
+ * Sicherung: Bricht es ab, ist nichts gelöscht.
+ */
+export async function ersetzeUndSchreibe({ leeren = [], schreiben = {} }) {
+  const namen = [...new Set([...leeren, ...Object.keys(schreiben)])];
+  if (!namen.length) return;
+  await tx(namen, "readwrite", (ablagen) => {
+    for (const n of leeren) ablagen[n].clear();
+    for (const [n, recs] of Object.entries(schreiben)) for (const r of recs) ablagen[n].put(r);
+  });
+}
+
 /** Endgültig entfernen (ohne Grabstein) — nur für Bilder und Sitzungen. */
 export async function remove(store, id) {
-  await tx(store, "readwrite", (s) => s.delete(id));
+  await tx(store, "readwrite", (s) => { s.delete(id); });
 }
 
 export async function clear(store) {
-  await tx(store, "readwrite", (s) => s.clear());
+  await tx(store, "readwrite", (s) => { s.clear(); });
 }
 
 /** Einstellung lesen; `standard`, wenn nichts hinterlegt ist. */
@@ -275,9 +416,12 @@ export async function setSetting(key, value) {
 /** Grabsteine, die älter als 60 Tage sind, endgültig wegräumen. */
 export async function pruneTombstones() {
   const grenze = Date.now() - 60 * 24 * 3600 * 1000;
-  for (const store of SYNCED) {
-    const alle = await all(store, { mitGeloeschten: true });
-    for (const rec of alle)
-      if (rec.deleted && (rec.updatedAt || 0) < grenze) await remove(store, rec.id);
-  }
+  const alles = await lesenMehrere(SYNCED, { mitGeloeschten: true });
+  const weg = Object.fromEntries(Object.entries(alles).map(([ablage, liste]) =>
+    [ablage, liste.filter((r) => r.deleted && (r.updatedAt || 0) < grenze).map((r) => r.id)]));
+  const namen = Object.keys(weg).filter((n) => weg[n].length);
+  if (!namen.length) return;
+  await tx(namen, "readwrite", (ablagen) => {
+    for (const n of namen) for (const id of weg[n]) ablagen[n].delete(id);
+  });
 }

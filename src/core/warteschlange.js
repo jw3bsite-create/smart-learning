@@ -24,15 +24,41 @@ function tagesBeginn(zeit = Date.now()) {
 
 /**
  * Wie viele Karten heute schon neu eingeführt wurden.
- * Näherung über den Zustand: erste Wiederholung, letzter Abruf heute.
+ *
+ * Seit Umstellung 1 trägt jeder Zustand, wann er zum ersten Mal gewertet
+ * wurde (`eingefuehrt`). Die frühere Näherung — „erste Wiederholungen, heute
+ * zuletzt gesehen" — zählte gestern Eingeführtes mit und verlor Karten, die
+ * man heute öfter als dreimal nicht konnte. Sie gilt nur noch für Zustände,
+ * die das Feld nie bekommen haben.
  */
 export function heuteEingefuehrt(zustaende, subjectId = null, zeit = Date.now()) {
   const beginn = tagesBeginn(zeit);
-  return zustaende.filter((z) =>
-    (!subjectId || z.subjectId === subjectId) &&
-    z.reps >= 1 && (z.last_review || 0) >= beginn &&
-    z.reps <= 3   // in den ersten Lernschritten — grobe, aber brauchbare Marke
-  ).length;
+  return zustaende.filter((z) => {
+    if (subjectId && z.subjectId !== subjectId) return false;
+    if (z.eingefuehrt !== undefined) return Boolean(z.eingefuehrt) && z.eingefuehrt >= beginn;
+    return z.reps >= 1 && (z.last_review || 0) >= beginn && z.reps <= 3;
+  }).length;
+}
+
+/**
+ * Die Lernstände, die wirklich zu einer Karte im Plan gehören.
+ *
+ * Gelöschte oder abgehakte Karten, Stapel ohne Fach und Richtungen, die eine
+ * Karte nicht mehr hat (etwa nach dem Wechsel zum Lückentext), behalten ihren
+ * Lernstand — er soll nur nicht in Prognosen und Pensum mitzählen.
+ */
+export function zustaendeImPlan(karten, zustaende, stapelVon, fachId = null) {
+  const liste = [];
+  for (const karte of karten) {
+    if (!istRelevant(karte)) continue;
+    const stapel = stapelVon(karte.setId);
+    if (!stapel || !stapel.subjectId || (fachId && stapel.subjectId !== fachId)) continue;
+    for (const richtung of richtungenFuer(karte, stapel)) {
+      const z = zustaende[karte.id + ":" + richtung];
+      if (z) liste.push(z);
+    }
+  }
+  return liste;
 }
 
 /**
@@ -231,8 +257,8 @@ export function pensumPruefen(karten, zustaende, stapelVon, fach, zeit = Date.no
 
   const { gesamt, neu, faellig } = fachZaehlung(karten, zustaende, stapelVon, fach.id, zeit);
   let wacklig = 0;
-  for (const z of Object.values(zustaende)) {
-    if (z.subjectId !== fach.id || z.gesperrt) continue;
+  for (const z of zustaendeImPlan(karten, zustaende, stapelVon, fach.id)) {
+    if (z.gesperrt) continue;
     if (!istNeu(z) && (z.stability || 0) < 7) wacklig += 1;
   }
 

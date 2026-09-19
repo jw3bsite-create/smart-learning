@@ -18,8 +18,11 @@
 
 import { VORSATZ } from "./ton.js";
 
-/** Fassung des Dateiformats. Sie steht in jeder geschriebenen Datei. */
-export const FASSUNG = 7;
+/**
+ * Fassung des Dateiformats. Sie steht in jeder geschriebenen Datei.
+ * 8: auch Lernsitzungen; Aufnahmen behalten Dauer und Zuordnung.
+ */
+export const FASSUNG = 8;
 
 /** Nach so vielen Tagen ohne Sicherung wird erinnert. */
 export const ERINNERUNG_TAGE = 14;
@@ -144,4 +147,57 @@ export function letzteText(letzte, jetzt = Date.now()) {
   if (seit <= 0) return "heute";
   if (seit === 1) return "gestern";
   return "vor " + seit + " Tagen";
+}
+
+/* ===================================================================== */
+/*  Einlesen: was geschrieben wird                                        */
+/* ===================================================================== */
+
+/** Ein Eintrag, der sich ablegen lässt: ein Objekt mit Kennung. */
+export const istEintrag = (r) => Boolean(r) && typeof r === "object" && !Array.isArray(r)
+  && typeof r.id === "string" && r.id.length > 0;
+
+/**
+ * Dazulegen: Aus der Datei kommt nur, was hier fehlt oder dort neuer ist.
+ *
+ * Vorher überschrieb das Dazulegen jeden Eintrag mit dem aus der Datei. Eine
+ * alte Sicherung setzte so den Lernstand aller Karten zurück, während die
+ * App meldete, der Bestand sei unberührt.
+ */
+export function planDazulegen(vorhanden, ausDatei) {
+  const nach = new Map((vorhanden || []).map((r) => [r.id, r]));
+  const schreiben = [];
+  let aelter = 0, ungueltig = 0;
+  for (const r of ausDatei || []) {
+    if (!istEintrag(r)) { ungueltig += 1; continue; }
+    const da = nach.get(r.id);
+    if (da && (da.updatedAt || 0) >= (r.updatedAt || 0)) { aelter += 1; continue; }
+    schreiben.push(r);
+  }
+  return { schreiben, aelter, ungueltig };
+}
+
+/**
+ * Ersetzen: Der Stand aus der Datei gilt, und zwar überall.
+ *
+ * Was nur hier liegt, wird nicht vernichtet, sondern als gelöscht markiert.
+ * Es liegt dann sechzig Tage im Papierkorb — und bei eingerichteter Cloud
+ * verschwindet es auch auf den anderen Geräten, statt beim nächsten Abgleich
+ * zurückzukommen. Aus demselben Grund bekommt alles aus der Datei den
+ * jetzigen Zeitstempel: Sonst gewönne beim Abgleich der ältere Stand der
+ * Datei nicht gegen den neueren der Wolke.
+ */
+export function planErsetzen(vorhanden, ausDatei, jetzt = Date.now()) {
+  const gueltige = (ausDatei || []).filter(istEintrag);
+  const ids = new Set(gueltige.map((r) => r.id));
+  const schreiben = gueltige.map((r) => ({ ...r, updatedAt: jetzt }));
+  for (const r of vorhanden || [])
+    if (!ids.has(r.id) && !r.deleted) schreiben.push({ ...r, deleted: true, updatedAt: jetzt });
+  return { schreiben, ungueltig: (ausDatei || []).length - gueltige.length };
+}
+
+/** Eigene Erscheinungsbilder zusammenlegen, ohne doppelte. */
+export function bilderZusammen(hier = [], dort = []) {
+  const ids = new Set(hier.map((b) => b.id));
+  return [...hier, ...(dort || []).filter((b) => b && b.id && !ids.has(b.id))];
 }

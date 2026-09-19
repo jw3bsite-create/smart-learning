@@ -6,7 +6,6 @@
 import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { baueBaum } from "../core/model.js";
-import { istFaellig } from "../core/fsrs.js";
 import { fehlerZahlKurz } from "../core/fehler.js";
 import { gehe, START } from "../App.jsx";
 import { Symbol, SymbolKnopf, Knopf, useMerker } from "./basis.jsx";
@@ -48,7 +47,7 @@ function Zweig({ ordner, tiefe, aktiv, offen, umschalten, aufAblegen }) {
 export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
   const {
     ordner, stapel, ordnerAnlegen, stapelAnlegen, stapelAendern, wolkeStand,
-    faecher, zustaende, reviews,
+    faecher, reviews, offen: anstehend,
   } = useDaten();
   const [aufgeklappt, setAufgeklappt] = useMerker("aufgeklappt", []);
   const [faecherOffen, setFaecherOffen] = useMerker("faecherOffen", true);
@@ -59,8 +58,7 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
   const baum = useMemo(() => baueBaum(ordner), [ordner]);
   const ohneOrdner = stapel.filter((s) => !s.folderId).length;
 
-  const faellig = useMemo(
-    () => Object.values(zustaende).filter((z) => istFaellig(z)).length, [zustaende]);
+  const faellig = anstehend.faellig;
   const fehlerZahl = useMemo(() => fehlerZahlKurz(reviews), [reviews]);
 
   const umschalten = (id) =>

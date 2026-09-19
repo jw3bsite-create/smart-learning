@@ -13,7 +13,8 @@ import { useDaten } from "../core/store.jsx";
 import {
   ZEITRAEUME, von, fehlerListe, sortiere, nurFach, nurUeberschaetzt, nachFach, zahlen,
 } from "../core/fehler.js";
-import { richtungName } from "../core/model.js";
+import { richtungName, istRelevant } from "../core/model.js";
+import { rueckfaelleSeitFreigabe } from "../core/fsrs.js";
 import { anzahl, datumKurz } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import { Symbol, Knopf, Leer, useMerker } from "./basis.jsx";
@@ -33,7 +34,7 @@ function Wahl({ werte, wert, setWert }) {
 }
 
 export default function Fehlerheft({ fachId = null }) {
-  const { reviews, karten, faecher, stapelVon, fachVon } = useDaten();
+  const { reviews, karten, faecher, stapelVon, fachVon, zustaende, karteEntsperren } = useDaten();
   const [zeitraum, setZeitraum] = useMerker("fehlerZeitraum", "monat");
   const [nurTeuer, setNurTeuer] = useState(false);
   const [fach, setFach] = useState(fachId);
@@ -58,6 +59,22 @@ export default function Fehlerheft({ fachId = null }) {
   }, [vorhanden, fach, nurTeuer]);
 
   const gruppen = useMemo(() => nachFach(gefiltert), [gefiltert]);
+
+  /* Stillgelegte Karten, je Karte einmal — auch wenn beide Richtungen hängen. */
+  const haengend = useMemo(() => {
+    const nachKarte = new Map();
+    for (const z of Object.values(zustaende)) {
+      if (!z.gesperrt) continue;
+      const k = kartenNachId.get(z.cardId);
+      if (!istRelevant(k)) continue;
+      const s = stapelVon(k.setId);
+      if (fach && s?.subjectId !== fach) continue;
+      const e = nachKarte.get(k.id) || { karte: k, stapel: s, rueckfaelle: 0 };
+      e.rueckfaelle = Math.max(e.rueckfaelle, rueckfaelleSeitFreigabe(z));
+      nachKarte.set(k.id, e);
+    }
+    return [...nachKarte.values()];
+  }, [zustaende, kartenNachId, stapelVon, fach]);
   const z = zahlen(gefiltert);
   const teuer = zahlen(vorhanden).ueberschaetzt;
 
@@ -98,6 +115,40 @@ export default function Fehlerheft({ fachId = null }) {
           </select>
         )}
       </div>
+
+      {haengend.length > 0 && (
+        <section className="zahl-kachel" style={{ marginBottom: 24 }}>
+          <div className="reihe" style={{ marginBottom: 6 }}>
+            <Symbol name="stopp" groesse={16} style={{ color: "var(--rot)" }} />
+            <h3 className="dehnen" style={{ margin: 0 }}>
+              {anzahl(haengend.length, "Karte hängt", "Karten hängen")}
+            </h3>
+          </div>
+          <p className="klein matt" style={{ marginTop: 0 }}>
+            Diese Karten hast du immer wieder gewusst und wieder vergessen. Die App legt
+            sie still, weil dann meist die Karte zu groß ist, nicht dein Gedächtnis zu
+            schlecht. Teile sie auf oder formuliere sie um, dann kommen sie von selbst
+            wieder dran. Oder gib sie unverändert frei.
+          </p>
+          <div style={{ display: "grid", gap: 8 }}>
+            {haengend.map(({ karte, stapel, rueckfaelle }) => (
+              <div key={karte.id} className="reihe umbruch" style={{ gap: 8 }}>
+                <span className="dehnen"><Formel text={karte.term || "(ohne Text)"} /></span>
+                <span className="klein blass">
+                  {stapel?.title || "Stapel gelöscht"} · {anzahl(rueckfaelle, "Rückfall", "Rückfälle")}
+                </span>
+                {stapel && (
+                  <Knopf art="klein" symbol="stift"
+                    onClick={() => gehe("/stapel/" + stapel.id + "/bearbeiten")}>
+                    Bearbeiten
+                  </Knopf>
+                )}
+                <Knopf art="klein" onClick={() => karteEntsperren(karte.id)}>Freigeben</Knopf>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {gefiltert.length === 0 ? (
         <Leer symbol="haken" titel="Nichts im Heft"

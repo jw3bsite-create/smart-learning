@@ -4,6 +4,7 @@ import App from "./App.jsx";
 import { DatenSpeicher } from "./core/store.jsx";
 import Auffanglinie from "./ui/Auffanglinie.jsx";
 import * as wolke from "./core/cloud.js";
+import { dienstArbeiterEinrichten } from "./core/aktualisierung.js";
 import "./ui/stil.css";
 
 /* Die Auffanglinie liegt außen: Stürzt der Datenspeicher selbst ab, greift sie
@@ -28,19 +29,4 @@ createRoot(document.getElementById("wurzel")).render(
 
 if (rueckkehr) wolke.rueckkehrVerarbeiten();
 
-/*
- * Dienst-Arbeiter für den Betrieb ohne Netz. Im Entwicklungslauf stört er nur.
- *
- * Der Pfad wird aus der Adresse der Seite abgeleitet, nicht fest verdrahtet:
- * Liegt die App in einem Unterordner, zeigt `/sw.js` sonst ins Leere — und ein
- * Dienst-Arbeiter, der nicht gefunden wird, nimmt die Offline-Fähigkeit mit
- * sich, ohne dass es jemand merkt.
- */
-if ("serviceWorker" in navigator && import.meta.env.PROD) {
-  window.addEventListener("load", () => {
-    const wurzel = new URL(".", window.location.href);
-    navigator.serviceWorker
-      .register(new URL("sw.js", wurzel), { scope: wurzel.pathname })
-      .catch(() => {});
-  });
-}
+dienstArbeiterEinrichten();

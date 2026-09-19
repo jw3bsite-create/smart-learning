@@ -11,7 +11,7 @@ import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { anteileNachStufe } from "../core/fsrs.js";
 import {
-  fachZaehlung, faelligJeTag, lastprognose, pensumPruefen, tageBisPruefung,
+  fachZaehlung, faelligJeTag, lastprognose, pensumPruefen, tageBisPruefung, zustaendeImPlan,
 } from "../core/warteschlange.js";
 import { kalibrierungJeFach, kalibrierungInWorten } from "../core/kalibrierung.js";
 import { anzahl, datumKurz } from "../core/util.js";
@@ -234,7 +234,8 @@ export default function Faecher() {
   const [neuesFach, setNeuesFach] = useState(false);
   const [kalenderAus, setKalenderAus] = useState(false);
 
-  const alleZustaende = useMemo(() => Object.values(zustaende), [zustaende]);
+  const alleZustaende = useMemo(
+    () => zustaendeImPlan(karten, zustaende, stapelVon), [karten, zustaende, stapelVon]);
   const kalibrierungen = useMemo(() => kalibrierungJeFach(reviews), [reviews]);
 
   const zaehlungen = useMemo(() => {
@@ -378,7 +379,12 @@ export default function Faecher() {
               <div className="reihe klein" style={{ gap: 6, flexWrap: "wrap" }}>
                 {z.faellig > 0 && <span className="marke gelb">{z.faellig} fällig</span>}
                 {z.neu > 0 && <span className="marke">{z.neu} neu</span>}
-                {z.gesperrt > 0 && <span className="marke rot">{z.gesperrt} hängt</span>}
+                {z.gesperrt > 0 && (
+                  <button type="button" className="marke rot marke-knopf" title="Im Fehlerheft ansehen"
+                    onClick={(e) => { e.stopPropagation(); gehe("/fehler/" + f.id); }}>
+                    {z.gesperrt} hängt
+                  </button>
+                )}
                 {z.faellig === 0 && z.neu === 0 && z.gesamt > 0 &&
                   <span className="marke gruen">nichts offen</span>}
               </div>

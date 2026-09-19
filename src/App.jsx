@@ -8,10 +8,9 @@ import { useDaten } from "./core/store.jsx";
 import * as wolke from "./core/cloud.js";
 import * as erinnerung from "./core/erinnerung.js";
 import { tagesLage } from "./core/straehne.js";
-import { istFaellig } from "./core/fsrs.js";
 import { anwenden as gestaltungAnwenden } from "./core/gestaltung.js";
 import { fortschreiben, vorheriger } from "./core/verlauf.js";
-import { Symbol, SymbolKnopf } from "./ui/basis.jsx";
+import { SymbolKnopf } from "./ui/basis.jsx";
 import Seitenleiste from "./ui/Seitenleiste.jsx";
 import Bibliothek from "./ui/Bibliothek.jsx";
 import Stapelansicht from "./ui/Stapelansicht.jsx";
@@ -24,6 +23,7 @@ import FachSeite from "./ui/FachSeite.jsx";
 import Startseite from "./ui/Startseite.jsx";
 import Fehlerheft from "./ui/Fehlerheft.jsx";
 import Zeitmesser from "./ui/Zeitmesser.jsx";
+import { Ladefehler, Hinweisleiste } from "./ui/Meldungen.jsx";
 import Kalibrierung from "./ui/Kalibrierung.jsx";
 import Noten from "./ui/Noten.jsx";
 import Fragen from "./modes/Fragen.jsx";
@@ -148,6 +148,9 @@ export default function App() {
   const weg = useWeg();
   const [leisteOffen, setLeisteOffen] = useState(false);
   const abgleichLaeuft = useRef(false);
+  // Der jüngste Stand für den stündlichen Takt — sonst prüfte er mit Zahlen vom Start.
+  const aktuell = useRef(daten);
+  aktuell.current = daten;
   const anstoss = useRef(null);
 
   /* Die Gestaltung an die Wurzel hängen. Bei „wie das System" wird zusätzlich
@@ -208,17 +211,19 @@ export default function App() {
   useEffect(() => {
     if (!bereit) return;
     const pruefen = () => {
-      const faellig = Object.values(daten.zustaende).filter((z) => istFaellig(z)).length;
-      const lage = tagesLage(daten.reviews, faellig);
+      const { faellig } = aktuell.current.offen;
+      const lage = tagesLage(aktuell.current.reviews, faellig);
       if (!lage.heuteGeschafft) erinnerung.vielleichtErinnern({ faellig, text: lage.text });
     };
     pruefen();
     const takt = setInterval(pruefen, 3600000);
     return () => clearInterval(takt);
-  }, [bereit, daten.reviews.length]);
+  }, [bereit]);
 
   /* Beim Wechsel des Weges die Leiste auf schmalen Geräten schließen. */
   useEffect(() => { setLeisteOffen(false); }, [weg]);
+
+  if (daten.ladefehler) return <Ladefehler text={daten.ladefehler} />;
 
   if (!bereit) {
     return (
@@ -232,6 +237,7 @@ export default function App() {
   return (
     <>
       <Zeitmesser weg={weg} />
+      <Hinweisleiste />
       <Inhalt weg={weg} leisteOffen={leisteOffen} setLeisteOffen={setLeisteOffen}
         abgleichen={abgleichen} />
     </>

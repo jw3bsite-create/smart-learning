@@ -26,6 +26,11 @@ import { useZiehen } from "./ziehen.js";
 
 /* ----------------------------- Eine Kartenzeile ------------------------ */
 
+/** Die Schritte eines Rechenwegs als Text, eine Zeile je Schritt. */
+function schritteAlsText(schritte) {
+  return (schritte || []).map((s) => (s.frage ? s.frage + ": " + s.antwort : s.antwort)).join("\n");
+}
+
 function Zeile({
   karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZeile,
   ziehGriff = null, ziehZeile = {},
@@ -35,23 +40,72 @@ function Zeile({
   const [hinweis, setHinweis] = useState(karte.hint || "");
   const [hinweisOffen, setHinweisOffen] = useState(Boolean(karte.hint));
   const istMehrschritt = kartenArt(karte) === "mehrschritt";
-  const [schritteText, setSchritteText] = useState(
-    (karte.schritte || []).map((s) => (s.frage ? s.frage + ": " + s.antwort : s.antwort))
-      .join("\n"));
+  const [schritteText, setSchritteText] = useState(schritteAlsText(karte.schritte));
   const uhr = useRef(null);
   const vorderesFeld = useRef(null);
   // Welche Formel gerade bearbeitet wird: { welche, feldName, index }
   const [formel, setFormel] = useState(null);
 
-  // Änderungen von außen (Einfuhr, Abgleich) übernehmen.
-  useEffect(() => { setTerm(karte.term); }, [karte.term]);
-  useEffect(() => { setDefinition(karte.definition); }, [karte.definition]);
+  /*
+   * Gespeichert wird gesammelt: Was getippt ist, liegt in `ausstehend`, bis
+   * eine halbe Sekunde Ruhe ist, das Feld verlassen wird oder die Seite geht.
+   *
+   * Vorher merkte sich die Zeile nur die jeweils letzte Änderung. Wer vorn
+   * tippte und gleich hinten weiterschrieb, verlor die vordere; wer am Handy
+   * zurückwischte oder die App wegschob, das zuletzt Getippte.
+   */
+  const ausstehend = useRef({});
+  const aktuell = useRef({ karte, aendern });
+  aktuell.current = { karte, aendern };
 
-  const merken = (aenderung) => {
+  const abschicken = () => {
     clearTimeout(uhr.current);
-    uhr.current = setTimeout(() => aendern(karte.id, aenderung), 500);
+    const offen = ausstehend.current;
+    ausstehend.current = {};
+    const { karte: k, aendern: schreiben } = aktuell.current;
+    /* Nur, was sich wirklich geändert hat. Ein bloßes Verlassen des Feldes
+       gäbe der Karte sonst einen neuen Zeitstempel — und mit dem gewönne
+       beim Abgleich ein alter Text gegen die Änderung vom anderen Gerät. */
+    const echt = Object.fromEntries(Object.entries(offen)
+      .filter(([feld, wert]) => JSON.stringify(wert)
+        !== JSON.stringify(feld === "hint" ? k.hint || "" : k[feld] ?? null)));
+    if (Object.keys(echt).length) schreiben(k.id, echt);
   };
-  const sofort = (aenderung) => { clearTimeout(uhr.current); aendern(karte.id, aenderung); };
+  const merken = (aenderung) => {
+    ausstehend.current = { ...ausstehend.current, ...aenderung };
+    clearTimeout(uhr.current);
+    uhr.current = setTimeout(abschicken, 500);
+  };
+  const sofort = (aenderung) => {
+    ausstehend.current = { ...ausstehend.current, ...aenderung };
+    abschicken();
+  };
+
+  // Beim Verlassen der Seite, beim Wegschieben der App und beim Schließen
+  // wird geschrieben, was noch aussteht.
+  useEffect(() => {
+    const verdeckt = () => { if (document.visibilityState === "hidden") abschicken(); };
+    window.addEventListener("pagehide", abschicken);
+    document.addEventListener("visibilitychange", verdeckt);
+    return () => {
+      window.removeEventListener("pagehide", abschicken);
+      document.removeEventListener("visibilitychange", verdeckt);
+      abschicken();
+    };
+  }, []);
+
+  /* Änderungen von außen (Einfuhr, Abgleich, eigenes Speichern) übernehmen —
+     aber nicht über etwas, das gerade getippt wird und noch aussteht. */
+  const vonAussen = (feld, setzen, wert) => { if (!(feld in ausstehend.current)) setzen(wert); };
+  useEffect(() => { vonAussen("term", setTerm, karte.term); }, [karte.term]);
+  useEffect(() => { vonAussen("definition", setDefinition, karte.definition); }, [karte.definition]);
+  useEffect(() => { vonAussen("hint", setHinweis, karte.hint || ""); }, [karte.hint]);
+  useEffect(() => {
+    // Nur, wenn sich wirklich etwas anderes ergibt: Sonst verschwände eine
+    // eben angefangene leere Zeile, sobald das Getippte gespeichert ist.
+    if (JSON.stringify(alsSchritte(schritteText)) === JSON.stringify(karte.schritte || [])) return;
+    vonAussen("schritte", setSchritteText, schritteAlsText(karte.schritte));
+  }, [JSON.stringify(karte.schritte || [])]);
 
   /** Zeilen zu Schritten: „ableiten: f'(x) = 2x" wird Frage und Antwort. */
   const alsSchritte = (text) => String(text || "").split("\n")
@@ -67,8 +121,6 @@ function Zeile({
 
   const merkenSchritte = (text) => merken({ schritte: alsSchritte(text) });
   const sofortSchritte = (text) => sofort({ schritte: alsSchritte(text) });
-
-  useEffect(() => () => clearTimeout(uhr.current), []);
 
   const bildWaehlen = async (seite, datei) => {
     if (!datei) return;

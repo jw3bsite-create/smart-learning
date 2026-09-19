@@ -34,8 +34,16 @@ function vorrat() {
   return [WURZEL, STARTSEITE, ...liste.map((d) => WURZEL + d)];
 }
 
+/*
+ * Eine neue Fassung wartet, bis die Seite darum bittet (siehe
+ * src/core/aktualisierung.js). Früher übernahm sie sofort und räumte die
+ * Dateien der alten weg, während ein offenes Fenster sie noch brauchte.
+ */
+self.addEventListener("message", (e) => {
+  if (e.data === "SKIP_WAITING") self.skipWaiting();
+});
+
 self.addEventListener("install", (e) => {
-  self.skipWaiting();
   e.waitUntil(caches.open(CACHE).then((c) =>
     // Einzeln statt addAll: Ein fehlender Baustein soll nicht den ganzen
     // Vorrat verwerfen, sonst steht man wegen einer Kleinigkeit ohne alles da.

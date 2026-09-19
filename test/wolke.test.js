@@ -234,6 +234,7 @@ test("die Feldnamen der Sicherung liegen fest", () => {
     exams: "pruefungen",
     noten: "notenfaecher",
     lernzeit: "lernzeiten",
+    sessions: "sitzungen",
   });
 });
 

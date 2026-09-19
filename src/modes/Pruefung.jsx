@@ -81,6 +81,26 @@ export default function Pruefung({ pruefungId, aufSchliessen }) {
     return () => clearTimeout(sichern.current);
   }, [text]);
 
+  /* Beim Verlassen, Wegschieben oder Schließen den letzten Stand sichern —
+     sonst fehlten bis zu drei Sekunden Geschriebenes. */
+  const letzter = useRef({ text, pruefung, pruefungAendern });
+  letzter.current = { text, pruefung, pruefungAendern };
+  useEffect(() => {
+    const sichernJetzt = () => {
+      const { text: t, pruefung: p, pruefungAendern: aendern } = letzter.current;
+      clearTimeout(sichern.current);
+      if (p && !p.abgegeben && t !== (p.text || "")) aendern(p.id, { text: t });
+    };
+    const verdeckt = () => { if (document.visibilityState === "hidden") sichernJetzt(); };
+    window.addEventListener("pagehide", sichernJetzt);
+    document.addEventListener("visibilitychange", verdeckt);
+    return () => {
+      window.removeEventListener("pagehide", sichernJetzt);
+      document.removeEventListener("visibilitychange", verdeckt);
+      sichernJetzt();
+    };
+  }, []);
+
   const stand = useMemo(
     () => (pruefung ? pruefungsStand({ ...pruefung, text }) : null), [pruefung, text]);
 

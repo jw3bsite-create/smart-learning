@@ -31,25 +31,8 @@ export default class Auffanglinie extends React.Component {
   async sicherungZiehen() {
     // Bewusst unmittelbar über IndexedDB: Der Datenspeicher der App könnte
     // gerade der sein, der abgestürzt ist.
-    const db = await import("../core/db.js");
-    /* Die Liste kommt aus db.js — dieselbe, mit der die gewöhnliche Sicherung
-       geschrieben wird. Sie hier noch einmal von Hand zu führen hieße, dass
-       eine neue Ablage in der Rettung fehlt, gerade wenn man sie braucht. */
-    const ablagen = Object.keys(db.SICHERUNG_FELDER);
-    const daten = { fassung: 7, erzeugt: Date.now(), notsicherung: true };
-    const namen = db.SICHERUNG_FELDER;
-    for (const ablage of ablagen) {
-      try { daten[namen[ablage]] = await db.all(ablage, { mitGeloeschten: true }); }
-      catch (e) { daten[namen[ablage]] = []; }
-    }
-    const blob = new Blob([JSON.stringify(daten)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "smart-learning-notsicherung-"
-      + new Date().toISOString().slice(0, 16).replace(":", "") + ".json";
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    const { notsicherungHerunterladen } = await import("../core/notsicherung.js");
+    await notsicherungHerunterladen();
   }
 
   render() {

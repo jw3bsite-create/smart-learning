@@ -113,7 +113,12 @@ export default function FachSeite({ fachId }) {
         <div className="reihe klein" style={{ gap: 6, flexWrap: "wrap" }}>
           {z.faellig > 0 && <span className="marke gelb">{z.faellig} fällig</span>}
           {z.neu > 0 && <span className="marke">{z.neu} neu</span>}
-          {z.gesperrt > 0 && <span className="marke rot">{z.gesperrt} hängt</span>}
+          {z.gesperrt > 0 && (
+                  <button type="button" className="marke rot marke-knopf" title="Im Fehlerheft ansehen"
+                    onClick={(e) => { e.stopPropagation(); gehe("/fehler/" + fach.id); }}>
+                    {z.gesperrt} hängt
+                  </button>
+                )}
           {offen === 0 && z.gesamt > 0 && <span className="marke gruen">nichts offen</span>}
         </div>
       </div>
