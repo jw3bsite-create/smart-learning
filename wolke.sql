@@ -3,6 +3,15 @@
 -- Einmal im SQL-Editor des eigenen Supabase-Projekts ausführen.
 -- Danach in den Einstellungen der App Adresse und öffentlichen Schlüssel
 -- (Project URL und anon key) eintragen und anmelden.
+--
+-- Fassung 2 (September 2026). Wer eine frühere Fassung schon ausgeführt
+-- hat, führt diese einfach noch einmal aus; jeder Schritt verträgt das.
+--
+-- Nach dem Anlegen der eigenen Kennung: Authentication → Sign In / Providers
+-- → "Allow new users to sign up" abschalten. Sonst kann sich jeder, der
+-- Adresse und öffentlichen Schlüssel kennt, ein eigenes Konto anlegen. Deine
+-- Daten sähe er nicht (dafür sorgen die Zeilenregeln), aber er könnte dein
+-- kostenloses Kontingent füllen.
 
 create table if not exists public.karteikasten (
   user_id    uuid    not null references auth.users (id) on delete cascade,
@@ -35,6 +44,61 @@ create policy "eigene zeilen aendern" on public.karteikasten
 drop policy if exists "eigene zeilen loeschen" on public.karteikasten;
 create policy "eigene zeilen loeschen" on public.karteikasten
   for delete using (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------
+-- Zeitstempel des Servers (Fassung 2 dieser Datei).
+--
+-- `updated_at` ist die Uhrzeit der Änderung auf dem Gerät. Danach zu fragen,
+-- was seit dem letzten Abgleich neu ist, verliert Änderungen: Wer offline
+-- lernt und erst abends hochlädt, schickt Zeilen mit einer Uhrzeit, die das
+-- andere Gerät längst hinter sich hat. `geaendert` ist darum die Uhrzeit, zu
+-- der die Zeile hier ankam — und die setzt der Server selbst.
+-- ---------------------------------------------------------------------
+
+alter table public.karteikasten add column if not exists geaendert bigint;
+update public.karteikasten set geaendert = updated_at where geaendert is null;
+alter table public.karteikasten
+  alter column geaendert set default ((extract(epoch from clock_timestamp()) * 1000)::bigint);
+alter table public.karteikasten alter column geaendert set not null;
+
+create or replace function public.karteikasten_stempeln() returns trigger
+  language plpgsql as $$
+begin
+  new.geaendert := (extract(epoch from clock_timestamp()) * 1000)::bigint;
+  return new;
+end $$;
+
+drop trigger if exists karteikasten_stempeln on public.karteikasten;
+create trigger karteikasten_stempeln
+  before insert or update on public.karteikasten
+  for each row execute function public.karteikasten_stempeln();
+
+create index if not exists karteikasten_angekommen
+  on public.karteikasten (user_id, geaendert);
+
+-- Schreiben nur, wenn die Zeile neuer ist als die vorhandene. Ohne diese
+-- Bedingung überschriebe ein Gerät mit altem Stand die Änderung eines
+-- anderen, das inzwischen weiter war. Läuft mit den Rechten des Aufrufers:
+-- Die Zeilenregeln oben gelten also auch hier.
+create or replace function public.karteikasten_schreiben(zeilen jsonb) returns integer
+  language plpgsql security invoker as $$
+declare
+  anzahl integer;
+begin
+  insert into public.karteikasten (user_id, id, art, daten, updated_at, deleted)
+  select auth.uid(), z->>'id', z->>'art', coalesce(z->'daten', '{}'::jsonb),
+         (z->>'updated_at')::bigint, coalesce((z->>'deleted')::boolean, false)
+    from jsonb_array_elements(zeilen) as z
+  on conflict (user_id, id) do update
+    set art = excluded.art, daten = excluded.daten,
+        updated_at = excluded.updated_at, deleted = excluded.deleted
+    where excluded.updated_at >= public.karteikasten.updated_at;
+  get diagnostics anzahl = row_count;
+  return anzahl;
+end $$;
+
+revoke all on function public.karteikasten_schreiben(jsonb) from public, anon;
+grant execute on function public.karteikasten_schreiben(jsonb) to authenticated;
 
 -- Ablage für Bilder auf Karteikarten.
 insert into storage.buckets (id, name, public)

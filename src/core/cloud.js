@@ -16,7 +16,8 @@
  */
 
 import * as db from "./db.js";
-import { bildBlob, bildAblegen } from "./media.js";
+import { tonSchluessel, tonTeile } from "./ton.js";
+import { UEBERLAPPUNG, zuUebernehmen, neueMarke, medienPlan } from "./abgleich.js";
 
 const TABELLE = "karteikasten";
 const EIMER = "bilder";
@@ -524,10 +525,10 @@ export function uebersetze(text) {
 
 /* ------------------------------- Abgleich ------------------------------ */
 
-function nachAussen(ablage, rec, benutzer) {
+function nachAussen(ablage, rec) {
   const { id, updatedAt, deleted, ...rest } = rec;
   return {
-    id, user_id: benutzer, art: ARTEN[ablage],
+    id, art: ARTEN[ablage],
     daten: rest, updated_at: updatedAt || Date.now(), deleted: Boolean(deleted),
   };
 }
@@ -537,9 +538,34 @@ function nachInnen(zeile) {
     updatedAt: Number(zeile.updated_at) || 0, deleted: Boolean(zeile.deleted) };
 }
 
+/* Die Tabelle stammt aus einer früheren Fassung von wolke.sql. */
+function fehltNeueFassung(text) {
+  return /geaendert|karteikasten_schreiben|PGRST202|could not find the function/i.test(String(text || ""));
+}
+const NEUE_FASSUNG = "Dein Supabase-Projekt braucht die neue Fassung von wolke.sql. Öffne dort "
+  + "den SQL Editor, füge den Inhalt der Datei wolke.sql ein und drücke Run. Deine Daten "
+  + "bleiben dabei erhalten.";
+
+function abgleichFehler(fehler) {
+  const text = fehler?.message || String(fehler || "");
+  return new Error(fehltNeueFassung(text) ? NEUE_FASSUNG : uebersetze(text));
+}
+
+/** Wie weit beim Schicken zurückgegriffen wird — gegen eine verstellte Geräteuhr. */
+const SENDE_UEBERLAPPUNG = 10 * 60 * 1000;
+
 /**
  * Ein vollständiger Abgleich in beide Richtungen.
  * `melde(text)` bekommt Zwischenstände für die Anzeige.
+ *
+ * Holen: alles, was seit dem letzten Mal beim Server angekommen ist (nach
+ * seinem eigenen Stempel `geaendert`), mit etwas Überlappung. Übernommen wird
+ * nur, was hier fehlt oder neuer ist.
+ *
+ * Schicken: alles, was sich hier seit dem letzten Schicken geändert hat. Der
+ * Server nimmt eine Zeile nur an, wenn sie neuer ist als seine
+ * (karteikasten_schreiben in wolke.sql) — ein Gerät mit altem Stand kann so
+ * nichts Neueres überschreiben.
  */
 export async function abgleichen(melde = () => {}) {
   const k = await verbinde();
@@ -549,113 +575,127 @@ export async function abgleichen(melde = () => {}) {
   if (!sitz) throw new Error("Nicht angemeldet.");
   const benutzer = sitz.user.id;
 
-  const marke = Number(await db.getSetting("wolkeMarke", 0)) || 0;
-  let neueMarke = marke;
+  const marke = Number(await db.getSetting("wolkeMarkeServer", 0)) || 0;
+  let marke2 = marke;
   let geholt = 0, geschickt = 0;
+
+  /* Was hier liegt, samt Grabsteinen — einmal gelesen statt je Zeile. */
+  const hier = await db.lesenMehrere(db.SYNCED, { mitGeloeschten: true });
+  const standHier = Object.fromEntries(Object.entries(hier)
+    .map(([ablage, liste]) => [ablage, new Map(liste.map((r) => [r.id, r.updatedAt || 0]))]));
 
   /* --- Holen --- */
   melde("Hole Änderungen …");
   const seiten = 1000;
+  const ab = Math.max(0, marke - UEBERLAPPUNG);
   for (let von = 0; ; von += seiten) {
     const { data, error } = await k.from(TABELLE)
-      .select("*").gt("updated_at", marke)
-      .order("updated_at", { ascending: true })
+      .select("*").gt("geaendert", ab)
+      .order("geaendert", { ascending: true })
       .range(von, von + seiten - 1);
-    if (error) throw new Error(uebersetze(error.message));
+    if (error) throw abgleichFehler(error);
     if (!data || !data.length) break;
 
+    const schreiben = {};
     for (const zeile of data) {
       const ablage = ZURUECK[zeile.art];
       if (!ablage) continue;
-      const fremd = nachInnen(zeile);
-      const eigen = await db.get(ablage, fremd.id);
-      if (!eigen || (eigen.updatedAt || 0) < fremd.updatedAt) {
-        await db.put(ablage, fremd);
-        geholt++;
-      }
-      neueMarke = Math.max(neueMarke, fremd.updatedAt);
+      if (!schreiben[ablage]) schreiben[ablage] = [];
+      schreiben[ablage].push(nachInnen(zeile));
     }
+    for (const [ablage, eintraege] of Object.entries(schreiben)) {
+      const neue = zuUebernehmen(standHier[ablage] || new Map(), eintraege);
+      schreiben[ablage] = neue;
+      for (const e of neue) standHier[ablage]?.set(e.id, e.updatedAt);
+      geholt += neue.length;
+    }
+    // Eine Seite in einem Zug: gelingt ganz oder gar nicht.
+    await db.schreibeMehrere(schreiben);
+    marke2 = neueMarke(marke2, data);
     if (data.length < seiten) break;
   }
 
   /* --- Schicken --- */
   melde("Schicke Änderungen …");
   const gesendet = Number(await db.getSetting("wolkeGesendet", 0)) || 0;
-
   /*
-   * Der neue Stand wird **jetzt** genommen, nicht am Ende des Abgleichs.
-   *
-   * Vorher stand hier Date.now() erst hinter dem Hochladen und dem Abgleich
-   * der Bilder — also Sekunden spaeter. Alles, was der Nutzer in dieser
-   * Zeitspanne aenderte, bekam einen Zeitstempel davor, galt beim naechsten
-   * Mal als laengst geschickt und ging nie hinaus. Still, dauerhaft, und nur
-   * auf dem Geraet, an dem man gerade gearbeitet hat.
-   *
-   * Frueher genommen kann es hoechstens geschehen, dass ein Datensatz zweimal
-   * geschickt wird. Das ist folgenlos: Es ist ein upsert.
+   * Der neue Stand wird **jetzt** genommen, nicht am Ende des Abgleichs:
+   * Was der Nutzer währenddessen ändert, trägt einen späteren Zeitstempel und
+   * geht beim nächsten Mal hinaus. Zurückgegriffen wird etwas weiter als
+   * nötig, falls die Uhr des Geräts zwischendurch zurückgestellt wurde —
+   * doppelt Geschicktes schadet nicht, der Server nimmt nur Neueres an.
    */
   const sendeStand = Date.now();
   const hinaus = [];
-  for (const ablage of db.SYNCED) {
-    const alle = await db.all(ablage, { mitGeloeschten: true });
-    for (const rec of alle)
-      if ((rec.updatedAt || 0) > gesendet) hinaus.push(nachAussen(ablage, rec, benutzer));
-  }
+  const nachher = await db.lesenMehrere(db.SYNCED, { mitGeloeschten: true });
+  for (const [ablage, liste] of Object.entries(nachher))
+    for (const rec of liste)
+      if ((rec.updatedAt || 0) > gesendet - SENDE_UEBERLAPPUNG) hinaus.push(nachAussen(ablage, rec));
   for (let i = 0; i < hinaus.length; i += 500) {
     const brocken = hinaus.slice(i, i + 500);
-    const { error } = await k.from(TABELLE).upsert(brocken, { onConflict: "user_id,id" });
-    if (error) throw new Error(uebersetze(error.message));
+    const { error } = await k.rpc("karteikasten_schreiben", { zeilen: brocken });
+    if (error) throw abgleichFehler(error);
     geschickt += brocken.length;
-    melde(`Schicke Änderungen … ${geschickt}/${hinaus.length}`);
+    melde("Schicke Änderungen … " + geschickt + "/" + hinaus.length);
   }
 
-  /* --- Bilder --- */
-  melde("Gleiche Bilder ab …");
-  const bilderZahl = await bilderAbgleichen(k, benutzer, melde).catch(() => 0);
+  /* --- Bilder und Aufnahmen --- */
+  melde("Gleiche Bilder und Aufnahmen ab …");
+  let medien = 0, medienFehler = "";
+  try {
+    medien = await medienAbgleichen(k, benutzer, melde);
+  } catch (e) {
+    medienFehler = String(e?.message || e);
+  }
 
   const jetzt = Date.now();
-  await db.setSetting("wolkeMarke", Math.max(neueMarke, marke));
+  await db.setSetting("wolkeMarkeServer", marke2);
   await db.setSetting("wolkeGesendet", sendeStand);
   await db.setSetting("wolkeZuletzt", jetzt);
 
-  return { geholt, geschickt, bilder: bilderZahl, zeit: jetzt };
+  return { geholt, geschickt, bilder: medien, medienFehler, zeit: jetzt };
 }
 
 /**
- * Bilder liegen nicht in der Tabelle, sondern im Dateispeicher des Projekts.
- * Hochgeladen wird, was hier ist und dort fehlt; geholt, was Karten
- * verlangen und hier fehlt.
+ * Bilder und Aufnahmen liegen nicht in der Tabelle, sondern im Dateispeicher
+ * des Projekts. Was zu tun ist, rechnet medienPlan in core/abgleich.js aus.
  */
-async function bilderAbgleichen(k, benutzer, melde) {
-  const karten = await db.all("cards", { mitGeloeschten: true });
+async function medienAbgleichen(k, benutzer, melde) {
+  const { cards, drafts } = await db.lesenMehrere(["cards", "drafts"], { mitGeloeschten: true });
   const gebraucht = new Set();
-  for (const karte of karten) {
+  for (const karte of cards) {
     if (karte.termImage) gebraucht.add(karte.termImage);
     if (karte.defImage) gebraucht.add(karte.defImage);
+    if (!karte.deleted) for (const seite of ["t", "d"]) gebraucht.add(tonSchluessel(karte.id, seite));
   }
-  const eigene = new Set((await db.all("media", { mitGeloeschten: true })).map((b) => b.id));
+  for (const e of drafts) if (e.termImage) gebraucht.add(e.termImage);
+  const lokal = await db.all("media", { mitGeloeschten: true });
 
-  const { data: liste, error } = await k.storage.from(EIMER)
-    .list(benutzer, { limit: 10000 });
-  if (error) return 0;
-  const droben = new Set((liste || []).map((d) => d.name));
+  const { data: liste, error } = await k.storage.from(EIMER).list(benutzer, { limit: 10000 });
+  if (error) throw new Error(uebersetze(error.message));
+  const plan = medienPlan({ lokal, droben: (liste || []).map((d) => d.name), gebraucht });
 
   let zahl = 0;
-  // Hochladen, was fehlt.
-  for (const kennung of gebraucht) {
-    if (!eigene.has(kennung) || droben.has(kennung)) continue;
-    const blob = await bildBlob(kennung);
+  const nachId = new Map(lokal.map((m) => [m.id, m]));
+  for (const { id, name } of plan.hoch) {
+    const blob = nachId.get(id)?.blob;
     if (!blob) continue;
     const { error: hochFehler } = await k.storage.from(EIMER)
-      .upload(`${benutzer}/${kennung}`, blob, { upsert: true, contentType: blob.type });
-    if (!hochFehler) { zahl++; melde(`Lade Bilder hoch … ${zahl}`); }
+      .upload(benutzer + "/" + name, blob, { upsert: true, contentType: blob.type });
+    if (!hochFehler) { zahl++; melde("Lade hoch … " + zahl); }
   }
-  // Herunterladen, was hier fehlt.
-  for (const kennung of gebraucht) {
-    if (eigene.has(kennung) || !droben.has(kennung)) continue;
-    const { data: blob } = await k.storage.from(EIMER).download(`${benutzer}/${kennung}`);
-    if (blob) { await bildAblegen(kennung, blob); zahl++; melde(`Hole Bilder … ${zahl}`); }
+  for (const { id, name, stand } of plan.runter) {
+    const { data: blob } = await k.storage.from(EIMER).download(benutzer + "/" + name);
+    if (!blob) continue;
+    const ton = tonTeile(id);
+    await db.put("media", ton
+      ? { id, blob, type: blob.type, ton: true, cardId: ton.cardId, seite: ton.seite,
+        updatedAt: stand, deleted: false }
+      : { id, blob, type: blob.type, updatedAt: Date.now() });
+    zahl++; melde("Hole … " + zahl);
   }
+  if (plan.weg.length)
+    await k.storage.from(EIMER).remove(plan.weg.map((n) => benutzer + "/" + n));
   return zahl;
 }
 
@@ -663,8 +703,8 @@ export async function letzterAbgleich() {
   return Number(await db.getSetting("wolkeZuletzt", 0)) || 0;
 }
 
-/** Setzt die Wasserzeichen zurück — erzwingt beim nächsten Mal einen vollen Abgleich. */
+/** Setzt die Marken zurück — erzwingt beim nächsten Mal einen vollen Abgleich. */
 export async function abgleichZuruecksetzen() {
-  await db.setSetting("wolkeMarke", 0);
+  await db.setSetting("wolkeMarkeServer", 0);
   await db.setSetting("wolkeGesendet", 0);
 }

@@ -342,7 +342,8 @@ function Wolkenteil({ aufAbgleich }) {
               kostenloses Projekt anlegen.</li>
             <li>Im Projekt unter <em>SQL Editor</em> den Inhalt der Datei <code>wolke.sql</code> aus
               diesem Verzeichnis einfügen und ausführen. Das legt die Tabelle, die Rechte und die
-              Ablage für Bilder an.</li>
+              Ablage für Bilder und Aufnahmen an. Kommt später eine neue Fassung der Datei, führst
+              du sie einfach noch einmal aus; deine Daten bleiben.</li>
             <li>Unter <em>Project Settings → API</em> die <em>Project URL</em> und den
               <em> anon public</em>-Schlüssel kopieren und oben eintragen.</li>
             <li>Unter <em>Authentication → URL Configuration</em> die Adresse dieser App als
@@ -350,6 +351,10 @@ function Wolkenteil({ aufAbgleich }) {
               führen die Verweise zum Bestätigen und zum Zurücksetzen des Passworts ins
               Leere.</li>
             <li>Eine Kennung anlegen und anmelden, auf jedem Gerät dieselbe.</li>
+            <li>Danach unter <em>Authentication → Sign In / Providers</em> die Option
+              <em> Allow new users to sign up</em> abschalten. Sonst kann sich jeder, der Adresse
+              und Schlüssel kennt, ein eigenes Konto in deinem Projekt anlegen. Deine Daten sähe
+              er nicht, aber er könnte dein kostenloses Kontingent füllen.</li>
           </ol>
           <p className="klein matt">
             Der öffentliche Schlüssel darf im Browser stehen; die Zeilenrechte („row level

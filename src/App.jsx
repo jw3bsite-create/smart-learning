@@ -178,8 +178,13 @@ export default function App() {
       const ergebnis = await wolke.abgleichen((text) =>
         setWolkeStand({ zustand: "arbeitet", zeit: Date.now(), text }));
       await neuLaden();
-      setWolkeStand({ zustand: "gut", zeit: ergebnis.zeit,
-        text: `${ergebnis.geholt} geholt, ${ergebnis.geschickt} geschickt` });
+      setWolkeStand({
+        zustand: ergebnis.medienFehler ? "fehler" : "gut", zeit: ergebnis.zeit,
+        text: ergebnis.geholt + " geholt, " + ergebnis.geschickt + " geschickt"
+          + (ergebnis.bilder ? ", " + ergebnis.bilder + " Bilder und Aufnahmen" : "")
+          + (ergebnis.medienFehler
+            ? " — Bilder und Aufnahmen gingen nicht: " + ergebnis.medienFehler : ""),
+      });
     } catch (fehler) {
       setWolkeStand({ zustand: "fehler", zeit: Date.now(), text: fehler.message });
       if (!still) window.alert("Abgleich misslungen: " + fehler.message);

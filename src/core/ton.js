@@ -195,12 +195,19 @@ export async function tonAdresse(cardId, seite) {
   return url;
 }
 
+/*
+ * Löschen hinterlässt einen Grabstein, keine Lücke: Sonst hielte der Abgleich
+ * die Aufnahme für „hier noch nicht vorhanden" und holte sie zurück.
+ */
 export async function tonEntfernen(cardId, seite) {
   const kennung = tonSchluessel(cardId, seite);
   const url = adressen.get(kennung);
   if (url) URL.revokeObjectURL(url);
   adressen.delete(kennung);
-  await db.remove("media", kennung);
+  await db.put("media", {
+    id: kennung, ton: true, cardId, seite, blob: null,
+    deleted: true, updatedAt: Date.now(),
+  });
 }
 
 /** m:ss — auch für die Anzeige während der Aufnahme. */

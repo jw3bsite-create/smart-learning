@@ -337,3 +337,38 @@ test("die Meldungen rund ums Passwort kommen auf Deutsch", () => {
     /zu viele Mails/);
   assert.match(uebersetze("Password update requires reauthentication."), /Bestätigung/);
 });
+
+/* ------------------- Serverstempel und bedingtes Schreiben --------------- */
+
+/*
+ * Der Kern von Fassung 2: Der Server stempelt selbst, und er nimmt nur an,
+ * was neuer ist. Ohne beides verliert der Abgleich Änderungen (siehe
+ * test/abgleich.test.js).
+ */
+test("der Server stempelt jede Zeile selbst", () => {
+  assert.match(sql, /add column if not exists geaendert bigint/i);
+  assert.match(sql, /create trigger karteikasten_stempeln/i,
+    "ohne Auslöser bliebe der Stempel bei einem Update stehen");
+  assert.match(sql, /before insert or update/i);
+  assert.match(sql, /clock_timestamp\(\)/i);
+});
+
+test("es gibt einen Index auf den Stempel", () => {
+  assert.match(sql, /create index if not exists karteikasten_angekommen[\s\S]*geaendert/i);
+});
+
+test("geschrieben wird nur, was neuer ist", () => {
+  assert.match(sql, /create or replace function public\.karteikasten_schreiben/i);
+  assert.match(sql, /where excluded\.updated_at >= public\.karteikasten\.updated_at/i,
+    "ohne diese Bedingung überschreibt ein altes Gerät den neueren Stand");
+});
+
+test("die Schreibfunktion läuft mit den Rechten des Aufrufers", () => {
+  assert.match(sql, /security invoker/i, "sonst wären die Zeilenregeln umgangen");
+  assert.match(sql, /grant execute on function public\.karteikasten_schreiben\(jsonb\) to authenticated/i);
+  assert.match(sql, /revoke all on function public\.karteikasten_schreiben\(jsonb\) from public, anon/i);
+});
+
+test("die Datei erklärt, wie man neue Anmeldungen abschaltet", () => {
+  assert.match(sql, /Allow new users to sign up/i);
+});
