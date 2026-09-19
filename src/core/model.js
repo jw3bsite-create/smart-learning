@@ -51,22 +51,19 @@ function neueRichtung() {
   return { box: 0, ease: 2.5, interval: 0, due: 0, reps: 0, lapses: 0, correct: 0, wrong: 0 };
 }
 
-/** Fach 0–5 → Stufe der Beherrschung. */
-export const STUFEN = ["Neu", "Am Lernen", "Vertraut", "Beherrscht"];
-
-export function stufe(stand, richtung = "td") {
+/*
+ * Die Stufen des alten Fächersystems (Übungsmodi). Der Lernplan rechnet mit
+ * FSRS und hat eigene, gleichnamige Funktionen in fsrs.js — darum tragen
+ * diese hier „uebungs" im Namen. Wer beides verwechselt, zeigt an zwei
+ * Stellen der App zwei verschiedene Wahrheiten über dieselbe Karte.
+ */
+export function uebungsStufe(stand, richtung = "td") {
   if (!stand) return 0;
   const box = stand[richtung]?.box || 0;
   if (box <= 0) return 0;
   if (box <= 2) return 1;
   if (box <= 4) return 2;
   return 3;
-}
-
-/** Mittlere Beherrschung einer Karte über beide Richtungen (0–1). */
-export function beherrschung(stand) {
-  if (!stand) return 0;
-  return (Math.min(stand.td.box, 6) + Math.min(stand.dt.box, 6)) / 12;
 }
 
 /** Karten eines Stapels in ihrer Reihenfolge. */
@@ -105,14 +102,14 @@ export function ordnerZweig(ordner, wurzelId) {
 }
 
 /**
- * Verteilt Karten auf die vier Stufen — Grundlage für die Fortschrittsbalken.
- * Gewertet wird die schwächere der beiden Richtungen.
+ * Verteilt Karten auf die vier Übungsstufen — für den Balken in den
+ * Übungsmodi. Gewertet wird die schwächere der beiden Richtungen.
  */
-export function anteileNachStufe(karten, staende) {
+export function uebungsAnteile(karten, staende) {
   const anteile = [0, 0, 0, 0];
   for (const k of karten) {
     const stand = staende[k.id];
-    const s = Math.min(stufe(stand, "td"), stufe(stand, "dt"));
+    const s = Math.min(uebungsStufe(stand, "td"), uebungsStufe(stand, "dt"));
     anteile[s] += 1;
   }
   return anteile;

@@ -11,6 +11,7 @@ import { alsCsv, alsText, alsAnkiText, alsCsvMitPlan } from "../core/importer.js
 import { sprich, SPRACHEN } from "../core/speech.js";
 import { gehe, MODI, zurueck, ersetze, vorigerWeg } from "../App.jsx";
 import { wegName } from "../core/verlauf.js";
+import { herunterladen } from "../core/datei.js";
 import { alsStapeldatei } from "../core/stapeldatei.js";
 import {
   Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Bild, Stern, Leer, Dialog, Rueckfrage,
@@ -18,15 +19,6 @@ import {
 import Formel from "./Formel.jsx";
 import Auswahlleiste from "./Kartenauswahl.jsx";
 import { useZiehen } from "./ziehen.js";
-
-function herunterladen(name, inhalt, art = "text/plain") {
-  const blob = new Blob([inhalt], { type: art + ";charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
-}
 
 export default function Stapelansicht({ setId }) {
   const {

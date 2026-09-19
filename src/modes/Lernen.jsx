@@ -9,7 +9,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { baueRunde, frageArt, faelligZaehlen } from "../core/scheduler.js";
-import { anteileNachStufe } from "../core/model.js";
+import { uebungsAnteile } from "../core/model.js";
 import { pruefe } from "../core/text.js";
 import { mische, ziehe, anzahl } from "../core/util.js";
 import { sprich } from "../core/speech.js";
@@ -201,7 +201,7 @@ export default function Lernen({ setId, aufSchliessen }) {
             ? `${anzahl(zaehlung.neu, "neue Karte", "neue Karten")}, ${zaehlung.faellige} zur Wiederholung.`
             : "Alles wiederholt, du kannst trotzdem eine Runde einlegen."}
         </p>
-        <Balken anteile={anteileNachStufe(brauchbare, staende)} hoehe={12} />
+        <Balken anteile={uebungsAnteile(brauchbare, staende)} hoehe={12} />
 
         <div style={{ marginTop: 24, display: "grid", gap: 12 }}>
           <Wahl beschriftung="Abfrage" wert={richtung} setzen={setRichtung}
@@ -247,7 +247,7 @@ export default function Lernen({ setId, aufSchliessen }) {
             {zaehler.richtig} richtig, {zaehler.falsch} daneben.
           </p>
           <div style={{ maxWidth: 460, margin: "20px auto" }}>
-            <Balken anteile={anteileNachStufe(brauchbare, staende)} hoehe={12} />
+            <Balken anteile={uebungsAnteile(brauchbare, staende)} hoehe={12} />
             <div className="klein matt" style={{ marginTop: 8 }}>
               {neueZaehlung.beherrscht} von {brauchbare.length} beherrscht
             </div>

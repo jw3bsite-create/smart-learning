@@ -50,11 +50,14 @@ export default function FormelEditor({ anfang = "", titel = "Formel", aufFertig,
     laden().then((m) => {
       if (aus || !halter.current) return;
       const mf = new m.MathfieldElement();
+      mf.className = "formel-feld";
+      /* Erst einhängen, dann füllen: Seit MathLive 0.110 richtet sich das
+         Element beim Einhängen ein, und ein Wert davor lief ins Leere
+         („Cannot read properties of undefined"). */
+      halter.current.appendChild(mf);
       mf.value = anfang;
       mf.mathVirtualKeyboardPolicy = "auto";
-      mf.className = "formel-feld";
       mf.addEventListener("input", () => setLeer(!mf.getValue("latex").trim()));
-      halter.current.appendChild(mf);
       feld.current = mf;
       setBereit(true);
       setTimeout(() => mf.focus(), 50);

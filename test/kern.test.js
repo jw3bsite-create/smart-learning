@@ -8,10 +8,10 @@ import assert from "node:assert/strict";
 
 import { pruefe, normalisiere, antwortVarianten, schablone } from "../src/core/text.js";
 import { bewerte, faellig, baueRunde, frageArt, faelligZaehlen } from "../src/core/scheduler.js";
-import { neuerStand, baueBaum, ordnerZweig, anteileNachStufe, neueKarte } from "../src/core/model.js";
+import { neuerStand, baueBaum, ordnerZweig, uebungsAnteile, neueKarte } from "../src/core/model.js";
 import { zerlege, csvLesen, rateTrenner, alsCsv } from "../src/core/importer.js";
 import { zuKarten } from "../src/core/ocr.js";
-import { straehne, tagesSchluessel, mische } from "../src/core/util.js";
+import { tagesSchluessel, mische } from "../src/core/util.js";
 
 /* ------------------------------ Antworten ------------------------------ */
 
@@ -241,23 +241,11 @@ test("Anteile nach Stufe zählen die schwächere Richtung", () => {
   const karte = neueKarte("s1", "a", "b", 0);
   let stand = neuerStand(karte.id, "s1");
   for (let i = 0; i < 3; i++) stand = bewerte(stand, "td", 2);
-  const anteile = anteileNachStufe([karte], { [karte.id]: stand });
+  const anteile = uebungsAnteile([karte], { [karte.id]: stand });
   assert.deepEqual(anteile, [1, 0, 0, 0]); // dt ist noch unberührt
 });
 
 /* -------------------------------- Kleines ------------------------------ */
-
-test("Strähne zählt zusammenhängende Tage", () => {
-  const tag = (versatz) => {
-    const d = new Date();
-    d.setDate(d.getDate() - versatz);
-    return tagesSchluessel(d.getTime());
-  };
-  assert.equal(straehne([tag(0), tag(1), tag(2)]), 3);
-  assert.equal(straehne([tag(0), tag(2)]), 1);
-  assert.equal(straehne([tag(5)]), 0);
-  assert.equal(straehne([]), 0);
-});
 
 test("Mischen behält alle Stücke", () => {
   const vorher = [1, 2, 3, 4, 5];

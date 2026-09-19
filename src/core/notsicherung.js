@@ -10,6 +10,7 @@
 
 import * as db from "./db.js";
 import { FASSUNG } from "./sicherung.js";
+import { herunterladen } from "./datei.js";
 
 export async function notsicherungHerunterladen() {
   const daten = { fassung: FASSUNG, erzeugt: Date.now(), notsicherung: true, ohneMedien: true };
@@ -18,12 +19,7 @@ export async function notsicherungHerunterladen() {
     catch (e) { daten[feld] = []; }
   }
   try { daten.einstellungen = await db.getSetting("einstellungen", null); } catch (e) { /* ohne */ }
-  const blob = new Blob([JSON.stringify(daten)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "smart-learning-notsicherung-"
+  const name = "smart-learning-notsicherung-"
     + new Date().toISOString().slice(0, 16).replace(":", "") + ".json";
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  herunterladen(name, JSON.stringify(daten), "application/json");
 }

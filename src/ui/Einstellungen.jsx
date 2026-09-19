@@ -15,6 +15,7 @@ import {
   letzteText, sicherungFaellig, ERINNERUNG_TAGE,
 } from "../core/sicherung.js";
 import { alsCsvMitPlan } from "../core/importer.js";
+import { herunterladen } from "../core/datei.js";
 import { sicherungen as kopienLesen, kopieAlsSicherung } from "../core/db.js";
 import * as beispiel from "../core/beispiel.js";
 import { datumKurz } from "../core/util.js";
@@ -726,17 +727,6 @@ function Sicherungsteil() {
     kopienLesen().then(setKopien).catch(() => {});
   }, []);
 
-  const herunterladen = (text, name, typ) => {
-    const blob = new Blob([text], { type: typ });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = name;
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
-    return blob.size;
-  };
-
   const sichern = async (mitMedien) => {
     setFehler(""); setMeldung("");
     setLaeuft(mitMedien ? "voll" : "daten");
@@ -751,8 +741,7 @@ function Sicherungsteil() {
         setFehler("Die Sicherung wirkt unvollständig: " + geprueft.probleme.join(" "));
         return;
       }
-      const bytes = herunterladen(text, dateiname(mitMedien ? "voll" : "daten"),
-        "application/json");
+      const bytes = herunterladen(dateiname(mitMedien ? "voll" : "daten"), text, "application/json");
       setzeEinstellung("letzteSicherung", Date.now());
       /* Die Zahlen liegen ueber denen der Uebersicht, weil auch der
          Papierkorb mitgesichert wird. Ungesagt wirkt das wie ein Fehler. */
@@ -768,7 +757,7 @@ function Sicherungsteil() {
     setFehler(""); setMeldung("");
     const text = alsCsvMitPlan(karten.filter((k) => !k.deleted), zustaende,
       { stapelVon, fachVon });
-    const bytes = herunterladen("\ufeff" + text, dateiname("karten"), "text/csv");
+    const bytes = herunterladen(dateiname("karten"), "\ufeff" + text, "text/csv");
     setMeldung("Tabelle geschrieben: " + karten.length + " Karten · " + groesseText(bytes)
       + ". Diese Datei öffnet jedes Tabellenprogramm, sie dient zum Nachlesen, "
       + "nicht zum Wiederherstellen.");
@@ -795,7 +784,7 @@ function Sicherungsteil() {
       if (ersetzen) {
         try {
           const vorher = await alsSicherung({ mitMedien: true });
-          herunterladen(JSON.stringify(vorher), dateiname("vorher"), "application/json");
+          herunterladen(dateiname("vorher"), JSON.stringify(vorher), "application/json");
         } catch (e) { /* die Kopie im Browser entsteht trotzdem */ }
       }
       const b = await ausSicherung(einlesen, ersetzen);

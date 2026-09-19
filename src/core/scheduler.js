@@ -118,18 +118,3 @@ export function faelligZaehlen(karten, staende, zeit = Date.now()) {
   }
   return { neu, faellige, beherrscht, gesamt: karten.length };
 }
-
-/** Wann die nächste Karte wieder ansteht (oder null). */
-export function naechsteFaelligkeit(karten, staende, zeit = Date.now()) {
-  let frueh = null;
-  for (const k of karten) {
-    const s = staende[k.id];
-    if (!s) return zeit;
-    for (const r of ["td", "dt"]) {
-      const d = s[r].reps ? s[r].due : zeit;
-      if (d <= zeit) return zeit;
-      if (frueh === null || d < frueh) frueh = d;
-    }
-  }
-  return frueh;
-}

@@ -47,20 +47,6 @@ export function tagesSchluessel(ms = Date.now()) {
     "-" + String(d.getDate()).padStart(2, "0");
 }
 
-/** Zählt zusammenhängende Tage bis heute (oder gestern) — die Lernsträhne. */
-export function straehne(tage) {
-  const menge = new Set(tage);
-  let zaehler = 0;
-  const d = new Date();
-  if (!menge.has(tagesSchluessel(d.getTime()))) d.setDate(d.getDate() - 1);
-  for (;;) {
-    if (!menge.has(tagesSchluessel(d.getTime()))) break;
-    zaehler++;
-    d.setDate(d.getDate() - 1);
-  }
-  return zaehler;
-}
-
 /** Deutsche Mehrzahl in der einfachen Form „1 Karte / 5 Karten“. */
 export function anzahl(n, ein, mehr) {
   return n + " " + (n === 1 ? ein : mehr);
