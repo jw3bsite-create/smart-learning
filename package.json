@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "lint": "eslint src --ext .js,.jsx",
     "test": "node --test",
-    "symbole": "node werkzeug/symbole.js"
+    "symbole": "python werkzeug/symbole.py"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.4",

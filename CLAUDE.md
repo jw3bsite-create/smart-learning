@@ -29,7 +29,7 @@ npm install
 npm run dev      # http://localhost:5180
 npm test         # 169 Prüfungen für den Kern
 npm run lint
-npm run symbole  # Symbole neu erzeugen (PNG fürs Handy, ICO für Windows)
+npm run symbole  # Symbole aus "Smart Learning Logo.pdf" (braucht: pip install pymupdf pillow)
 ```
 
 Für den Alltag liegt eine Verknüpfung auf dem Schreibtisch; angelegt wird sie

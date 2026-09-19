@@ -506,6 +506,10 @@ select.feld { appearance: none; padding-right: 30px;
   border-radius: 8px; transition: background var(--wechsel);
 }
 .logo-knopf:hover { background: var(--grund-3); }
+/* Das Logo selbst: ein kleines Quadrat mit gerundeten Ecken, wie das
+   Symbol auf dem Startbildschirm. */
+.logo-bild { width: 30px; height: 30px; border-radius: 8px; flex: none; display: block; }
+.logo-bild.klein { width: 26px; height: 26px; border-radius: 7px; }
 .logo-knopf:focus-visible { outline: 2px solid var(--akzent); outline-offset: 2px; }
 
 /* Nur im Schmalbild — breit blendet .nur-schmal den Streifen aus, und eine

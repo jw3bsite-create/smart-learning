@@ -223,7 +223,7 @@ export default function App() {
   if (!bereit) {
     return (
       <div style={{ display: "grid", placeItems: "center", height: "100vh", gap: 10 }}>
-        <Symbol name="stapel" groesse={34} />
+        <img src="./logo-96.png" alt="" style={{ width: 64, height: 64, borderRadius: 16 }} />
         <div className="matt">Smart Learning wird geöffnet …</div>
       </div>
     );
@@ -320,7 +320,7 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
             onClick={() => setLeisteOffen(true)} />
           <button type="button" className="logo-knopf" title="Zur Startseite"
             onClick={() => gehe(START)}>
-            <Symbol name="stapel" groesse={20} />
+            <img src="./logo-96.png" className="logo-bild klein" alt="" />
             <span>Smart Learning</span>
           </button>
         </div>

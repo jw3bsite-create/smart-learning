@@ -99,7 +99,7 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
         {/* Logo und Name fuehren zur Startseite — wie auf den meisten Seiten. */}
         <button type="button" className="logo-knopf dehnen" title="Zur Startseite"
           onClick={() => gehe(START)}>
-          <Symbol name="stapel" groesse={22} />
+          <img src="./logo-96.png" className="logo-bild" alt="" />
           <span>Smart Learning</span>
         </button>
         <SymbolKnopf symbol="kreuz" titel="Menü schließen" art="leer klein nur-schmal"
