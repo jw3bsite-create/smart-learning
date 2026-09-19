@@ -14,6 +14,7 @@ import {
   Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Leer, Dialog, Rueckfrage,
 } from "./basis.jsx";
 import Formel from "./Formel.jsx";
+import StapeldateiEinfuhr from "./Stapeldatei.jsx";
 
 /* ---------------------------- Eine Stapelkachel ------------------------ */
 
@@ -151,6 +152,7 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
     stapelAnlegen, stapelAendern, stapelLoeschen, stapelVervielfaeltigen,
   } = daten;
   const [verschiebt, setVerschiebt] = useState(null);
+  const [liestEin, setLiestEin] = useState(false);
   const [loescht, setLoescht] = useState(null);
 
   if (suchbegriff) return <Suchergebnis begriff={suchbegriff} />;
@@ -220,18 +222,25 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
         <h1 style={{ flex: 1 }}>{derOrdner ? derOrdner.name : "Alle Stapel"}</h1>
         <Knopf symbol="plus" onClick={neuerUnterordner}>Ordner</Knopf>
         <Knopf art="voll" symbol="plus" onClick={neuerStapel}>Stapel</Knopf>
-        {derOrdner && (
-          <Menue knopf={<SymbolKnopf symbol="mehr" titel="Mehr" art="klein" />}>
-            <MenuePunkt symbol="stift" onClick={() => {
-              const name = window.prompt("Neuer Name", derOrdner.name);
-              if (name) ordnerAendern(derOrdner.id, { name: name.trim() });
-            }}>Umbenennen</MenuePunkt>
-            <hr />
-            <MenuePunkt symbol="muell" gefahr
-              onClick={() => setLoescht({ art: "ordner", ...derOrdner })}>
-              Ordner löschen
-            </MenuePunkt>
-          </Menue>
+        <Menue knopf={<SymbolKnopf symbol="mehr" titel="Mehr" art="klein" />}>
+          <MenuePunkt symbol="hinauf" onClick={() => setLiestEin(true)}>
+            Stapeldatei einlesen …</MenuePunkt>
+          {derOrdner && (
+            <>
+              <hr />
+              <MenuePunkt symbol="stift" onClick={() => {
+                const name = window.prompt("Neuer Name", derOrdner.name);
+                if (name) ordnerAendern(derOrdner.id, { name: name.trim() });
+              }}>Umbenennen</MenuePunkt>
+              <MenuePunkt symbol="muell" gefahr
+                onClick={() => setLoescht({ art: "ordner", ...derOrdner })}>
+                Ordner löschen
+              </MenuePunkt>
+            </>
+          )}
+        </Menue>
+        {liestEin && (
+          <StapeldateiEinfuhr ordnerId={ordnerId} aufSchliessen={() => setLiestEin(false)} />
         )}
       </div>
 

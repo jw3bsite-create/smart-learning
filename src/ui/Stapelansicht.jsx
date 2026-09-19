@@ -11,6 +11,7 @@ import { alsCsv, alsText, alsAnkiText, alsCsvMitPlan } from "../core/importer.js
 import { sprich, SPRACHEN } from "../core/speech.js";
 import { gehe, MODI, zurueck, ersetze, vorigerWeg } from "../App.jsx";
 import { wegName } from "../core/verlauf.js";
+import { alsStapeldatei } from "../core/stapeldatei.js";
 import {
   Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Bild, Stern, Leer, Dialog, Rueckfrage,
 } from "./basis.jsx";
@@ -91,8 +92,8 @@ export default function Stapelansicht({ setId }) {
     else if (art === "plan")
       herunterladen(name + "-lernstand.csv",
         alsCsvMitPlan(karten, zustaende, { stapelVon, fachVon }), "text/csv");
-    else herunterladen(name + ".json", JSON.stringify(
-      { stapel: derStapel, karten }, null, 2), "application/json");
+    else herunterladen(name + ".json",
+      alsStapeldatei(derStapel, karten, fachVon(derStapel.subjectId)), "application/json");
   };
 
   return (
@@ -121,6 +122,8 @@ export default function Stapelansicht({ setId }) {
           <MenuePunkt symbol="zahnrad" onClick={() => setAngaben(true)}>
             Titel und Sprachen …</MenuePunkt>
           <hr />
+          <MenuePunkt symbol="herunter" onClick={() => ausfuhr("stapeldatei")}>
+            Als Stapeldatei sichern</MenuePunkt>
           <MenuePunkt symbol="herunter" onClick={() => ausfuhr("csv")}>Als CSV sichern</MenuePunkt>
           <MenuePunkt symbol="herunter" onClick={() => ausfuhr("anki")}>Für Anki sichern</MenuePunkt>
           <MenuePunkt symbol="herunter" onClick={() => ausfuhr("plan")}>

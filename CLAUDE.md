@@ -303,6 +303,21 @@ bleibt als Grabstein, sonst käme es beim Abgleich zurück.
     bei leerem Feld). `useTastatur` schweigt außerdem, solange ein Dialog
     (`.schleier`) den Fokus hat, sonst deckt Enter im Formel-Editor die Karte auf.
 
+## Stapel aus Lernmaterial (im Chat)
+
+Der Nutzer schickt ein Arbeitsblatt (PDF, Foto) und nennt die Aufgaben, die
+er als Karten will. Daraus wird eine **Stapeldatei** (`src/core/stapeldatei.js`,
+Format im Kopfkommentar), die er über „Stapeldatei einlesen“ (Fachseite oder
+Menü von „Alle Stapel“) einliest.
+
+- **Er wählt die Aufgaben, nicht Claude.** Selbst Aussuchen ist Teil des Lernens.
+- Aber: Das ganze Blatt durchsehen. Fehlt ein **Aufgabentyp** in seiner Auswahl,
+  nicht stillschweigend ergänzen, sondern darauf hinweisen und nachfragen.
+- Rechenwege als `mehrschritt` mit sinnvollen Zwischenschritten, Formeln in
+  `$…$` (KaTeX), Merkstoff als `cloze`. Hinweise nur, wo sie beim Abrufen helfen.
+- Dateien nach `Stapeldateien/` (nicht im Git) schreiben; vorher mit
+  `stapeldateiLesen` prüfen.
+
 ## Was ausdrücklich nicht gebaut wird
 
 Kein offenes Chatfenster · kein „Lösung anzeigen" im Tutormodus · kein Multiple

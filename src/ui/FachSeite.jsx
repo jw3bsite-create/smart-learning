@@ -26,6 +26,7 @@ import { gehe } from "../App.jsx";
 import { StapelKachel } from "./Bibliothek.jsx";
 import { FachEinstellungen } from "./Faecher.jsx";
 import { punkteZuLernfach } from "./Noten.jsx";
+import StapeldateiEinfuhr from "./Stapeldatei.jsx";
 import {
   Symbol, SymbolKnopf, Knopf, MenuePunkt, Leer, Dialog,
 } from "./basis.jsx";
@@ -37,6 +38,7 @@ export default function FachSeite({ fachId }) {
   } = useDaten();
   const [hinzufuegen, setHinzufuegen] = useState(false);
   const [einstellungen, setEinstellungen] = useState(false);
+  const [liestEin, setLiestEin] = useState(false);
 
   const fach = faecher.find((f) => f.id === fachId) || null;
 
@@ -132,6 +134,7 @@ export default function FachSeite({ fachId }) {
           {andere.length > 0 && (
             <Knopf symbol="stapel" onClick={() => setHinzufuegen(true)}>Stapel hinzufügen</Knopf>
           )}
+          <Knopf symbol="hinauf" onClick={() => setLiestEin(true)}>Stapeldatei einlesen</Knopf>
           <Knopf art="voll" symbol="plus" onClick={neuerStapel}>Neuer Stapel</Knopf>
         </div>
       )}
@@ -146,6 +149,9 @@ export default function FachSeite({ fachId }) {
                 Vorhandenen Stapel hinzufügen
               </Knopf>
             )}
+            <Knopf art="gross" symbol="hinauf" onClick={() => setLiestEin(true)}>
+              Stapeldatei einlesen
+            </Knopf>
           </div>
         </Leer>
       ) : (
@@ -155,6 +161,10 @@ export default function FachSeite({ fachId }) {
               zustaende={zustaende} aufMenue={menue} />
           ))}
         </div>
+      )}
+
+      {liestEin && (
+        <StapeldateiEinfuhr fachId={fach.id} aufSchliessen={() => setLiestEin(false)} />
       )}
 
       <p className="klein blass" style={{ marginTop: 22, maxWidth: "62ch" }}>

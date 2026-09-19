@@ -247,6 +247,9 @@ export function DatenSpeicher({ children }) {
     const neue = paare.map((p, i) => ({
       ...model.neueKarte(setId, p.term || "", p.definition || "", start + i),
       termImage: p.termImage || null, defImage: p.defImage || null, hint: p.hint || "",
+      // Aus einer Stapeldatei: Lückentext oder Rechenweg samt Schritten.
+      ...(p.art && p.art !== "frei" ? { art: p.art } : {}),
+      ...(Array.isArray(p.schritte) ? { schritte: p.schritte } : {}),
     }));
     await db.putMany("cards", neue);
     setKarten((alt) => [...alt, ...neue]);
