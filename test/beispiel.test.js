@@ -201,7 +201,7 @@ test("die Kritik ist nach ihren Abschnitten geteilt", () => {
 });
 
 /*
- * Die Sperre nach sechsmal „Nochmal" ist eine der nützlichsten Vorrichtungen
+ * Die Sperre nach wiederholten Rückfällen ist eine der nützlichsten Vorrichtungen
  * des Systems — sie sagt, dass eine Karte zu groß geschnitten ist. Am Beispiel
  * muss sie zu sehen sein, aber sie darf nicht um sich greifen: Wer im Mittel
  * gut zurechtkommt, hat keine zehn Prozent stillgelegter Karten.

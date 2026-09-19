@@ -280,9 +280,8 @@ test("ohne Gewichtung gibt es keine Begründung zu zeigen", () => {
 test("stillgelegte Karten bleiben auch im Fragemodus draußen", () => {
   const b = bestand();
   const zustaende = {};
-  let z = neuerZustand("s_mathe-k0", "td", "s_mathe", "f_mathe", JETZT - 40 * TAG);
-  for (let i = 0; i < 8; i++)
-    z = bewerteKarte(z, NOTEN.NOCHMAL, { zeit: JETZT - (30 - i) * TAG });
+  const z = { ...neuerZustand("s_mathe-k0", "td", "s_mathe", "f_mathe", JETZT - 40 * TAG),
+    gesperrt: true, reps: 20, lapses: 8, state: 2 };
   assert.equal(z.gesperrt, true, "die Vorbereitung stimmt nicht: Karte ist nicht gesperrt");
   zustaende["s_mathe-k0:td"] = z;
 

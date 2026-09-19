@@ -14,7 +14,7 @@
 
 import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
-import { normalisiere } from "../core/text.js";
+import { gleichwertig } from "../core/text.js";
 import { kartenArt, richtungenFuer } from "../core/model.js";
 import { ziehe } from "../core/util.js";
 import { gehe } from "../App.jsx";
@@ -52,8 +52,7 @@ export default function Pretest({ setId, aufSchliessen }) {
   const aufdecken = () => {
     if (aufgedeckt || !karte) return;
     setAufgedeckt(true);
-    const stimmt = eingabe.trim() &&
-      normalisiere(eingabe) === normalisiere(loesung);
+    const stimmt = gleichwertig(eingabe, loesung);
     if (stimmt) setGetroffen((g) => g + 1);
     // Festhalten, aber nichts verschieben: der Vermerk hält es aus der
     // Auswertung heraus.

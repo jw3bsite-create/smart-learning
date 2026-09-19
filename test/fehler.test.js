@@ -121,3 +121,13 @@ test("kein Absturz ohne Daten", () => {
     assert.deepEqual(zahlen(fehlerListe(nichts)), { karten: 0, fehler: 0, ueberschaetzt: 0 });
   }
 });
+
+test("Einträge aus dem alten Fragemodus bleiben draußen, neue zählen", async () => {
+  const { fehlerListe } = await import("../src/core/fehler.js");
+  const { neuesReview } = await import("../src/core/model.js");
+  const alt = { id: "r1", cardId: "k1", richtung: "td", bewertung: 1, flag: "practice",
+    modus: "fragen", zeit: 1000 };
+  const neu = neuesReview({ cardId: "k2", bewertung: 1, flag: "practice", modus: "fragen", zeit: 2000 });
+  const liste = fehlerListe([alt, neu]);
+  assert.deepEqual(liste.map((e) => e.cardId), ["k2"]);
+});

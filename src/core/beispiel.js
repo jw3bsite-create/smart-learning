@@ -21,7 +21,7 @@
 import * as db from "./db.js";
 import * as model from "./model.js";
 import { alsDatensatz } from "./lernzeit.js";
-import { neuerZustand, bewerteKarte, NOTEN, KONFIDENZ } from "./fsrs.js";
+import { neuerZustand, bewerteKarte, NOTEN, KONFIDENZ, State } from "./fsrs.js";
 import {
   KANT_GRUND, KANT_AESTHETIK, KANT_ANALYTIK, KANT_DIALEKTIK,
   KANT_LUECKEN, KANT_SCHRITTE,
@@ -135,7 +135,7 @@ function zufall(startwert = 20270601) {
  * damit sich zähe und leichte Karten voneinander unterscheiden.
  */
 function historieFuer({ karte, richtung, setId, subjectId, fach, beginn, ende, koennen,
-  ueberschaetzt, wuerfel }) {
+  ueberschaetzt, wuerfel, zaeh = false }) {
   const reviews = [];
   let zustand = neuerZustand(karte.id, richtung, setId, subjectId, beginn);
   let zeit = beginn;
@@ -144,7 +144,11 @@ function historieFuer({ karte, richtung, setId, subjectId, fach, beginn, ende, k
   while (zeit <= ende && runden < 60) {
     runden += 1;
     const w = wuerfel();
-    const note = w < koennen * 0.3 ? NOTEN.LEICHT
+    /* Eine zähe Karte wird gelernt und immer wieder vergessen: in den
+       Lernschritten gewusst, bei der Wiederholung nicht mehr. So entstehen
+       die Rückfälle, nach denen die App eine Karte stilllegt. */
+    const note = zaeh ? (zustand.state === State.Review ? NOTEN.NOCHMAL : NOTEN.GUT)
+      : w < koennen * 0.3 ? NOTEN.LEICHT
       : w < koennen ? NOTEN.GUT
         : w < koennen + (1 - koennen) * 0.55 ? NOTEN.SCHWER
           : NOTEN.NOCHMAL;
@@ -437,18 +441,19 @@ export function baueBeispieldaten({ jetzt = Date.now() } = {}) {
        sich sonst nicht ansehen, weil man dafür wochenlang scheitern müsste. */
     const koennen = ZAEH.has(karte.term) ? 0.12 : 0.66 + wuerfel() * 0.3;
     // Wie weit die Karte zurückliegt — verteilt über zwölf Wochen.
-    const beginn = jetzt - Math.round((10 + wuerfel() * 74) * TAG);
+    const zaeh = ZAEH.has(karte.term);
+    const beginn = zaeh ? jetzt - 84 * TAG : jetzt - Math.round((10 + wuerfel() * 74) * TAG);
     /* Vier von zehn Karten wurden zuletzt vor einigen Tagen gesehen. Dadurch
        ist heute etwas fällig — sonst stünde die Warteschlange leer da und man
        könnte den Abrufmodus gar nicht ausprobieren. */
-    const ende = wuerfel() < 0.42 ? jetzt - Math.round((1 + wuerfel() * 11) * TAG) : jetzt;
+    const ende = !zaeh && wuerfel() < 0.42 ? jetzt - Math.round((1 + wuerfel() * 11) * TAG) : jetzt;
 
     for (const richtung of model.richtungenFuer(karte, stapel)) {
       const ergebnis = historieFuer({
         karte, richtung, setId: karte.setId, subjectId: fach.id, fach,
         beginn, ende, koennen,
         ueberschaetzt: fach.id === mathe.id,
-        wuerfel,
+        wuerfel, zaeh,
       });
       if (!ergebnis) continue;
       zustaende.push(ergebnis.zustand);

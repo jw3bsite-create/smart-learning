@@ -20,7 +20,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
-import { normalisiere, formelStimmt } from "../core/text.js";
+import { gleichwertig } from "../core/text.js";
 import { clozeTeile, kartenArt, richtungName, schritteVon, schrittBilanz } from "../core/model.js";
 import {
   NOTEN, NOTEN_NAMEN, KONFIDENZ, vorschau, abstandLang, neuerZustand, istNeu,
@@ -157,6 +157,9 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
   // Zeichenleiste unter dem Antwortfeld: bleibt offen, wenn man sie einmal braucht.
   const [zeichen, setZeichen] = useMerker("abrufZeichen", false);
   const beginn = useRef(Date.now());
+  /* Eine Bewertung je Karte. Ein Doppeltipp oder eine gehaltene Taste
+     bewertete sonst dieselbe Karte zweimal, und ihr Abstand sprang doppelt. */
+  const bewertet = useRef(false);
 
   const faecherVon = useCallback(() => faecher, [faecher]);
 
@@ -174,6 +177,17 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
       umfang: Number(einstellungen.sitzungsUmfang) || 30,
     })), [karten, zustaende, stapelVon, faecherVon, fach, fachId, gewaehlteFaecher,
     einstellungen.sitzungsUmfang, cram]);
+
+  /* Endspurt: Die Sitzung wird sofort neu zusammengestellt. Vorher stellte
+     der Knopf nur den Schalter um, und die leere Seite blieb stehen. */
+  const endspurt = () => {
+    if (!fach) return;
+    setCram(true);
+    setSitzung(baueCramSitzung({ karten, zustaende, stapelVon, fach, umfang: 40 }));
+    setStelle(0); setPhase("konfidenz"); setKonfidenz(null); setEingabe("");
+    setErgebnisse([]); setFertig(false); schritteZuruecksetzen();
+    beginn.current = Date.now();
+  };
 
   /* Die Warteschlange wird einmal beim Betreten gebaut — was während der
      Sitzung fällig wird, kommt erst beim nächsten Mal dran. */
@@ -207,7 +221,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
     if (phase === "tippen") feld.current?.focus();
   }, [phase, stelle]);
 
-  useEffect(() => { beginn.current = Date.now(); }, [stelle]);
+  useEffect(() => { beginn.current = Date.now(); bewertet.current = false; }, [stelle, sitzung]);
 
   /* ------------------------------ Handgriffe ---------------------------- */
 
@@ -230,8 +244,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
   /** Einen Zwischenschritt prüfen und zum nächsten gehen. */
   const schrittPruefen = () => {
     if (!derSchritt) return;
-    const stimmt = formelStimmt(eingabe, derSchritt.antwort)
-      || normalisiere(eingabe) === normalisiere(derSchritt.antwort);
+    const stimmt = gleichwertig(eingabe, derSchritt.antwort);
     const neueErgebnisse = [...schrittErgebnisse, stimmt];
     setSchrittErgebnisse(neueErgebnisse);
     setEingabe("");
@@ -250,13 +263,13 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
       const b = schrittBilanz(schrittErgebnisse);
       return b.alleRichtig;
     }
-    if (!eingabe.trim()) return false;
-    return normalisiere(eingabe) === normalisiere(teile.loesung);
+    return gleichwertig(eingabe, teile.loesung);
   }, [eingabe, teile, schrittErgebnisse]);
 
 
   const bewerten = async (note) => {
-    if (phase !== "aufgedeckt" || !aufgabe) return;
+    if (phase !== "aufgedeckt" || !aufgabe || bewertet.current) return;
+    bewertet.current = true;
     const antwortzeit = Date.now() - beginn.current;
     await abrufVerbuchen({
       karte: aufgabe.karte, stapel: aufgabe.stapel, richtung: aufgabe.richtung,
@@ -388,7 +401,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
           <div className="reihe" style={{ justifyContent: "center", flexWrap: "wrap" }}>
             <Knopf onClick={() => gehe("/faecher")}>Zur Übersicht</Knopf>
             {cramMoeglich && (
-              <Knopf art="voll" symbol="uhr" onClick={() => setCram(true)}>
+              <Knopf art="voll" symbol="uhr" onClick={endspurt}>
                 Endspurt, alles durchgehen
               </Knopf>
             )}

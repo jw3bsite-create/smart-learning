@@ -27,11 +27,15 @@ export const gewusst = (bewertung) => bewertung >= NOTEN.GUT;
 /**
  * Prüft, ob ein Review echt sein kann (§5).
  * Durchklicken soll nicht zählen — weder für die Strähne noch für die Statistik.
+ *
+ * Gemessen wird allein an der Zeit. Ein leeres Antwortfeld ist kein Zeichen
+ * für Durchklicken: Wer im Kopf antwortet und sich danach ehrlich bewertet,
+ * hat abgerufen. Früher galt „leer und trotzdem Gut" als unglaubhaft — damit
+ * zählte keine im Kopf beantwortete Karte, und keine Rechenweg-Karte, denn
+ * deren Feld ist nach dem letzten Schritt immer leer. Still, ohne Hinweis.
  */
-export function istPlausibel({ antwortzeit = 0, bewertung, eingabeLeer = false }) {
-  if (antwortzeit > 0 && antwortzeit < PLAUSIBEL_AB_MS) return false;
-  if (eingabeLeer && gewusst(bewertung)) return false;
-  return true;
+export function istPlausibel({ antwortzeit = 0 }) {
+  return !(antwortzeit > 0 && antwortzeit < PLAUSIBEL_AB_MS);
 }
 
 /** Nur diese Reviews dürfen in Statistik und Optimierung. */

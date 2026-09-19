@@ -197,15 +197,24 @@ export function istRelevant(karte) {
  *   cram        Endspurt vor der Klausur, lässt den Zustand unberührt
  *   pretest     Fragen vor dem Lernen, fließen in keine Statistik
  *   implausible zu schnell beantwortet, um echt zu sein
+ *
+ * `fassung` sagt, nach welchen Regeln das Review entstand. Fassung 2: der
+ * Fragemodus prüft Antworten richtig (vorher galt dort jede als falsch), und
+ * ein leeres Antwortfeld macht ein Abrufen nicht mehr unglaubhaft.
+ * `ohneEingabe` hält fest, dass im Kopf statt getippt geantwortet wurde.
  */
+export const REVIEW_FASSUNG = 2;
+
 export function neuesReview({
   cardId, richtung = "td", setId = null, subjectId = null,
   bewertung, antwortzeit = 0, konfidenz = null, flag = "normal",
-  modus = "abrufen", zeit = Date.now(),
+  modus = "abrufen", zeit = Date.now(), ohneEingabe = false,
 }) {
   return {
     id: id("r"), cardId, richtung, setId, subjectId,
     zeit, bewertung, antwortzeit, konfidenz, flag, modus,
+    fassung: REVIEW_FASSUNG,
+    ...(ohneEingabe ? { ohneEingabe: true } : {}),
     updatedAt: zeit, deleted: false,
   };
 }

@@ -54,8 +54,20 @@ export const ZUSTAENDE = {
 export const AUFSCHLAG_MIN = 0.7;
 export const AUFSCHLAG_MAX = 1.0;
 
-/** So oft darf „Nochmal" fallen, ehe die Karte stillgelegt wird. */
-export const LEECH_AB = 6;
+/*
+ * Wann eine Karte stillgelegt wird: nach so vielen Rückfällen.
+ *
+ * Ein Rückfall ist ein „Nochmal" bei einer Karte, die schon im
+ * Wiederholungsstand war — also etwas Gelerntes, das wieder vergessen wurde.
+ * Das „Nochmal" in den ersten Lernschritten zählt nicht: Dass man eine neue
+ * Karte am ersten Tag dreimal nicht kann, ist Lernen, kein Zeichen einer zu
+ * großen Karte. Früher zählte jedes „Nochmal", schon ab sechs — damit fielen
+ * gerade die schweren Abiturkarten nach wenigen Wochen still aus dem Plan.
+ *
+ * Gezählt wird seit der letzten Freigabe (`lapsesFreigabe`), damit eine
+ * überarbeitete Karte eine echte zweite Chance bekommt.
+ */
+export const LEECH_AB = 8;
 
 const TAG = 24 * 3600 * 1000;
 const planer = new Map();
@@ -127,6 +139,8 @@ export function neuerZustand(cardId, richtung, setId, subjectId, zeit = Date.now
     gesperrt: false,            // Leech-Sperre, siehe unten
     nochmalGesamt: 0,           // wie oft „Nochmal" überhaupt nötig war
     nochmalZaehler: 0,          // und wie oft davon zuletzt hintereinander
+    lapsesFreigabe: 0,          // Rückfälle beim letzten Freigeben, siehe LEECH_AB
+    eingefuehrt: null,          // wann die Karte zum ersten Mal gewertet wurde
     updatedAt: zeit,
     deleted: false,
   };
@@ -169,14 +183,43 @@ export function bewerteKarte(zustand, note, opt = {}) {
     ...zustand, ...neu,
     aufschlag: wirkenderAufschlag,
     nochmalGesamt, nochmalZaehler,
-    // Leech: Wer eine Karte sechsmal nicht konnte, hat meist eine zu große
-    // Karte, kein zu schlechtes Gedächtnis. Sie wird stillgelegt, bis sie
-    // überarbeitet oder geteilt ist. Gezählt wird jedes „Nochmal", nicht nur
-    // die Rückfälle aus dem Wiederholungsstand — sonst entkäme der Sperre
-    // gerade die Karte, die man von Anfang an nie konnte.
-    gesperrt: zustand.gesperrt || nochmalGesamt >= LEECH_AB,
+    // Leech: Wer etwas Gelerntes immer wieder vergisst, hat meist eine zu
+    // große Karte, kein zu schlechtes Gedächtnis. Sie wird stillgelegt, bis
+    // sie überarbeitet oder freigegeben ist — sichtbar im Fehlerheft.
+    gesperrt: Boolean(zustand.gesperrt) || (nochmal && rueckfaelle(neu, zustand) >= LEECH_AB),
+    // Für das Tageslimit neuer Karten: wann die Karte eingeführt wurde.
+    eingefuehrt: zustand.eingefuehrt || (zustand.reps ? null : zeit),
     updatedAt: zeit,
   };
+}
+
+/** Rückfälle seit der letzten Freigabe. */
+function rueckfaelle(neu, vorher) {
+  return (neu.lapses || 0) - (vorher.lapsesFreigabe || 0);
+}
+
+/** Wie viele Rückfälle eine Karte seit ihrer letzten Freigabe hat. */
+export function rueckfaelleSeitFreigabe(zustand) {
+  return Math.max(0, (zustand?.lapses || 0) - (zustand?.lapsesFreigabe || 0));
+}
+
+/**
+ * Gibt eine stillgelegte Karte wieder frei. Der Lernstand bleibt, wie er
+ * ist; nur die Zählung der Rückfälle beginnt von vorn.
+ */
+export function freigeben(zustand, zeit = Date.now()) {
+  return {
+    ...zustand, gesperrt: false, nochmalZaehler: 0,
+    lapsesFreigabe: zustand.lapses || 0, updatedAt: zeit,
+  };
+}
+
+/**
+ * Wurde die Karte nur nach der alten, zu strengen Regel gesperrt?
+ * Solche Karten gibt die Umstellung der Daten einmalig frei.
+ */
+export function nachAlterRegelGesperrt(zustand) {
+  return Boolean(zustand?.gesperrt) && rueckfaelleSeitFreigabe(zustand) < LEECH_AB;
 }
 
 /** Was die vier Knöpfe bewirken würden — für die Vorschau auf den Knöpfen. */

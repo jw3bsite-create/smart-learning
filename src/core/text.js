@@ -7,7 +7,7 @@
  * Ausgänge: richtig, fast richtig (Tippfehler) und falsch.
  */
 
-import { alsKlartext, hochAlsPotenz } from "./formel.js";
+import { alsKlartext, hochAlsPotenz, hatFormel } from "./formel.js";
 
 const ARTIKEL = new Set([
   "der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem", "einer", "eines",
@@ -90,6 +90,14 @@ function spielraum(laenge) {
  */
 export function pruefe(eingabe, erwartet, opt = {}) {
   const { alleVerlangen = false, tippfehlerErlauben = true } = opt;
+  /* Rechnungen und Zahlen streng: Ein Vorzeichen ist kein Tippfehler, eine
+     Klammer kein Beiwerk. Siehe istMathe. */
+  if (istMathe(erwartet)) {
+    if (!String(eingabe || "").trim()) return { status: "falsch", erwartet };
+    return matheGleich(eingabe, erwartet)
+      ? { status: "richtig", treffer: erwartet, erwartet }
+      : { status: "falsch", treffer: erwartet, erwartet };
+  }
   const varianten = antwortVarianten(erwartet);
   const nEingabe = normalisiere(eingabe, opt);
   if (!nEingabe) return { status: "falsch", erwartet };
@@ -172,4 +180,87 @@ export function formelStimmt(eingabe, erwartet) {
   const a = normalisiereFormel(eingabe);
   const b = normalisiereFormel(erwartet);
   return Boolean(a) && a === b;
+}
+
+/* ===================================================================== */
+/*  Rechnungen erkennen und streng vergleichen                           */
+/* ===================================================================== */
+
+/*
+ * Warum überhaupt zwei Arten zu vergleichen?
+ *
+ * Für Vokabeln ist Nachsicht richtig: „(sich) erinnern" gilt wie „erinnern",
+ * ein Bindestrich ist Zierde, ein verrutschter Buchstabe ein Tippfehler. Für
+ * Rechnungen ist genau das falsch. Mit den Vokabelregeln galt „x = −3" als
+ * „x = 3", „(a+b)²" als „(a−b)²" und „x = 12" statt 13 als Tippfehler — der
+ * häufigste Fehler in Mathematik, das Vorzeichen, bekam einen grünen Haken.
+ */
+
+/** Wörter, die in einer Rechnung vorkommen, ohne sie zu Sprache zu machen. */
+const MATHE_WOERTER = new Set([
+  "sin", "cos", "tan", "cot", "arcsin", "arccos", "arctan", "sinh", "cosh", "tanh",
+  "log", "exp", "sqrt", "wurzel", "lim", "oder", "und", "bzw", "mit", "fuer", "für",
+  "gilt", "also", "sowie", "falls", "wenn", "dann", "ist", "gleich", "cdot", "frac",
+  "left", "right", "pi", "infty", "unendlich",
+]);
+
+const MATHE_ZEICHEN = /[=+\-−*/^·×÷√∫∑∏π<>≤≥≈≠∞²³⁰-⁹₀-₉⁺⁻]/u;
+const FUNKTION = /(?:^|[^\p{L}])(?:[a-z]|sin|cos|tan|ln|lg|log|exp|sqrt)['´′`]*\s*\(/iu;
+
+/**
+ * Ist eine Lösung eine Rechnung (oder eine Zahl) statt eines Satzes?
+ *
+ * Ja, wenn sie eine Formel enthält — oder wenn in ihr kein richtiges Wort
+ * steht (vier Buchstaben und mehr, abgesehen von Rechenwörtern wie „sin"
+ * oder „oder") und dafür Ziffern, Rechenzeichen oder eine Funktion wie
+ * „f(x)". So bleibt „Ludwig XIV (1638–1715)" ein Satz und „(to) go" eine
+ * Vokabel, während „x = −3", „cos(2x)" und „1789" streng geprüft werden.
+ */
+export function istMathe(text) {
+  const s = String(text || "").trim();
+  if (!s) return false;
+  if (hatFormel(s)) return true;
+  const woerter = s.toLowerCase().match(/\p{L}{4,}/gu) || [];
+  if (woerter.some((w) => !MATHE_WOERTER.has(w))) return false;
+  return /\d/.test(s) || MATHE_ZEICHEN.test(s) || FUNKTION.test(s);
+}
+
+const TIEF_ZIFFERN = { "₀": "0", "₁": "1", "₂": "2", "₃": "3", "₄": "4",
+  "₅": "5", "₆": "6", "₇": "7", "₈": "8", "₉": "9", "₊": "+", "₋": "-" };
+
+/** Eine Rechnung in die Form, in der verglichen wird. */
+export function normalisiereMathe(text) {
+  return normalisiereFormel(text)
+    .replace(/[₀-₉₊₋]/g, (z) => TIEF_ZIFFERN[z])
+    .replace(/\\(left|right)\b/g, "")      // \left( ist dieselbe Klammer wie (
+    .replace(/\.$/, "");                   // ein Satzpunkt am Ende ist keine Rechnung
+}
+
+/*
+ * Mehrere Lösungen („x = 2 oder x = −2", „x₁ = 1; x₂ = 3") dürfen in
+ * beliebiger Reihenfolge stehen — verlangt werden aber alle.
+ */
+function matheTeile(text) {
+  return String(text || "")
+    .split(/\s+(?:oder|und|bzw\.?)\s+|;/i)
+    .map(normalisiereMathe)
+    .filter(Boolean)
+    .sort();
+}
+
+/** Stimmen zwei Rechnungen überein? Ohne Nachsicht bei Zeichen und Zahlen. */
+export function matheGleich(eingabe, erwartet) {
+  const a = matheTeile(eingabe);
+  const b = matheTeile(erwartet);
+  return a.length > 0 && a.length === b.length && a.every((x, i) => x === b[i]);
+}
+
+/**
+ * Die eine Antwort auf „stimmt das?" — für Abrufen, Rechenwege und
+ * Vorabtest. Rechnungen streng, alles andere mit den üblichen Nachsichten.
+ */
+export function gleichwertig(eingabe, erwartet, opt = {}) {
+  if (!String(eingabe || "").trim()) return false;
+  if (istMathe(erwartet)) return matheGleich(eingabe, erwartet);
+  return normalisiere(eingabe, opt) === normalisiere(erwartet, opt);
 }

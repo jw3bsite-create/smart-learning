@@ -30,6 +30,12 @@ export const ZEITRAEUME = {
 /** Flags, deren Fehler nicht ins Heft gehören. */
 const AUSGENOMMEN = new Set(["pretest"]);
 
+/*
+ * Der Fragemodus hat bis Fassung 2 jede Antwort als falsch verbucht. Diese
+ * Einträge sagen nichts über das Können und bleiben draußen.
+ */
+const unzuverlaessig = (r) => r.modus === "fragen" && !(r.fassung >= 2);
+
 export function von(zeitraum, jetzt = Date.now()) {
   const eintrag = ZEITRAEUME[zeitraum] || ZEITRAEUME.monat;
   return eintrag.tage === null ? 0 : jetzt - eintrag.tage * TAG;
@@ -48,7 +54,7 @@ export function fehlerListe(reviews, { seit = 0, bis = Infinity } = {}) {
   const nach = new Map();
   for (const r of reviews || []) {
     if (!r || r.deleted || !r.cardId) continue;
-    if (AUSGENOMMEN.has(r.flag)) continue;
+    if (AUSGENOMMEN.has(r.flag) || unzuverlaessig(r)) continue;
     if (r.zeit < seit || r.zeit > bis) continue;
     if (r.bewertung !== NOTEN.NOCHMAL) continue;
 

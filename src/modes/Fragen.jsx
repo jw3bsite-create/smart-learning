@@ -242,12 +242,16 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
   const jetzt = runde.aufgaben[nummer];
   const seiten = seitenFuer(jetzt.karte, jetzt.richtung);
   const sprachen = sprachenFuer(jetzt.stapel, jetzt.richtung);
-  const stimmt = auf && pruefe(eingabe, seiten.antwort, einstellungen).art === "richtig";
+  /* `pruefe` meldet `status`, nicht `art`. Hier stand `.art` — damit galt
+     jede Antwort als falsch, und das Fehlerheft füllte sich mit Fehlern, die
+     keine waren. Ein Tippfehler zählt wie in den übrigen Modi als gewusst. */
+  const urteil = auf ? pruefe(eingabe, seiten.antwort, einstellungen).status : null;
+  const stimmt = urteil === "richtig" || urteil === "fast";
 
   const aufdecken = () => {
     if (auf) return;
     setAuf(true);
-    const richtig = pruefe(eingabe, seiten.antwort, einstellungen).art === "richtig";
+    const richtig = pruefe(eingabe, seiten.antwort, einstellungen).status !== "falsch";
     setErgebnisse((alt) => [...alt, richtig]);
     uebungVerbuchen({
       karte: jetzt.karte, stapel: jetzt.stapel, richtung: jetzt.richtung,
@@ -302,7 +306,8 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
           style={{ marginTop: 14 }}>
           <div className="reihe">
             <Symbol name={stimmt ? "haken" : "kreuz"} />
-            <strong>{stimmt ? "Richtig" : "Die Antwort lautet"}</strong>
+            <strong>{urteil === "richtig" ? "Richtig"
+              : urteil === "fast" ? "Fast richtig, ein Tippfehler" : "Die Antwort lautet"}</strong>
           </div>
           <div style={{ marginTop: 6, whiteSpace: "pre-wrap" }}><Formel text={seiten.antwort} /></div>
           {jetzt.karte.hint && (

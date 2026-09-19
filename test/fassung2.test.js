@@ -14,6 +14,7 @@ import { fsrs, createEmptyCard, generatorParameters, State } from "ts-fsrs";
 
 import {
   neuerZustand, bewerteKarte, istFaellig, istNeu, vorschau, stufe, LEECH_AB,
+  freigeben, nachAlterRegelGesperrt,
   behaltenswahrscheinlichkeit, abstandLang, NOTEN, KONFIDENZ, AUFSCHLAG_MIN,
 } from "../src/core/fsrs.js";
 import {
@@ -111,21 +112,58 @@ test("der Kalibrierungsaufschlag verkürzt, aber nie unter einen Tag", () => {
   assert.ok(mit.due - zeit >= TAG, "aber niemals früher als am nächsten Tag");
 });
 
-test("sechs Fehlversuche sperren die Karte", () => {
+/* Bringt eine Karte in den Wiederholungsstand und lässt sie dann vergessen. */
+function rueckfall(z, zeit) {
+  let jetzt = zeit;
+  for (let i = 0; i < 4 && z.state !== 2; i++) { jetzt += TAG; z = bewerteKarte(z, NOTEN.GUT, { zeit: jetzt }); }
+  jetzt += 3 * TAG;
+  return { z: bewerteKarte(z, NOTEN.NOCHMAL, { zeit: jetzt }), zeit: jetzt };
+}
+
+test("wiederholte Rückfälle sperren die Karte", () => {
   let z = neuerZustand("k1", "td", "s1", "f1", START);
   let zeit = START;
-  for (let i = 0; i < 5; i++) {
-    zeit += TAG;
-    z = bewerteKarte(z, NOTEN.GUT, { zeit });
-    zeit += TAG;
-    z = bewerteKarte(z, NOTEN.NOCHMAL, { zeit });
-    assert.equal(z.gesperrt, false, "nach " + (i + 1) + " Fehlversuchen noch nicht");
+  for (let i = 0; i < LEECH_AB - 1; i++) {
+    ({ z, zeit } = rueckfall(z, zeit));
+    assert.equal(z.gesperrt, false, "nach " + (i + 1) + " Rückfällen noch nicht");
   }
-  zeit += TAG;
-  z = bewerteKarte(z, NOTEN.NOCHMAL, { zeit });
-  assert.equal(z.nochmalGesamt, LEECH_AB);
-  assert.equal(z.gesperrt, true, "nach sechs Fehlversuchen muss die Karte stillgelegt sein");
+  ({ z, zeit } = rueckfall(z, zeit));
+  assert.equal(z.gesperrt, true, "nach " + LEECH_AB + " Rückfällen stillgelegt");
   assert.equal(istFaellig(z, zeit + 100 * TAG), false, "Gesperrtes kommt nicht mehr dran");
+});
+
+test("Nochmal in den ersten Lernschritten sperrt nicht", () => {
+  let z = neuerZustand("k1", "td", "s1", "f1", START);
+  for (let i = 0; i < 12; i++) z = bewerteKarte(z, NOTEN.NOCHMAL, { zeit: START + i * 60000 });
+  assert.equal(z.gesperrt, false, "eine neue, schwere Karte ist kein Fall für die Sperre");
+});
+
+test("eine freigegebene Karte bleibt beim nächsten Gut frei", () => {
+  let z = neuerZustand("k1", "td", "s1", "f1", START);
+  let zeit = START;
+  for (let i = 0; i < LEECH_AB; i++) ({ z, zeit } = rueckfall(z, zeit));
+  assert.equal(z.gesperrt, true);
+  z = freigeben(z, zeit);
+  assert.equal(z.gesperrt, false);
+  z = bewerteKarte(z, NOTEN.GUT, { zeit: zeit + TAG });
+  assert.equal(z.gesperrt, false, "früher sperrte schon das nächste Gut die Karte wieder");
+  z = bewerteKarte(z, NOTEN.NOCHMAL, { zeit: zeit + 5 * TAG });
+  assert.equal(z.gesperrt, false, "ein einzelner Rückfall nach der Freigabe sperrt nicht");
+});
+
+test("nach der alten Regel gesperrte Karten werden erkannt", () => {
+  const alt = { ...neuerZustand("k1", "td", "s1", "f1", START), gesperrt: true, lapses: 2, nochmalGesamt: 6 };
+  assert.equal(nachAlterRegelGesperrt(alt), true);
+  assert.equal(nachAlterRegelGesperrt({ ...alt, lapses: LEECH_AB }), false);
+  assert.equal(nachAlterRegelGesperrt({ ...alt, gesperrt: false }), false);
+});
+
+test("die erste Wertung hält fest, wann die Karte eingeführt wurde", () => {
+  let z = neuerZustand("k1", "td", "s1", "f1", START);
+  z = bewerteKarte(z, NOTEN.GUT, { zeit: START + 5000 });
+  assert.equal(z.eingefuehrt, START + 5000);
+  z = bewerteKarte(z, NOTEN.GUT, { zeit: START + 2 * TAG });
+  assert.equal(z.eingefuehrt, START + 5000, "bleibt beim ersten Mal");
 });
 
 test("aufeinanderfolgende Fehlversuche werden getrennt gezählt", () => {
@@ -210,10 +248,9 @@ test("wer sich oft überschätzt, bekommt einen Aufschlag", () => {
 test("Durchklicken wird erkannt", () => {
   assert.equal(istPlausibel({ antwortzeit: 400, bewertung: NOTEN.GUT }), false);
   assert.equal(istPlausibel({ antwortzeit: PLAUSIBEL_AB_MS + 1, bewertung: NOTEN.GUT }), true);
-  assert.equal(istPlausibel({ antwortzeit: 9000, bewertung: NOTEN.GUT, eingabeLeer: true }), false,
-    "nichts geschrieben und trotzdem Gut ist nicht glaubhaft");
-  assert.equal(istPlausibel({ antwortzeit: 9000, bewertung: NOTEN.NOCHMAL, eingabeLeer: true }), true,
-    "nichts geschrieben und Nochmal ist ehrlich");
+  assert.equal(istPlausibel({ antwortzeit: 9000, bewertung: NOTEN.GUT, eingabeLeer: true }), true,
+    "im Kopf beantwortet und ehrlich bewertet zählt");
+  assert.equal(istPlausibel({ antwortzeit: 9000, bewertung: NOTEN.NOCHMAL, eingabeLeer: true }), true);
 });
 
 test("gewusst heißt Gut oder Leicht", () => {
