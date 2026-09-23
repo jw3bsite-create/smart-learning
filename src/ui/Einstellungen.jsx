@@ -139,6 +139,26 @@ function Wolkenteil({ aufAbgleich }) {
     } finally { setLaeuft(false); }
   };
 
+  /*
+   * Von vorn anfangen: Beide Marken zurücksetzen und sofort abgleichen.
+   *
+   * Die Marken sind der Grund, warum ein Gerät stillschweigend nichts mehr
+   * holt — steht die Marke über der Änderungszeit dessen, was ein anderes
+   * Gerät später hochlädt, bleibt es für immer draußen.
+   */
+  const neuBeginnen = async () => {
+    setFehler(""); setHinweis("");
+    setLaeuft(true);
+    try {
+      await wolke.abgleichZuruecksetzen();
+      setHinweis("Der Abgleich beginnt von vorn. Das kann einen Moment dauern.");
+      await aufAbgleich();
+      setZuletzt(await wolke.letzterAbgleich());
+    } catch (f) {
+      setFehler(f.message);
+    } finally { setLaeuft(false); }
+  };
+
   const abmelden = async (ueberall = false) => {
     setFehler(""); setHinweis("");
     if (ueberall && !window.confirm(
@@ -221,8 +241,17 @@ function Wolkenteil({ aufAbgleich }) {
           </div>
           <div className="reihe umbruch" style={{ marginTop: 10 }}>
             <Knopf art="klein" onClick={() => oeffnePasswort("aendern")}>Passwort ändern</Knopf>
+            {/* Für den Fall, dass ein Gerät nichts mehr holt: Die Marken sagen,
+                bis wohin schon abgeglichen wurde. Zurückgesetzt wird alles
+                einmal frisch geholt und geschickt. */}
+            <Knopf art="klein" disabled={laeuft} onClick={neuBeginnen}>Abgleich neu beginnen</Knopf>
             <Knopf art="klein leer" onClick={() => abmelden(true)}>Auf allen Geräten abmelden</Knopf>
           </div>
+          <p className="klein blass" style={{ margin: "8px 0 0" }}>
+            „Abgleich neu beginnen“ holt und schickt alles noch einmal. Nichts geht dabei
+            verloren; bei viel Bestand dauert es ein paar Minuten. Sinnvoll, wenn ein Gerät
+            Änderungen eines anderen nicht bekommt.
+          </p>
           {wolkeStand.zustand === "fehler" && (
             <div className="rueckmeldung schlecht klein" style={{ marginTop: 10 }}>
               {wolkeStand.text}
