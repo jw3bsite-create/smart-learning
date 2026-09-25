@@ -824,7 +824,10 @@ html { -webkit-text-size-adjust: 100%; }
   display: inline-flex; align-items: center; justify-content: center;
   width: 30px; height: 30px; border-radius: 8px; color: var(--schrift-blass);
   flex: none; user-select: none; -webkit-user-select: none;
+  background: none; border: 0; padding: 0; cursor: grab;
 }
+.griff.blass { opacity: 0.45; cursor: pointer; }
+.griff.blass:hover { opacity: 1; }
 .griff:hover { color: var(--schrift); background: var(--grund-3); }
 @media (pointer: coarse) { .griff { width: 44px; height: 44px; } }
 .karten-zeile.wird-gezogen {

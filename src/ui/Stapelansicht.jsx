@@ -238,6 +238,14 @@ export default function Stapelansicht({ setId }) {
             </select>
           </div>
 
+          {karten.length > 1 && (
+            <p className="klein blass" style={{ marginTop: -4, marginBottom: 10 }}>
+              {ziehbar
+                ? "Zum Umordnen am Griff ⋮⋮ rechts in der Zeile ziehen, mit Maus oder Finger."
+                : "Umordnen geht in der eigenen Reihenfolge; ein Druck auf den Griff ⋮⋮ schaltet dorthin."}
+            </p>
+          )}
+
           {waehlt && (
             <Auswahlleiste setId={setId} ausgewaehlt={ausgewaehlt}
               alleKennungen={sortiert.map((k) => k.id)}
@@ -285,8 +293,17 @@ export default function Stapelansicht({ setId }) {
                     {k.hint && <div className="klein blass" style={{ marginTop: 6 }}>Hinweis: {k.hint}</div>}
                   </div>
                   {!waehlt && <div className="werkzeuge">
-                    {ziehbar && (
+                    {ziehbar ? (
                       <span className="griff" {...griff(k.id)}><Symbol name="griff" groesse={18} /></span>
+                    ) : (
+                      /* Ohne eigene Reihenfolge ließe sich nichts umordnen. Statt
+                         den Griff wegzunehmen (und niemanden wissen zu lassen,
+                         warum), schaltet er selbst um. */
+                      <button type="button" className="griff blass"
+                        title="Zum Umordnen auf die eigene Reihenfolge umschalten"
+                        onClick={() => { setSortierung("eigen"); setNurMarkierte(false); }}>
+                        <Symbol name="griff" groesse={18} />
+                      </button>
                     )}
                     <span className="marke klein" title="Beherrschung"
                       style={{ color: ["var(--schrift-blass)", "var(--gelb)", "var(--akzent)", "var(--gruen)"][s] }}>

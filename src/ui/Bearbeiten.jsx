@@ -26,13 +26,40 @@ import { useZiehen } from "./ziehen.js";
 
 /* ----------------------------- Eine Kartenzeile ------------------------ */
 
+/*
+ * Bedienung nur mit der Tastatur.
+ *
+ * Die Pfeiltasten gehören im Textfeld der Schreibmarke. Sie springen erst
+ * weiter, wenn dort nichts mehr zu bewegen ist: rechts am Ende des Textes,
+ * links am Anfang, hoch in der ersten Zeile, runter in der letzten. So
+ * bleibt Tippen Tippen, und wer durch den Stapel will, kommt durch.
+ */
+
+/** Setzt den Fokus in ein Feld und die Schreibmarke an Anfang oder Ende. */
+export function feldFokussieren(karteId, seite, stelle = "anfang") {
+  const feld = document.querySelector(
+    "textarea[data-karte=\"" + karteId + "\"][data-seite=\"" + seite + "\"]");
+  if (!feld) return false;
+  feld.focus();
+  const wo = stelle === "ende" ? feld.value.length : 0;
+  try { feld.setSelectionRange(wo, wo); } catch (e) { /* nicht jedes Feld kann das */ }
+  feld.scrollIntoView({ block: "nearest" });
+  return true;
+}
+
+const amAnfang = (feld) => feld.selectionStart === 0 && feld.selectionEnd === 0;
+const amEnde = (feld) => feld.selectionStart === feld.value.length
+  && feld.selectionEnd === feld.value.length;
+const inErsterZeile = (feld) => !feld.value.slice(0, feld.selectionStart).includes("\n");
+const inLetzterZeile = (feld) => !feld.value.slice(feld.selectionEnd).includes("\n");
+
 /** Die Schritte eines Rechenwegs als Text, eine Zeile je Schritt. */
 function schritteAlsText(schritte) {
   return (schritte || []).map((s) => (s.frage ? s.frage + ": " + s.antwort : s.antwort)).join("\n");
 }
 
 function Zeile({
-  karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZeile,
+  karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZeile, aufWandern,
   ziehGriff = null, ziehZeile = {},
 }) {
   const [term, setTerm] = useState(karte.term);
@@ -135,6 +162,7 @@ function Zeile({
     <div className="seite">
       <textarea
         ref={welche === "vorn" ? vorderesFeld : null}
+        data-karte={karte.id} data-seite={welche}
         className="feld" rows={2} placeholder={platzhalter} value={wert}
         style={{ minHeight: 54, resize: "vertical" }}
         onChange={(e) => { setWert(e.target.value); merken({ [feldName]: e.target.value }); }}
@@ -146,6 +174,7 @@ function Zeile({
         onKeyDown={(e) => {
           if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); aufNeueZeile(); }
           if (e.key === "Tab" && welche === "hinten" && !e.shiftKey) aufNeueZeile(true);
+          tasten(e, welche);
         }}
         onDrop={(e) => {
           const datei = dateiAusEreignis(e);
@@ -190,6 +219,46 @@ function Zeile({
       </div>
     </div>
   );
+
+  /**
+   * Pfeiltasten am Rand des Feldes: weiter zur anderen Seite oder zur
+   * Nachbarkarte. Mit Alt wandert die Karte selbst nach oben oder unten.
+   */
+  const tasten = (e, welche) => {
+    const feld = e.currentTarget;
+    if (e.altKey && (e.key === "ArrowUp" || e.key === "ArrowDown")) {
+      e.preventDefault();
+      const stelle = feld.selectionStart;
+      (e.key === "ArrowUp" ? aufHoch : aufRunter)();
+      // Nach dem Umsortieren wieder ins selbe Feld, an dieselbe Stelle.
+      requestAnimationFrame(() => {
+        const wieder = document.querySelector(
+          "textarea[data-karte=\"" + karte.id + "\"][data-seite=\"" + welche + "\"]");
+        if (!wieder) return;
+        wieder.focus();
+        try { wieder.setSelectionRange(stelle, stelle); } catch (f) { /* egal */ }
+        wieder.scrollIntoView({ block: "nearest" });
+      });
+      return;
+    }
+    if (e.key === "ArrowRight" && amEnde(feld)) {
+      if (welche === "vorn") { e.preventDefault(); aufWandern("seite", karte.id, "hinten", "anfang"); }
+      else if (aufWandern("karte", karte.id, "vorn", "anfang", 1)) e.preventDefault();
+      return;
+    }
+    if (e.key === "ArrowLeft" && amAnfang(feld)) {
+      if (welche === "hinten") { e.preventDefault(); aufWandern("seite", karte.id, "vorn", "ende"); }
+      else if (aufWandern("karte", karte.id, "hinten", "ende", -1)) e.preventDefault();
+      return;
+    }
+    if (e.key === "ArrowUp" && inErsterZeile(feld)) {
+      if (aufWandern("karte", karte.id, welche, "ende", -1)) e.preventDefault();
+      return;
+    }
+    if (e.key === "ArrowDown" && inLetzterZeile(feld)) {
+      if (aufWandern("karte", karte.id, welche, "anfang", 1)) e.preventDefault();
+    }
+  };
 
   const formelStelle = formel ? formelStellen(formel.wert)[formel.index] : null;
   const formelSetzen = (latex) => {
@@ -236,10 +305,12 @@ function Zeile({
         <div className="seite">
           <label className="beschriftung">Rechenweg, ein Schritt je Zeile</label>
           <textarea className="feld" rows={4} value={schritteText}
+            data-karte={karte.id} data-seite="hinten"
             placeholder={"f'(x) = 2x\nf'(x) = 0\nx = 0"}
             style={{ minHeight: 96, fontFamily: "ui-monospace, monospace" }}
             onChange={(e) => { setSchritteText(e.target.value); merkenSchritte(e.target.value); }}
-            onBlur={(e) => sofortSchritte(e.target.value)} />
+            onBlur={(e) => sofortSchritte(e.target.value)}
+            onKeyDown={(e) => tasten(e, "hinten")} />
           {hatFormel(schritteText) && (
             <div className="formel-vorschau" style={{ whiteSpace: "pre-wrap" }}>
               <Formel text={schritteText}
@@ -303,6 +374,18 @@ export default function Bearbeiten({ setId }) {
   const neueKarte = async (ansEnde = true) => {
     await karteAnlegen(setId);
     if (ansEnde) setTimeout(() => unten.current?.scrollIntoView({ behavior: "smooth" }), 60);
+  };
+
+  /*
+   * Wohin die Pfeiltasten führen. `art` ist "seite" (andere Seite derselben
+   * Karte) oder "karte" (dieselbe oder andere Seite der Nachbarkarte).
+   * → true, wenn es ein Ziel gab; sonst bleibt die Taste, was sie war.
+   */
+  const wandern = (art, karteId, seite, stelle, schritt = 0) => {
+    if (art === "seite") return feldFokussieren(karteId, seite, stelle);
+    const i = karten.findIndex((k) => k.id === karteId);
+    const nachbar = karten[i + schritt];
+    return nachbar ? feldFokussieren(nachbar.id, seite, stelle) : false;
   };
 
   const verschieben = (index, richtung) => {
@@ -371,6 +454,7 @@ export default function Bearbeiten({ setId }) {
           <Zeile key={k.id} karte={k} nummer={i + 1} aendern={karteAendern}
             loeschen={karteLoeschen} ziehGriff={griff(k.id)} ziehZeile={zeile(k.id, i)}
             aufHoch={() => verschieben(i, -1)} aufRunter={() => verschieben(i, 1)}
+            aufWandern={wandern}
             aufNeueZeile={() => { if (i === karten.length - 1) neueKarte(); }} />
         ))}
       </div>
@@ -402,6 +486,17 @@ export default function Bearbeiten({ setId }) {
       {hilfe && (
         <Dialog titel="Tastenkürzel beim Bearbeiten" aufSchliessen={() => setHilfe(false)}>
           <div style={{ display: "grid", gap: 10 }}>
+            <div className="reihe"><span className="tastenhilfe">→</span>
+              <span className="matt">Am Ende des Textes: zur Rückseite, dann zur nächsten Karte</span></div>
+            <div className="reihe"><span className="tastenhilfe">←</span>
+              <span className="matt">Am Anfang: zurück zur Vorderseite, dann zur Karte davor</span></div>
+            <div className="reihe"><span className="tastenhilfe">↑</span>
+              <span className="tastenhilfe">↓</span>
+              <span className="matt">In der ersten oder letzten Zeile: eine Karte höher oder tiefer</span></div>
+            <div className="reihe"><span className="tastenhilfe">Alt</span>
+              <span className="tastenhilfe">↑</span>
+              <span className="tastenhilfe">↓</span>
+              <span className="matt">Die Karte selbst nach oben oder unten schieben</span></div>
             <div className="reihe"><span className="tastenhilfe">Strg</span>
               <span className="tastenhilfe">↵</span>
               <span className="matt">Neue Karte anlegen</span></div>
@@ -411,6 +506,10 @@ export default function Bearbeiten({ setId }) {
               <span className="tastenhilfe">V</span>
               <span className="matt">Ein Bild aus der Zwischenablage landet auf der Karte</span></div>
           </div>
+          <p className="klein blass" style={{ marginTop: 12 }}>
+            Umordnen geht auch mit der Maus: am Griff <span className="mono">⋮⋮</span> links
+            in der Zeile ziehen.
+          </p>
         </Dialog>
       )}
     </div>
