@@ -382,8 +382,8 @@ test("die Datei erklärt, wie man neue Anmeldungen abschaltet", () => {
  */
 test("der Einrichtungs-Link trägt Adresse und Schlüssel", () => {
   const zugang = { url: "https://beispiel.supabase.co", key: "sb_publishable_mosruqnhrDJKUJpQu5aKVg" };
-  const link = zugangAlsLink(zugang, "https://jemand.github.io/deep-dive/#/einstellungen");
-  assert.ok(link.startsWith("https://jemand.github.io/deep-dive/?zugang="));
+  const link = zugangAlsLink(zugang, "https://jemand.github.io/anchor/#/einstellungen");
+  assert.ok(link.startsWith("https://jemand.github.io/anchor/?zugang="));
   assert.ok(!link.includes("#"), "der Weg in der App gehört nicht in den Link");
   const zurueck = zugangAusLink(new URL(link).search);
   assert.deepEqual(zurueck, zugang);

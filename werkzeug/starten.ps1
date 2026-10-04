@@ -1,5 +1,5 @@
 ﻿# =====================================================================
-#  Startet Deep Dive und öffnet die App in einem eigenen Fenster.
+#  Startet Anchor und öffnet die App in einem eigenen Fenster.
 #
 #  Läuft der Server schon, wird er nicht noch einmal gestartet — dann geht
 #  bloß das Fenster auf. Der Server selbst liegt in einem zweiten,
@@ -22,7 +22,7 @@ $NodePfad = "C:\Program Files\nodejs"
 
 function Melde($text, $art = "Information") {
   Add-Type -AssemblyName System.Windows.Forms
-  [System.Windows.Forms.MessageBox]::Show($text, "Deep Dive",
+  [System.Windows.Forms.MessageBox]::Show($text, "Anchor",
     [System.Windows.Forms.MessageBoxButtons]::OK, $art) | Out-Null
 }
 
@@ -99,7 +99,7 @@ if (Test-Path (Join-Path $NodePfad "node.exe")) {
 }
 if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
   Melde ("Node.js wurde nicht gefunden.`n`nErwartet wird es unter:`n$NodePfad`n`n" +
-    "Ohne Node kann Deep Dive nicht starten. Node gibt es unter " +
+    "Ohne Node kann Anchor nicht starten. Node gibt es unter " +
     "https://nodejs.org — die Fassung mit LTS im Namen genügt.") "Error"
   exit 1
 }
@@ -126,13 +126,13 @@ if (-not (Antwortet)) {
   while (-not (Antwortet)) {
     if ((Get-Date) -gt $bis) {
       Melde ("Der Server ist nach einer Minute noch nicht bereit.`n`n" +
-        "Sieh im kleingelegten Fenster nach — es heißt Deep Dive – Server.") "Warning"
+        "Sieh im kleingelegten Fenster nach — es heißt Anchor – Server.") "Warning"
       exit 1
     }
     Start-Sleep -Milliseconds 400
   }
 
-  Benenne $serverfenster.Id "Deep Dive – Server (schliessen beendet ihn)"
+  Benenne $serverfenster.Id "Anchor – Server (schliessen beendet ihn)"
 }
 
 # --------------------------- Fenster öffnen ---------------------------

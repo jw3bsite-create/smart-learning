@@ -653,7 +653,7 @@ function Erinnerungsteil() {
           Erinnerung in den Kalender legen
         </Knopf>
         <span className="klein blass">
-          weckt auch, wenn Deep Dive geschlossen ist
+          weckt auch, wenn Anchor geschlossen ist
         </span>
       </div>
       {kalender && <Kalenderausfuhr aufSchliessen={() => setKalender(false)} />}
@@ -922,7 +922,7 @@ function Sicherungsteil() {
             {dauerhaft === false && (
               <div className="klein" style={{ color: "var(--gelb)" }}>
                 Der Browser darf den Speicher räumen, wenn der Platz knapp wird. Installiere
-                Deep Dive als App (im Browsermenü „Installieren“ oder „Zum
+                Anchor als App (im Browsermenü „Installieren“ oder „Zum
                 Home-Bildschirm“), dann nicht mehr, und sichere regelmäßig als Datei.
               </div>
             )}
@@ -1087,7 +1087,7 @@ export default function Einstellungen({ aufAbgleich }) {
             style={{ width: 220 }}
             onChange={(e) => setzeEinstellung("sprechTempo", Number(e.target.value))} />
           <Knopf art="klein" symbol="laut"
-            onClick={() => sprich("Deep Dive liest vor.", "de", einstellungen.sprechTempo)}>
+            onClick={() => sprich("Anchor liest vor.", "de", einstellungen.sprechTempo)}>
             Probe
           </Knopf>
         </div>
@@ -1105,7 +1105,7 @@ export default function Einstellungen({ aufAbgleich }) {
 
       <Abschnitt titel="Über">
         <p className="klein matt">
-          Deep Dive läuft ganz in deinem Browser. Über den Menüpunkt „Installieren“
+          Anchor läuft ganz in deinem Browser. Über den Menüpunkt „Installieren“
           deines Browsers lässt er sich wie eine gewöhnliche App auf den Startbildschirm
           legen und dann auch ohne Netz benutzen.
         </p>

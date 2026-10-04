@@ -8,7 +8,7 @@ rem Der Titel steht vor jedem Block und ohne Klammern: In einem Block wuerde
 rem eine schliessende Klammer im Titeltext den Block vorzeitig beenden, und der
 rem Titel bliebe ungesetzt. Das Fenster hiesse dann "cmd.exe" und waere in der
 rem Leiste nicht wiederzufinden.
-title Deep Dive – Server
+title Anchor – Server
 
 set "NODEPFAD=C:\Program Files\nodejs"
 if exist "%NODEPFAD%\node.exe" set "PATH=%NODEPFAD%;%PATH%"
@@ -16,7 +16,7 @@ if exist "%NODEPFAD%\node.exe" set "PATH=%NODEPFAD%;%PATH%"
 cd /d "%~dp0.."
 
 echo.
-echo   Deep Dive laeuft. Dieses Fenster darf kleingelegt bleiben.
+echo   Anchor laeuft. Dieses Fenster darf kleingelegt bleiben.
 echo   Zum Beenden: dieses Fenster schliessen oder Strg+C druecken.
 echo.
 

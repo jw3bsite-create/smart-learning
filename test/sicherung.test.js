@@ -29,10 +29,10 @@ const gute = () => ({
 });
 
 test("der Dateiname trägt das Datum und sagt, was drin ist", () => {
-  assert.equal(dateiname("voll", jetzt), "deep-dive-2026-09-17.json");
-  assert.equal(dateiname("daten", jetzt), "deep-dive-2026-09-17-nur-daten.json");
-  assert.equal(dateiname("karten", jetzt), "deep-dive-2026-09-17-karten.csv");
-  assert.equal(dateiname("vorher", jetzt), "deep-dive-2026-09-17-vor-dem-einlesen.json");
+  assert.equal(dateiname("voll", jetzt), "anchor-2026-09-17.json");
+  assert.equal(dateiname("daten", jetzt), "anchor-2026-09-17-nur-daten.json");
+  assert.equal(dateiname("karten", jetzt), "anchor-2026-09-17-karten.csv");
+  assert.equal(dateiname("vorher", jetzt), "anchor-2026-09-17-vor-dem-einlesen.json");
 });
 
 test("die Inhaltsangabe trennt Bilder und Aufnahmen", () => {

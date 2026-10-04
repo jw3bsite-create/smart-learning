@@ -1,4 +1,4 @@
-# Deep Dive
+# Anchor
 
 Lern- und Arbeitssystem für das Abitur 2027. Karteikarten mit sieben
 Übungsmodi, dazu ein Abrufsystem mit verteilter Wiederholung, Fachtutoren mit
@@ -13,9 +13,9 @@ Einmalig eine Verknüpfung auf dem Schreibtisch anlegen:
 powershell -ExecutionPolicy Bypass -File werkzeug\verknuepfung.ps1
 ```
 
-Danach genügt ein Doppelklick auf „Deep Dive". Läuft der Server noch nicht,
+Danach genügt ein Doppelklick auf „Anchor". Läuft der Server noch nicht,
 wird er still gestartet; läuft er schon, geht bloß das Fenster auf. Der Server
-liegt in einem kleingelegten Fenster namens „Deep Dive – Server" — wer es
+liegt in einem kleingelegten Fenster namens „Anchor – Server" — wer es
 schließt, beendet ihn.
 
 ## Im Netz — Handy und Tablet

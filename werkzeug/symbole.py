@@ -1,10 +1,10 @@
 """
 Erzeugt die Symbole der App aus dem Logo.
 
-Aufruf (im Ordner Deep Dive):  python werkzeug/symbole.py
+Aufruf (im Ordner Anchor):  python werkzeug/symbole.py
 Braucht einmalig:                   python -m pip install --user pymupdf pillow
 
-Vorlage ist "Deep Dive Logo.pdf" im Hauptordner. Die Datei selbst
+Vorlage ist "Anchor Logo.pdf" im Hauptordner. Die Datei selbst
 liegt nicht im Git (Quelldateien des Entwurfs); die fertigen Symbole schon.
 
 Was entsteht, und wofür:
@@ -28,9 +28,10 @@ from PIL import Image
 HIER = os.path.dirname(os.path.abspath(__file__))
 WURZEL = os.path.dirname(HIER)
 VORLAGE = next((os.path.join(WURZEL, n) for n in
-                ("Deep Dive Logo.pdf", "Deep Learning Logo.pdf", "Smart Learning Logo.pdf")
+                ("Anchor Logo.pdf", "Deep Dive Logo.pdf", "Deep Learning Logo.pdf",
+                 "Smart Learning Logo.pdf")
                 if os.path.exists(os.path.join(WURZEL, n))),
-               os.path.join(WURZEL, "Deep Dive Logo.pdf"))
+               os.path.join(WURZEL, "Anchor Logo.pdf"))
 ZIEL = os.path.join(WURZEL, "public")
 
 # Die Farbe am Rand des Logos: dunkles Nachtblau. Damit wird beim

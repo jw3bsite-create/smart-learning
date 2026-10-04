@@ -74,7 +74,7 @@ export function falte(zeile) {
   return stuecke[0] + stuecke.slice(1).map((s) => "\r\n " + s).join("");
 }
 
-const HERKUNFT = "-//Deep Dive//Termine//DE";
+const HERKUNFT = "-//Anchor//Termine//DE";
 
 function block(zeilen) {
   return zeilen.filter(Boolean).map(falte).join("\r\n");
@@ -110,7 +110,7 @@ export function pruefungsTermin(fach, { jetzt = Date.now(), vorlauf = [7, 1] } =
     "DTSTART;VALUE=DATE:" + beginn,
     "DTEND;VALUE=DATE:" + ende,
     "SUMMARY:" + maskiere("Prüfung: " + fach.name),
-    "DESCRIPTION:" + maskiere("Termin aus Deep Dive. Der Lernplan rechnet "
+    "DESCRIPTION:" + maskiere("Termin aus Anchor. Der Lernplan rechnet "
       + "mit diesem Tag."),
     "TRANSP:TRANSPARENT",
   ]) + "\r\n" + wecker + "\r\nEND:VEVENT";
@@ -135,7 +135,7 @@ export function taeglicheErinnerung({
     "DURATION:PT15M",
     "RRULE:FREQ=DAILY" + (bis ? ";UNTIL=" + alsTag(bis) : ""),
     "SUMMARY:" + maskiere(text),
-    "DESCRIPTION:" + maskiere("Erinnerung aus Deep Dive. Offene Karten "
+    "DESCRIPTION:" + maskiere("Erinnerung aus Anchor. Offene Karten "
       + "stehen in der App."),
     "TRANSP:TRANSPARENT",
     "BEGIN:VALARM",
@@ -148,7 +148,7 @@ export function taeglicheErinnerung({
 }
 
 /** Setzt die ganze Datei zusammen. Ohne Einträge: null. */
-export function alsKalender(eintraege, { name = "Deep Dive" } = {}) {
+export function alsKalender(eintraege, { name = "Anchor" } = {}) {
   const teile = (eintraege || []).filter(Boolean);
   if (!teile.length) return null;
   return block([
@@ -172,5 +172,5 @@ export function termineDatei(faecher, { erinnerung = null, jetzt = Date.now() } 
 }
 
 export function dateiname(jetzt = Date.now()) {
-  return "deep-dive-termine-" + alsTag(jetzt) + ".ics";
+  return "anchor-termine-" + alsTag(jetzt) + ".ics";
 }

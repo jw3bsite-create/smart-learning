@@ -1,4 +1,4 @@
-# Deep Dive
+# Anchor
 
 *(Der Ordner und die Datenbanken heißen weiterhin `karteikasten` — siehe unten.)*
 
@@ -29,7 +29,7 @@ npm install
 npm run dev      # http://localhost:5180
 npm test         # 424 Prüfungen (Kern, Speicher, Abgleich)
 npm run lint
-npm run symbole  # Symbole aus "Deep Dive Logo.pdf" (braucht: pip install pymupdf pillow)
+npm run symbole  # Symbole aus "Anchor Logo.pdf" (braucht: pip install pymupdf pillow)
 ```
 
 Für den Alltag liegt eine Verknüpfung auf dem Schreibtisch; angelegt wird sie

@@ -234,7 +234,7 @@ export default function App() {
     return (
       <div style={{ display: "grid", placeItems: "center", height: "100vh", gap: 10 }}>
         <img src="./logo-96.png" alt="" style={{ width: 64, height: 64, borderRadius: 16 }} />
-        <div className="matt">Deep Dive wird geöffnet …</div>
+        <div className="matt">Anchor wird geöffnet …</div>
       </div>
     );
   }
@@ -332,7 +332,7 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
           <button type="button" className="logo-knopf" title="Zur Startseite"
             onClick={() => gehe(START)}>
             <img src="./logo-96.png" className="logo-bild klein" alt="" />
-            <span>Deep Dive</span>
+            <span>Anchor</span>
           </button>
         </div>
         {inhalt}

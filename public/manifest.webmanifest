@@ -1,6 +1,6 @@
 {
-  "name": "Deep Dive",
-  "short_name": "Deep Dive",
+  "name": "Anchor",
+  "short_name": "Anchor",
   "description": "Karteikarten, Lernmodi und Tests für die Abiturvorbereitung.",
   "start_url": "./",
   "scope": "./",

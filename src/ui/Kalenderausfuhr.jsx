@@ -3,7 +3,7 @@
  *
  * Eine Datei, kein Konto: Auf dem iPhone und auf dem Schul-iPad ist das der
  * einzige Weg, der ohne Rechte und ohne Server auskommt. Der Kalender weckt
- * dann auch, wenn Deep Dive geschlossen ist — was die App selbst nicht
+ * dann auch, wenn Anchor geschlossen ist — was die App selbst nicht
  * kann, solange niemand die Nachricht verschickt.
  */
 

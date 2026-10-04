@@ -98,7 +98,7 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
         <button type="button" className="logo-knopf dehnen" title="Zur Startseite"
           onClick={() => gehe(START)}>
           <img src="./logo-96.png" className="logo-bild" alt="" />
-          <span>Deep Dive</span>
+          <span>Anchor</span>
         </button>
         <SymbolKnopf symbol="kreuz" titel="Menü schließen" art="leer klein nur-schmal"
           onClick={aufSchliessen} />

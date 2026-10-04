@@ -1,4 +1,4 @@
-# Baut Deep Dive und stellt es auf GitHub Pages.
+# Baut Anchor und stellt es auf GitHub Pages.
 #
 # Läuft bei jedem Push auf main. Wichtig ist die Reihenfolge: Erst Lint und
 # Prüfungen, dann der Bau. Schlägt eine Prüfung fehl, wird nichts
