@@ -130,6 +130,16 @@ Es gibt kein freies Chatfenster. Jeder Aufruf folgt einer der Anweisungen in
 sich ansehen, was hinausgeht; jeder Aufruf wird protokolliert, und ein
 Tagesbudget begrenzt die Zahl.
 
+### Tutoren ohne eigenes Modell
+
+Ein Abo von Claude oder ChatGPT lässt sich nicht an diese App binden; dafür
+gibt es keine Anmeldung. Die Anweisung eines Tutors ist aber nur Text: Der
+Knopf **Anweisung für die Claude-App** legt sie in die Zwischenablage, und in
+einem Projekt der Claude-App eingefügt steht derselbe Tutor mit denselben
+Sperren bereit — auf jedem Gerät, ohne zusätzliche Kosten. Was dabei fehlt,
+ist die Driftprüfung dieser App (`core/drift.js`): Dort erkennt sie, wenn ein
+Tutor anfängt, Lösungen zu verraten.
+
 ## Abgleich zwischen Geräten (freiwillig)
 
 1. Bei [supabase.com](https://supabase.com) ein kostenloses Projekt anlegen.

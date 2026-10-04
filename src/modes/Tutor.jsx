@@ -18,6 +18,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import * as ki from "../core/ki.js";
+import { tutorAnweisung } from "../../prompts/index.js";
 import { pruefeAntwort, driftText, ZURUECK_TEXT } from "../core/drift.js";
 import { istNeu } from "../core/fsrs.js";
 import { gehe } from "../App.jsx";
@@ -123,7 +124,42 @@ export default function Tutor({ tutorSchluessel, aufSchliessen }) {
     }
   };
 
-  /* ------------------------------- Auswahl ------------------------------- */
+  /*
+ * Die Anweisung zum Mitnehmen.
+ *
+ * Ein Abo lässt sich nicht an diese App binden; es gibt keine Anmeldung, mit
+ * der eine fremde Seite das Abo mitbenutzt. Die Anweisung ist aber bloß Text.
+ * In die Claude-App (oder ein Projekt dort) kopiert, steht derselbe Tutor mit
+ * denselben Sperren bereit — auf dem iPad, in der Bahn, ohne Schlüssel.
+ */
+function anweisungZumMitnehmen(schluessel, { stoff, hilfsgrad }) {
+  const a = tutorAnweisung(schluessel, { stoff, hilfsgrad });
+  if (!a) return "";
+  return "Du bist ab jetzt mein Fachtutor und hältst dich an die folgenden "
+    + "Regeln, bis ich etwas anderes sage. Antworte mir auf Deutsch und "
+    + "beginne, indem du mich nach meiner Aufgabe und meinem bisherigen "
+    + "Versuch fragst.\n\n---\n\n" + a.text;
+}
+
+/** Knopf, der sie in die Zwischenablage legt. */
+function MitnehmenKnopf({ schluessel, stoff, hilfsgrad, art = "klein" }) {
+  const [kopiert, setKopiert] = useState(false);
+  return (
+    <Knopf art={art} symbol="papier" onClick={async () => {
+      try {
+        await navigator.clipboard.writeText(anweisungZumMitnehmen(schluessel, { stoff, hilfsgrad }));
+        setKopiert(true);
+        setTimeout(() => setKopiert(false), 4000);
+      } catch (e) {
+        setKopiert(false);
+      }
+    }}>
+      {kopiert ? "Kopiert, in der Claude-App einfügen" : "Anweisung für die Claude-App"}
+    </Knopf>
+  );
+}
+
+/* ------------------------------- Auswahl ------------------------------- */
 
   if (!tutor) {
     return (
@@ -151,6 +187,18 @@ export default function Tutor({ tutorSchluessel, aufSchliessen }) {
             </div>
           ))}
         </div>
+        <div className="zahl-kachel" style={{ marginTop: 22 }}>
+          <strong>Ohne eigenes Modell: mit deinem Claude-Abo</strong>
+          <p className="klein matt" style={{ marginTop: 6, marginBottom: 10 }}>
+            Ein Abo lässt sich nicht an diese App binden, es gibt dafür keine Anmeldung.
+            Die Anweisung eines Tutors ist aber nur Text: Öffne einen Tutor, kopiere sie
+            und füge sie in der Claude-App ein — am besten als Dauer-Anweisung in einem
+            Projekt. Dort steht dann derselbe Tutor mit denselben Sperren, auf jedem Gerät
+            und ohne zusätzliche Kosten. Nur die Driftprüfung dieser App fehlt dir dann;
+            achte selbst darauf, dass er fragt statt vorzusagen.
+          </p>
+        </div>
+
         <p className="klein blass" style={{ marginTop: 22, maxWidth: 620 }}>
           Warum Sperren: Mit unbegrenztem Modellzugang üben Schüler messbar
           besser und schreiben die Prüfung ohne Modell messbar schlechter. Mit
@@ -170,6 +218,7 @@ export default function Tutor({ tutorSchluessel, aufSchliessen }) {
           hilfsgrad === "viel" ? "ausführlich" : hilfsgrad === "wenig" ? "knapp" : "mittel"
         }</span>
         {stoff && <span className="klein blass nur-breit">mit deinen Karten</span>}
+        <MitnehmenKnopf schluessel={tutorSchluessel} stoff={stoff} hilfsgrad={hilfsgrad} />
       </>}>
 
       <div className="rueckmeldung fast klein" style={{ marginBottom: 18 }}>
@@ -179,8 +228,15 @@ export default function Tutor({ tutorSchluessel, aufSchliessen }) {
 
       {kiDa === false ? (
         <Leer symbol="zahnrad" titel="Kein Sprachmodell eingerichtet"
-          text="Ohne Modell kann der Tutor nichts sagen. Am einfachsten geht es mit LM Studio auf diesem Rechner.">
-          <Knopf art="voll" onClick={() => gehe("/einstellungen")}>Einrichten</Knopf>
+          text={"Hier im Fenster kann der Tutor ohne Modell nichts sagen. Zwei Wege: "
+            + "ein Modell einrichten (LM Studio auf dem Rechner oder ein eigener Schlüssel), "
+            + "oder die Anweisung mitnehmen und in der Claude-App weiterreden — das läuft "
+            + "über dein Abo."}>
+          <div className="reihe" style={{ justifyContent: "center", flexWrap: "wrap" }}>
+            <MitnehmenKnopf art="voll gross" schluessel={tutorSchluessel}
+              stoff={stoff} hilfsgrad={hilfsgrad} />
+            <Knopf art="gross" onClick={() => gehe("/einstellungen")}>Modell einrichten</Knopf>
+          </div>
         </Leer>
       ) : (
         <>
