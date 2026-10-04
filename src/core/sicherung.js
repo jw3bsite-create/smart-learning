@@ -40,7 +40,7 @@ function datumsteil(zeit) {
  * nebeneinander liegen können, ohne sich zu überschreiben.
  */
 export function dateiname(art = "voll", zeit = Date.now()) {
-  const stamm = "smart-learning-" + datumsteil(zeit);
+  const stamm = "deep-dive-" + datumsteil(zeit);
   if (art === "daten") return stamm + "-nur-daten.json";
   if (art === "karten") return stamm + "-karten.csv";
   if (art === "vorher") return stamm + "-vor-dem-einlesen.json";

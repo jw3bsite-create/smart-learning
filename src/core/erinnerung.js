@@ -55,7 +55,7 @@ export async function vielleichtErinnern({ faellig, text }) {
   if (!faellig) return false;                          // nichts zu melden
 
   try {
-    new Notification("Smart Learning", {
+    new Notification("Deep Dive", {
       body: text,
       tag: "karteikasten-tag",                         // ersetzt die vorige
       silent: true,

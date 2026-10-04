@@ -1,12 +1,12 @@
-# Prompt für normale Claude-Chats: Stapeldatei für Smart Learning
+# Prompt für normale Claude-Chats: Stapeldatei für Deep Dive
 
 Diesen Text in einen gewöhnlichen Chat kopieren (claude.ai, App), dann das
-Arbeitsblatt als PDF oder Foto anhängen. Der Chat kennt Smart Learning nicht,
+Arbeitsblatt als PDF oder Foto anhängen. Der Chat kennt Deep Dive nicht,
 darum steht hier alles, was er wissen muss.
 
 ---
 
-Ich lerne mit **Smart Learning**, einer eigenen Karteikarten-App (Abitur 2027,
+Ich lerne mit **Deep Dive**, einer eigenen Karteikarten-App (Abitur 2027,
 Technisches Gymnasium Baden-Württemberg). Sie liest ganze Stapel aus einer
 Datei ein: Einstellungen sind nicht nötig, ich öffne in der App ein Fach oder
 „Alle Stapel“ und wähle **Stapeldatei einlesen**. Dort kann ich eine
@@ -21,7 +21,7 @@ Eine Datei ist JSON und sieht so aus:
 
 ```json
 {
-  "format": "smart-learning-stapel",
+  "format": "deep-dive-stapel",
   "fassung": 1,
   "titel": "Ableitungen, Wahlteil",
   "fach": "Mathematik",
@@ -100,6 +100,6 @@ sie eintippen würde, und eindeutig. Mehrere Lösungen trennst du mit „oder“
 
 ## Kurzform zum Wiederverwenden
 
-> Bau mir aus dem angehängten Material eine Stapeldatei für Smart Learning
+> Bau mir aus dem angehängten Material eine Stapeldatei für Deep Dive
 > (Format siehe oben). Ich will die Aufgaben 2, 5 und 7. Sag mir, wenn ich
 > dabei einen ganzen Aufgabentyp übersehe.

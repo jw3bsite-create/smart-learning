@@ -18,7 +18,7 @@
 const STAND = "__STAND__";
 const DATEIEN = "__DATEIEN__";
 
-const CACHE = "smart-learning-" + STAND;
+const CACHE = "deep-dive-" + STAND;
 
 /*
  * Die eigene Wurzel, aus dem Geltungsbereich abgeleitet statt fest verdrahtet.

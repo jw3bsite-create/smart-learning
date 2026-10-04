@@ -19,7 +19,7 @@ export async function notsicherungHerunterladen() {
     catch (e) { daten[feld] = []; }
   }
   try { daten.einstellungen = await db.getSetting("einstellungen", null); } catch (e) { /* ohne */ }
-  const name = "smart-learning-notsicherung-"
+  const name = "deep-dive-notsicherung-"
     + new Date().toISOString().slice(0, 16).replace(":", "") + ".json";
   herunterladen(name, JSON.stringify(daten), "application/json");
 }

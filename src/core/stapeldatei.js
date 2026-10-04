@@ -11,7 +11,7 @@
  * schreibbar, mit deutschen Schlüsseln:
  *
  *   {
- *     "format": "smart-learning-stapel", "fassung": 1,
+ *     "format": "deep-dive-stapel", "fassung": 1,
  *     "titel": "Ableitungen", "fach": "Mathematik",
  *     "karten": [
  *       { "vorderseite": "Ableitung von $x^n$", "rueckseite": "$n \\cdot x^{n-1}$" },
@@ -28,7 +28,10 @@
 
 import { KARTENARTEN, clozeAnzahl } from "./model.js";
 
-export const FORMAT = "smart-learning-stapel";
+export const FORMAT = "deep-dive-stapel";
+/* Dateien aus der Zeit, als die App Smart Learning hieß, werden weiter
+   gelesen — sie liegen auf der Platte und sollen nicht ungültig werden. */
+export const FORMAT_FRUEHER = ["smart-learning-stapel", "deep-learning-stapel"];
 export const FASSUNG = 1;
 
 const text = (w) => (w === undefined || w === null ? "" : String(w)).trim();
@@ -121,7 +124,7 @@ export function stapeldateiLesen(inhalt) {
     meldungen.fehler.push("Das ist keine Stapeldatei.");
     return aus();
   }
-  if (daten.format && daten.format !== FORMAT) {
+  if (daten.format && daten.format !== FORMAT && !FORMAT_FRUEHER.includes(daten.format)) {
     meldungen.fehler.push("Unbekanntes Format „" + daten.format + "“.");
     return aus();
   }

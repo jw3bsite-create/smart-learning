@@ -103,5 +103,5 @@ test("die ganze Datei hat Kopf, Fuß und Zeilenenden nach Vorschrift", () => {
 test("gelöschte Fächer kommen nicht mit", () => {
   const datei = termineDatei([fach({ deleted: true })], { jetzt });
   assert.equal(datei, null);
-  assert.match(dateiname(jetzt), /^smart-learning-termine-20260917\.ics$/);
+  assert.match(dateiname(jetzt), /^deep-dive-termine-20260917\.ics$/);
 });

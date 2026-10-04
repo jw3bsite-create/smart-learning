@@ -17,6 +17,11 @@ import "./ui/stil.css";
 const rueckkehr = wolke.anmeldeRueckkehrLesen(window.location.hash);
 if (rueckkehr) wolke.rueckkehrMerken(rueckkehr, false);
 
+/* Einrichtungs-Link von einem anderen Gerät: Adresse und Schlüssel
+   übernehmen, ehe die Einstellungen gezeichnet werden. */
+const ausLink = wolke.zugangAusLink(window.location.search);
+if (ausLink) wolke.zugangUebernehmen(ausLink);
+
 createRoot(document.getElementById("wurzel")).render(
   <React.StrictMode>
     <Auffanglinie>

@@ -240,6 +240,73 @@ export async function verbinde() {
   return klient;
 }
 
+/* -------------------- Zugang auf ein anderes Gerät ---------------------- */
+
+/*
+ * Adresse und Schlüssel sind lang, und man braucht sie auf jedem Gerät.
+ * Abtippen ist mühsam und geht schief; also packt die App beides in einen
+ * Link, den man auf dem anderen Gerät öffnet.
+ *
+ * Im Link steht kein Passwort. Er enthält nur, was ohnehin im Browser jedes
+ * Geräts steht: die Projektadresse und den öffentlichen Schlüssel. Angemeldet
+ * wird sich danach wie immer mit Kennung und Passwort.
+ */
+
+const ZUGANG_FELD = "zugang";
+
+export function zugangAlsLink(zugang, adresse) {
+  const url = normalisiereUrl(zugang?.url);
+  const key = saeubereSchluessel(zugang?.key);
+  if (!url || !key) return "";
+  const text = btoa(JSON.stringify({ url, key }));
+  const ziel = new URL(".", adresse || (typeof window !== "undefined" ? window.location.href : "https://x/"));
+  ziel.hash = "";
+  ziel.searchParams.set(ZUGANG_FELD, text);
+  return ziel.href;
+}
+
+/** Liest einen Zugang aus der Adresse — oder null, wenn keiner darin steht. */
+export function zugangAusLink(suche) {
+  try {
+    const text = new URLSearchParams(String(suche || "").replace(/^\?/, "")).get(ZUGANG_FELD);
+    if (!text) return null;
+    const daten = JSON.parse(atob(text));
+    const url = normalisiereUrl(daten?.url);
+    const key = saeubereSchluessel(daten?.key);
+    if (!url || !key || adressFehler(url) || schluesselFehler(key)) return null;
+    return { url, key };
+  } catch (e) {
+    return null;
+  }
+}
+
+const UEBERNOMMEN = "wolke-zugang-uebernommen";
+
+/**
+ * Den Zugang aus dem Link übernehmen und die Adresse wieder aufräumen —
+ * er soll nicht im Verlauf des Browsers stehen bleiben.
+ */
+export async function zugangUebernehmen(zugang) {
+  await zugangSchreiben(zugang);
+  try { window.sessionStorage.setItem(UEBERNOMMEN, "1"); } catch (e) { /* egal */ }
+  if (typeof window !== "undefined") {
+    const ziel = window.location.pathname + "#/einstellungen";
+    window.history.replaceState(window.history.state, "", ziel);
+    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  }
+}
+
+/** Wurde gerade ein Zugang übernommen? Gibt das einmal heraus. */
+export function zugangUebernahmeAbholen() {
+  try {
+    if (window.sessionStorage.getItem(UEBERNOMMEN) !== "1") return false;
+    window.sessionStorage.removeItem(UEBERNOMMEN);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
 /* ------------------------------ Anmeldung ------------------------------ */
 
 export async function sitzung() {

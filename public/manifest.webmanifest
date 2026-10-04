@@ -1,6 +1,6 @@
 {
-  "name": "Smart Learning",
-  "short_name": "Smart Learning",
+  "name": "Deep Dive",
+  "short_name": "Deep Dive",
   "description": "Karteikarten, Lernmodi und Tests für die Abiturvorbereitung.",
   "start_url": "./",
   "scope": "./",

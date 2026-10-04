@@ -74,7 +74,7 @@ export function falte(zeile) {
   return stuecke[0] + stuecke.slice(1).map((s) => "\r\n " + s).join("");
 }
 
-const HERKUNFT = "-//Smart Learning//Termine//DE";
+const HERKUNFT = "-//Deep Dive//Termine//DE";
 
 function block(zeilen) {
   return zeilen.filter(Boolean).map(falte).join("\r\n");
@@ -86,7 +86,9 @@ function block(zeilen) {
  *
  * Die Kennung wird aus dem Fach gebildet, nicht gezogen: Wer die Datei
  * zweimal einliest, soll denselben Termin aktualisieren und nicht zwei
- * Einträge übereinander haben.
+ * Einträge übereinander haben. Aus demselben Grund steht darin weiter
+ * `@smart-learning`, obwohl die App inzwischen anders heißt: Ein neuer
+ * Name legte im Kalender überall einen zweiten Termin an.
  */
 export function pruefungsTermin(fach, { jetzt = Date.now(), vorlauf = [7, 1] } = {}) {
   if (!fach?.pruefungsdatum) return null;
@@ -108,7 +110,7 @@ export function pruefungsTermin(fach, { jetzt = Date.now(), vorlauf = [7, 1] } =
     "DTSTART;VALUE=DATE:" + beginn,
     "DTEND;VALUE=DATE:" + ende,
     "SUMMARY:" + maskiere("Prüfung: " + fach.name),
-    "DESCRIPTION:" + maskiere("Termin aus Smart Learning. Der Lernplan rechnet "
+    "DESCRIPTION:" + maskiere("Termin aus Deep Dive. Der Lernplan rechnet "
       + "mit diesem Tag."),
     "TRANSP:TRANSPARENT",
   ]) + "\r\n" + wecker + "\r\nEND:VEVENT";
@@ -133,7 +135,7 @@ export function taeglicheErinnerung({
     "DURATION:PT15M",
     "RRULE:FREQ=DAILY" + (bis ? ";UNTIL=" + alsTag(bis) : ""),
     "SUMMARY:" + maskiere(text),
-    "DESCRIPTION:" + maskiere("Erinnerung aus Smart Learning. Offene Karten "
+    "DESCRIPTION:" + maskiere("Erinnerung aus Deep Dive. Offene Karten "
       + "stehen in der App."),
     "TRANSP:TRANSPARENT",
     "BEGIN:VALARM",
@@ -146,7 +148,7 @@ export function taeglicheErinnerung({
 }
 
 /** Setzt die ganze Datei zusammen. Ohne Einträge: null. */
-export function alsKalender(eintraege, { name = "Smart Learning" } = {}) {
+export function alsKalender(eintraege, { name = "Deep Dive" } = {}) {
   const teile = (eintraege || []).filter(Boolean);
   if (!teile.length) return null;
   return block([
@@ -170,5 +172,5 @@ export function termineDatei(faecher, { erinnerung = null, jetzt = Date.now() } 
 }
 
 export function dateiname(jetzt = Date.now()) {
-  return "smart-learning-termine-" + alsTag(jetzt) + ".ics";
+  return "deep-dive-termine-" + alsTag(jetzt) + ".ics";
 }

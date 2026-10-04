@@ -19,6 +19,7 @@ import { SYNCED, STORES, SICHERUNG_FELDER } from "../src/core/db.js";
 import {
   ARTEN, normalisiereUrl, saeubereSchluessel, schluesselFehler, adressFehler,
   uebersetze, istKeinAnschluss, anmeldeRueckkehrLesen, passwortPruefen, PASSWORT_MINDEST,
+  zugangAlsLink, zugangAusLink,
 } from "../src/core/cloud.js";
 
 test("jede abzugleichende Ablage hat einen Namen in der Tabelle", () => {
@@ -371,4 +372,37 @@ test("die Schreibfunktion läuft mit den Rechten des Aufrufers", () => {
 
 test("die Datei erklärt, wie man neue Anmeldungen abschaltet", () => {
   assert.match(sql, /Allow new users to sign up/i);
+});
+
+/* ---------------- Zugang auf ein anderes Gerät übertragen ---------------- */
+
+/*
+ * Adresse und Schlüssel auf jedem Gerät abzutippen ist mühsam und geht
+ * schief. Der Link nimmt beides mit — und nichts sonst.
+ */
+test("der Einrichtungs-Link trägt Adresse und Schlüssel", () => {
+  const zugang = { url: "https://beispiel.supabase.co", key: "sb_publishable_mosruqnhrDJKUJpQu5aKVg" };
+  const link = zugangAlsLink(zugang, "https://jemand.github.io/deep-dive/#/einstellungen");
+  assert.ok(link.startsWith("https://jemand.github.io/deep-dive/?zugang="));
+  assert.ok(!link.includes("#"), "der Weg in der App gehört nicht in den Link");
+  const zurueck = zugangAusLink(new URL(link).search);
+  assert.deepEqual(zurueck, zugang);
+});
+
+test("im Link steht kein Passwort und keine Anmeldung", () => {
+  const link = zugangAlsLink({ url: "https://beispiel.supabase.co", key: "sb_publishable_mosruqnhrDJKUJpQu5aKVg" });
+  const inhalt = JSON.parse(Buffer.from(new URL(link).searchParams.get("zugang"), "base64").toString());
+  assert.deepEqual(Object.keys(inhalt).sort(), ["key", "url"]);
+});
+
+test("ein unbrauchbarer Link richtet nichts ein", () => {
+  for (const suche of ["", "?zugang=", "?zugang=keinBase64!!", "?etwas=anderes",
+    "?zugang=" + Buffer.from(JSON.stringify({ url: "", key: "" })).toString("base64"),
+    "?zugang=" + Buffer.from(JSON.stringify({ url: "https://x.supabase.co", key: "kurz" })).toString("base64")])
+    assert.equal(zugangAusLink(suche), null, "angenommen: " + suche);
+});
+
+test("ohne Zugang gibt es keinen Link", () => {
+  assert.equal(zugangAlsLink({ url: "", key: "" }, "https://x/"), "");
+  assert.equal(zugangAlsLink(null, "https://x/"), "");
 });

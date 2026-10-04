@@ -58,6 +58,8 @@ function Wolkenteil({ aufAbgleich }) {
   const [andereAbmelden, setAndereAbmelden] = useState(false);
   const [pwFehler, setPwFehler] = useState("");
   const [pwLaeuft, setPwLaeuft] = useState(false);
+  const [link, setLink] = useState("");
+  const [kopiert, setKopiert] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -66,6 +68,13 @@ function Wolkenteil({ aufAbgleich }) {
       setZuletzt(await wolke.letzterAbgleich());
     })();
   }, [wolkeStand.zeit]);
+
+  /* Von einem anderen Gerät eingerichtet (siehe zugangAlsLink). */
+  useEffect(() => {
+    if (wolke.zugangUebernahmeAbholen())
+      setHinweis("Adresse und Schlüssel sind übernommen. Melde dich jetzt mit deiner "
+        + "Kennung an, dann gleicht sich dieses Gerät mit den anderen ab.");
+  }, []);
 
   /* Rueckkehr aus einer Mail von Supabase. Abgeholt wird beim Oeffnen der
      Einstellungen und, falls sie schon offen sind, auf das Ereignis hin. */
@@ -245,6 +254,9 @@ function Wolkenteil({ aufAbgleich }) {
                 bis wohin schon abgeglichen wurde. Zurückgesetzt wird alles
                 einmal frisch geholt und geschickt. */}
             <Knopf art="klein" disabled={laeuft} onClick={neuBeginnen}>Abgleich neu beginnen</Knopf>
+            <Knopf art="klein" onClick={() => { setLink(wolke.zugangAlsLink(zugang)); setKopiert(false); }}>
+              Auf anderes Gerät übertragen
+            </Knopf>
             <Knopf art="klein leer" onClick={() => abmelden(true)}>Auf allen Geräten abmelden</Knopf>
           </div>
           <p className="klein blass" style={{ margin: "8px 0 0" }}>
@@ -285,8 +297,13 @@ function Wolkenteil({ aufAbgleich }) {
               </div>
             </div>
           </div>
-          <div className="reihe" style={{ marginTop: 10 }}>
+          <div className="reihe umbruch" style={{ marginTop: 10 }}>
             <Knopf art="klein" onClick={zugangSichern}>Zugangsdaten merken</Knopf>
+            {wolke.eingerichtet(zugang) && (
+              <Knopf art="klein" onClick={() => { setLink(wolke.zugangAlsLink(zugang)); setKopiert(false); }}>
+                Auf anderes Gerät übertragen
+              </Knopf>
+            )}
             <Knopf art="klein leer" onClick={() => setAnleitung(true)}>
               <Symbol name="auge" groesse={15} /> Wie richte ich das ein?
             </Knopf>
@@ -317,6 +334,36 @@ function Wolkenteil({ aufAbgleich }) {
             </form>
           )}
         </>
+      )}
+
+      {link && (
+        <div className="zahl-kachel" style={{ marginTop: 12 }}>
+          <div className="reihe umbruch" style={{ gap: 8 }}>
+            <strong className="dehnen">Einrichtung für iPad und Handy</strong>
+            <Knopf art="klein leer" onClick={() => setLink("")}>Schließen</Knopf>
+          </div>
+          <p className="klein matt" style={{ marginTop: 6 }}>
+            Öffne diesen Link auf dem anderen Gerät. Adresse und Schlüssel stehen dann dort,
+            und du musst dich nur noch anmelden. Dein Passwort steht nicht darin.
+          </p>
+          <input className="feld mono klein" readOnly value={link}
+            onFocus={(e) => e.target.select()} />
+          <div className="reihe" style={{ marginTop: 8 }}>
+            <Knopf art="klein voll" onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(link);
+                setKopiert(true);
+              } catch (e) {
+                setKopiert(false);
+              }
+            }}>
+              {kopiert ? "Kopiert" : "Link kopieren"}
+            </Knopf>
+            <span className="klein blass">
+              Schick ihn dir selbst, etwa über WhatsApp oder deine Notizen.
+            </span>
+          </div>
+        </div>
       )}
 
       {fehler && <div className="rueckmeldung schlecht klein" style={{ marginTop: 12 }}>{fehler}</div>}
@@ -380,7 +427,10 @@ function Wolkenteil({ aufAbgleich }) {
               <em> Site URL</em> eintragen und zusätzlich unter <em>Redirect URLs</em>. Sonst
               führen die Verweise zum Bestätigen und zum Zurücksetzen des Passworts ins
               Leere.</li>
-            <li>Eine Kennung anlegen und anmelden, auf jedem Gerät dieselbe.</li>
+            <li>Eine Kennung anlegen und anmelden, auf jedem Gerät dieselbe. Adresse und
+              Schlüssel musst du dafür nur einmal eintragen: Danach erzeugt der Knopf
+              <em> Auf anderes Gerät übertragen</em> einen Link, den du auf iPad und Handy
+              öffnest.</li>
             <li>Danach unter <em>Authentication → Sign In / Providers</em> die Option
               <em> Allow new users to sign up</em> abschalten. Sonst kann sich jeder, der Adresse
               und Schlüssel kennt, ein eigenes Konto in deinem Projekt anlegen. Deine Daten sähe
@@ -603,7 +653,7 @@ function Erinnerungsteil() {
           Erinnerung in den Kalender legen
         </Knopf>
         <span className="klein blass">
-          weckt auch, wenn Smart Learning geschlossen ist
+          weckt auch, wenn Deep Dive geschlossen ist
         </span>
       </div>
       {kalender && <Kalenderausfuhr aufSchliessen={() => setKalender(false)} />}
@@ -872,7 +922,7 @@ function Sicherungsteil() {
             {dauerhaft === false && (
               <div className="klein" style={{ color: "var(--gelb)" }}>
                 Der Browser darf den Speicher räumen, wenn der Platz knapp wird. Installiere
-                Smart Learning als App (im Browsermenü „Installieren“ oder „Zum
+                Deep Dive als App (im Browsermenü „Installieren“ oder „Zum
                 Home-Bildschirm“), dann nicht mehr, und sichere regelmäßig als Datei.
               </div>
             )}
@@ -1037,7 +1087,7 @@ export default function Einstellungen({ aufAbgleich }) {
             style={{ width: 220 }}
             onChange={(e) => setzeEinstellung("sprechTempo", Number(e.target.value))} />
           <Knopf art="klein" symbol="laut"
-            onClick={() => sprich("Smart Learning liest vor.", "de", einstellungen.sprechTempo)}>
+            onClick={() => sprich("Deep Dive liest vor.", "de", einstellungen.sprechTempo)}>
             Probe
           </Knopf>
         </div>
@@ -1055,7 +1105,7 @@ export default function Einstellungen({ aufAbgleich }) {
 
       <Abschnitt titel="Über">
         <p className="klein matt">
-          Smart Learning läuft ganz in deinem Browser. Über den Menüpunkt „Installieren“
+          Deep Dive läuft ganz in deinem Browser. Über den Menüpunkt „Installieren“
           deines Browsers lässt er sich wie eine gewöhnliche App auf den Startbildschirm
           legen und dann auch ohne Netz benutzen.
         </p>

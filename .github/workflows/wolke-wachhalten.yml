@@ -1,0 +1,60 @@
+# Hält das eigene Supabase-Projekt wach.
+#
+# Kostenlose Projekte legt Supabase nach sieben Tagen ohne Zugriff schlafen.
+# Danach muss man sich im Verwaltungsbereich anmelden und das Projekt von
+# Hand aufwecken — und wer stattdessen ein neues anlegt, trägt Adresse und
+# Schlüssel auf jedem Gerät neu ein. Ein Zugriff am Tag genügt, damit das
+# gar nicht erst geschieht.
+#
+# Einmalig einzurichten (im Projekt auf GitHub unter
+# Settings → Secrets and variables → Actions → New repository secret):
+#
+#   WOLKE_URL        die Project URL, etwa https://abcdefg.supabase.co
+#   WOLKE_SCHLUESSEL der öffentliche Schlüssel (anon beziehungsweise publishable)
+#
+# Beides steht in Supabase unter Project Settings → API. Der öffentliche
+# Schlüssel darf ohnehin im Browser stehen; hier liegt er trotzdem als
+# Geheimnis, damit er nicht in den Protokollen auftaucht. Den service_role
+# key niemals eintragen.
+#
+# Ohne hinterlegte Geheimnisse tut der Auftrag nichts und meldet das.
+
+name: Cloud wach halten
+
+on:
+  schedule:
+    # Täglich um 4:17 Uhr UTC. Eine krumme Minute, weil GitHub zur vollen
+    # Stunde am meisten zu tun hat und Aufträge dann warten.
+    - cron: "17 4 * * *"
+  workflow_dispatch:        # und von Hand, wenn es eilt
+
+jobs:
+  anklopfen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Beim eigenen Projekt anklopfen
+        env:
+          WOLKE_URL: ${{ secrets.WOLKE_URL }}
+          WOLKE_SCHLUESSEL: ${{ secrets.WOLKE_SCHLUESSEL }}
+        run: |
+          set -u
+          if [ -z "${WOLKE_URL}" ] || [ -z "${WOLKE_SCHLUESSEL}" ]; then
+            echo "Keine Zugangsdaten hinterlegt (WOLKE_URL, WOLKE_SCHLUESSEL) — nichts zu tun."
+            exit 0
+          fi
+          adresse="${WOLKE_URL%/}"
+          gesund=$(curl -s -m 20 -o /dev/null -w "%{http_code}" \
+            -H "apikey: ${WOLKE_SCHLUESSEL}" "${adresse}/auth/v1/health" || echo "000")
+          tabelle=$(curl -s -m 20 -o /dev/null -w "%{http_code}" \
+            -H "apikey: ${WOLKE_SCHLUESSEL}" \
+            -H "Authorization: Bearer ${WOLKE_SCHLUESSEL}" \
+            "${adresse}/rest/v1/karteikasten?select=id&limit=1" || echo "000")
+          echo "Anmeldedienst: ${gesund}, Tabelle: ${tabelle}"
+          # 200 heißt wach. 401 und 403 ebenso: Das Projekt antwortet, es
+          # lässt den öffentlichen Schlüssel nur nicht an die Zeilen — genau
+          # so soll es sein. Alles andere ist ein Hinweis, nicht mehr: Der
+          # Auftrag soll nicht rot werden, bloß weil das Netz zuckte.
+          case "${gesund}" in
+            200|401|403) echo "Das Projekt ist wach." ;;
+            *) echo "::warning::Unerwartete Antwort vom Anmeldedienst: ${gesund}. Schläft das Projekt, oder hat sich die Adresse geändert?" ;;
+          esac
