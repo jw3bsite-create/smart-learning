@@ -94,9 +94,34 @@ test("die Bilder liegen nicht öffentlich", () => {
     "ohne diese Bedingung käme jede Kennung an fremde Bilder");
 });
 
-test("der Schlüssel der Tabelle ist Kennung und Datensatz zusammen", () => {
-  assert.match(sql, /primary key\s*\(\s*user_id\s*,\s*id\s*\)/i,
-    "sonst schlägt das Zusammenführen beim Abgleich fehl (onConflict user_id,id)");
+/*
+ * Die Art gehört in den Schlüssel.
+ *
+ * Eine Karteikarte und ihr Übungsstand tragen dieselbe Kennung — die eine
+ * liegt in `cards`, der andere in `progress`. Mit (user_id, id) trafen beide
+ * auf dieselbe Zeile: Der Abgleich brach mit „ON CONFLICT DO UPDATE command
+ * cannot affect row a second time" ab, und wo er nicht abbrach, überschrieb
+ * der eine Datensatz den anderen.
+ */
+test("der Schlüssel der Tabelle enthält die Art", () => {
+  assert.match(sql, /primary key\s*\(\s*user_id\s*,\s*art\s*,\s*id\s*\)/i,
+    "ohne die Art fallen Karte und Übungsstand auf dieselbe Zeile");
+  assert.match(sql, /on conflict\s*\(\s*user_id\s*,\s*art\s*,\s*id\s*\)/i,
+    "das Zusammenführen muss denselben Schlüssel treffen");
+  assert.doesNotMatch(sql, /primary key\s*\(\s*user_id\s*,\s*id\s*\)/i,
+    "der alte, zu enge Schlüssel darf nirgends stehengeblieben sein");
+});
+
+/* Ein vorhandenes Projekt muss den Schlüssel wechseln, ohne Daten zu verlieren. */
+test("der alte Schlüssel wird umgestellt, nicht die Tabelle neu angelegt", () => {
+  assert.match(sql, /drop constraint karteikasten_pkey/i);
+  assert.match(sql, /add primary key \(user_id, art, id\)/i);
+  assert.doesNotMatch(sql, /drop table/i, "Daten gingen sonst verloren");
+});
+
+/* Derselbe Datensatz zweimal in einem Schwung darf den Aufruf nicht abbrechen. */
+test("doppelte Zeilen eines Schwungs werden vorher ausgesiebt", () => {
+  assert.match(sql, /select distinct on \(z->>'art', z->>'id'\)/i);
 });
 
 /* ============================ Die Projektadresse ========================= */

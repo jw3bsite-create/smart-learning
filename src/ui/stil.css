@@ -40,6 +40,10 @@
   --kartenhoehe: 340px;      /* Höhe der großen Karteikarte */
   --wechsel: 0.12s;          /* Dauer der Übergänge; 0 heißt ruhig */
 
+  /* Hoehe der festen Kopfzeile auf dem Telefon; am Rechner gibt es keine.
+     Alles, was sonst oben klebt, rueckt um diesen Wert nach. */
+  --kopfleiste: 0px;
+
   --serifen: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
   --grotesk: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --schrift-oberflaeche: var(--grotesk);
@@ -75,6 +79,23 @@
 * { box-sizing: border-box; }
 
 html, body, #wurzel { height: 100%; }
+
+/*
+ * Kein seitliches Wegwischen.
+ *
+ * Ein einziger zu breiter Knopf genuegte, und die ganze Seite liess sich auf
+ * dem Telefon zur Seite schieben — der Inhalt stand dann halb ausserhalb des
+ * Bildes. `clip` schneidet ab, ohne eine eigene Bildlaufflaeche anzulegen;
+ * `hidden` taete das und naehme der Kopfzeile ihren Halt.
+ */
+/* Nur am Wurzelelement: Dort wandert die Regel an das Fenster. Stuende sie
+   zusaetzlich am Rumpf, bekaeme der einen eigenen Beschnitt — und die feste
+   Kopfzeile haftete dann an dessen Kante statt am oberen Bildrand. */
+html { overflow-x: clip; }
+body { max-width: 100%; }
+
+/* Lange Woerter und Adressen brechen um, statt die Zeile zu dehnen. */
+body { overflow-wrap: break-word; }
 
 body {
   margin: 0;
@@ -432,6 +453,33 @@ select.feld { appearance: none; padding-right: 30px;
    * Telefon nicht unter diese Schwelle.
    */
   .feld, input, textarea, select { font-size: max(16px, var(--schriftgroesse)); }
+
+  /*
+   * Gerade Kanten statt Treppe.
+   *
+   * Am Rechner stehen Knoepfe nebeneinander und duerfen ihre natuerliche
+   * Breite behalten. Auf dem Telefon bricht jede Reihe um, und dann stand
+   * da eine Treppe aus verschieden breiten Kaesten mit ausgefranstem rechten
+   * Rand. Hier teilen sich die Knoepfe einer Zeile den Platz: Jede Zeile ist
+   * voll, die Kanten liegen uebereinander.
+   */
+  .knopf { white-space: normal; max-width: 100%; }
+  .reihe > * { min-width: 0; }
+  .reihe.umbruch > .knopf { flex: 1 1 auto; }
+
+  /* Die Ueberschrift einer solchen Reihe bekommt ihre eigene Zeile. Sonst
+     teilt sie sich die Breite mit den Knoepfen und bricht in eine schmale
+     Saeule um — „1 Stapel in diesem Fach" stand auf vier Zeilen. */
+  .reihe.umbruch > .dehnen { flex: 1 1 100%; }
+
+  /* Reihen ohne ausdruecklichen Umbruch brechen hier trotzdem um, statt
+     den Inhalt aus dem Bild zu schieben. */
+  .reihe { flex-wrap: wrap; }
+  .reihe.starr { flex-wrap: nowrap; }
+
+  /* Im leeren Zustand stehen die Knoepfe untereinander und gleich breit.
+     Mittig gesetzte Kaesten verschiedener Breite ergaben dort eine Raute. */
+  .leerer-zustand .reihe > .knopf { flex: 1 1 100%; }
 }
 
 /* ---------------------------- Sichere Raender --------------------------- */
@@ -464,8 +512,26 @@ select.feld { appearance: none; padding-right: 30px;
   /* Erst schlicht, dann mit Ausgleich. Kennt ein Browser `env()` nicht, wirft
      er die zweite Zeile weg — und ohne die erste stünde der Knopf dann ganz
      ohne Abstand da. */
-  padding: 10px 12px 0;
+  padding: 10px 12px 8px;
   padding-top: calc(10px + env(safe-area-inset-top, 0px));
+}
+
+/*
+ * Sie bleibt oben stehen.
+ *
+ * Wer weit unten in einem langen Fach steht, kam bisher nur ueber mehrmaliges
+ * Wischen wieder an das Menue und an den Weg zur Startseite. Die Zeile klebt
+ * darum am oberen Rand — mit festem Grund, sonst scheint der Inhalt durch,
+ * und mit einer Haarlinie, damit die Kante zu sehen ist.
+ */
+@media (max-width: 860px) {
+  .menue-streifen {
+    position: sticky; top: 0; z-index: 40;
+    background: var(--grund);
+    border-bottom: 1px solid var(--rand);
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
 }
 
 .mitte {
@@ -475,11 +541,14 @@ select.feld { appearance: none; padding-right: 30px;
 }
 
 @media (max-width: 860px) {
+  /* Der sichere Rand oben wird schon von der Kopfzeile ausgeglichen; ein
+     zweites Mal hier liess eine leere Handbreit zwischen Zeile und Titel. */
   .mitte {
-    padding-top: calc(18px + env(safe-area-inset-top));
+    padding-top: 16px;
     padding-left: max(14px, env(safe-area-inset-left));
     padding-right: max(14px, env(safe-area-inset-right));
   }
+  :root { --kopfleiste: calc(50px + env(safe-area-inset-top, 0px)); }
   .modus-flaeche {
     padding-left: max(20px, env(safe-area-inset-left));
     padding-right: max(20px, env(safe-area-inset-right));
@@ -733,7 +802,7 @@ html { -webkit-text-size-adjust: 100%; }
  * fuer jedes Integralzeichen zurueck an den Seitenanfang.
  */
 .zeichenleiste {
-  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 25;
+  position: sticky; top: calc(var(--kopfleiste) + env(safe-area-inset-top, 0px)); z-index: 25;
   background: var(--grund-2); border: 1px solid var(--rand);
   border-radius: calc(var(--rund) * 0.85); box-shadow: var(--schatten);
   padding: 10px 12px; margin-bottom: 16px;

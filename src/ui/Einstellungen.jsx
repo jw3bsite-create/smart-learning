@@ -233,9 +233,11 @@ function Wolkenteil({ aufAbgleich }) {
     <Abschnitt titel="Cloud" hinweis="Freiwillig. Ohne Zugangsdaten bleibt alles auf diesem Gerät.">
       {sitz ? (
         <div className="zahl-kachel">
-          <div className="reihe">
+          {/* Umbruch: Die Kennung ist lang, und ohne ihn schob sie auf dem
+              Telefon den Abgleichknopf aus dem Bild. */}
+          <div className="reihe umbruch">
             <Symbol name="wolke" />
-            <div className="dehnen">
+            <div className="dehnen" style={{ minWidth: 180 }}>
               <div>Angemeldet als <strong>{sitz.user?.email}</strong></div>
               <div className="klein matt">
                 {wolkeStand.zustand === "arbeitet" ? wolkeStand.text

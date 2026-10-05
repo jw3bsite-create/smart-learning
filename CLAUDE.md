@@ -27,7 +27,7 @@ Sprache, soweit sie die Sache benennen (`karten`, `zustaende`, `abrufVerbuchen`)
 ```
 npm install
 npm run dev      # http://localhost:5180
-npm test         # 424 Prüfungen (Kern, Speicher, Abgleich)
+npm test         # 430 Prüfungen (Kern, Speicher, Abgleich)
 npm run lint
 npm run symbole  # Symbole aus "Anchor Logo.pdf" (braucht: pip install pymupdf pillow)
 ```

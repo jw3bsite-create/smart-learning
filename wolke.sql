@@ -4,8 +4,9 @@
 -- Danach in den Einstellungen der App Adresse und öffentlichen Schlüssel
 -- (Project URL und anon key) eintragen und anmelden.
 --
--- Fassung 2 (September 2026). Wer eine frühere Fassung schon ausgeführt
+-- Fassung 3 (Oktober 2026). Wer eine frühere Fassung schon ausgeführt
 -- hat, führt diese einfach noch einmal aus; jeder Schritt verträgt das.
+-- Daten gehen dabei nicht verloren.
 --
 -- Nach dem Anlegen der eigenen Kennung: Authentication → Sign In / Providers
 -- → "Allow new users to sign up" abschalten. Sonst kann sich jeder, der
@@ -20,8 +21,35 @@ create table if not exists public.karteikasten (
   daten      jsonb   not null default '{}'::jsonb,
   updated_at bigint  not null,
   deleted    boolean not null default false,
-  primary key (user_id, id)
+  primary key (user_id, art, id)
 );
+
+-- ---------------------------------------------------------------------
+-- Die Art gehört in den Schlüssel (Fassung 3 dieser Datei).
+--
+-- Eine Karteikarte und ihr Übungsstand tragen dieselbe Kennung — die eine
+-- liegt in `cards`, der andere in `progress`. Mit dem alten Schlüssel
+-- (user_id, id) trafen beide auf dieselbe Zeile: Im selben Schwung geschickt,
+-- brach der Abgleich mit „ON CONFLICT DO UPDATE command cannot affect row a
+-- second time" ab, einzeln geschickt hätte der eine den anderen überschrieben.
+--
+-- Vorhandene Zeilen bleiben, wo sie sind: Der neue Schlüssel ist weiter
+-- gefasst als der alte, Doppelungen kann es darum nicht geben.
+-- ---------------------------------------------------------------------
+
+do $$
+begin
+  if exists (
+    select 1 from pg_index i
+      join pg_class c on c.oid = i.indexrelid
+     where i.indrelid = 'public.karteikasten'::regclass
+       and i.indisprimary
+       and i.indnatts = 2
+  ) then
+    alter table public.karteikasten drop constraint karteikasten_pkey;
+    alter table public.karteikasten add primary key (user_id, art, id);
+  end if;
+end $$;
 
 create index if not exists karteikasten_geaendert
   on public.karteikasten (user_id, updated_at);
@@ -86,10 +114,14 @@ declare
   anzahl integer;
 begin
   insert into public.karteikasten (user_id, id, art, daten, updated_at, deleted)
-  select auth.uid(), z->>'id', z->>'art', coalesce(z->'daten', '{}'::jsonb),
+  -- distinct on: Kommt dieselbe Zeile zweimal im selben Schwung, zählt die
+  -- jüngere. Postgres bräche sonst den ganzen Aufruf ab.
+  select distinct on (z->>'art', z->>'id')
+         auth.uid(), z->>'id', z->>'art', coalesce(z->'daten', '{}'::jsonb),
          (z->>'updated_at')::bigint, coalesce((z->>'deleted')::boolean, false)
     from jsonb_array_elements(zeilen) as z
-  on conflict (user_id, id) do update
+   order by z->>'art', z->>'id', (z->>'updated_at')::bigint desc
+  on conflict (user_id, art, id) do update
     set art = excluded.art, daten = excluded.daten,
         updated_at = excluded.updated_at, deleted = excluded.deleted
     where excluded.updated_at >= public.karteikasten.updated_at;

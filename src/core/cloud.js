@@ -607,7 +607,12 @@ function nachInnen(zeile) {
 
 /* Die Tabelle stammt aus einer früheren Fassung von wolke.sql. */
 function fehltNeueFassung(text) {
-  return /geaendert|karteikasten_schreiben|PGRST202|could not find the function/i.test(String(text || ""));
+  return /geaendert|karteikasten_schreiben|PGRST202|could not find the function/i
+    .test(String(text || ""))
+    /* Der alte Schlüssel (user_id, id) warf Karte und Übungsstand auf dieselbe
+       Zeile; Postgres bricht dann mit dieser Meldung ab. Fassung 3 von
+       wolke.sql nimmt die Art dazu. */
+    || /affect row a second time/i.test(String(text || ""));
 }
 const NEUE_FASSUNG = "Dein Supabase-Projekt braucht die neue Fassung von wolke.sql. Öffne dort "
   + "den SQL Editor, füge den Inhalt der Datei wolke.sql ein und drücke Run. Deine Daten "
