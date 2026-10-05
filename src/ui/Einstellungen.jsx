@@ -20,6 +20,7 @@ import { sicherungen as kopienLesen, kopieAlsSicherung } from "../core/db.js";
 import * as beispiel from "../core/beispiel.js";
 import { datumKurz } from "../core/util.js";
 import { Symbol, Knopf, SymbolKnopf, Dialog } from "./basis.jsx";
+import { bestaetigen } from "./Rueckfragen.jsx";
 import Gestaltung from "./Gestaltung.jsx";
 import Kalenderausfuhr from "./Kalenderausfuhr.jsx";
 
@@ -170,9 +171,12 @@ function Wolkenteil({ aufAbgleich }) {
 
   const abmelden = async (ueberall = false) => {
     setFehler(""); setHinweis("");
-    if (ueberall && !window.confirm(
-      "Auf allen Geräten abmelden? Handy, Tablet und Rechner müssen sich danach "
-      + "neu anmelden. Deine Karten bleiben auf jedem Gerät erhalten.")) return;
+    if (ueberall && !(await bestaetigen({
+      titel: "Auf allen Geräten abmelden?",
+      text: "Handy, Tablet und Rechner müssen sich danach neu anmelden. Deine Karten "
+        + "bleiben auf jedem Gerät erhalten.",
+      ja: "Überall abmelden",
+    }))) return;
     try {
       await wolke.abmelden({ ueberall });
       setSitz(null);
@@ -717,10 +721,12 @@ function Beispielteil() {
   const entfernen = async () => {
     const vorab = await beispiel.beispieldatenEntfernen({ trocken: true });
     if (!vorab.anzahl) { setMeldung("Es liegt nichts Beispielhaftes herum."); return; }
-    if (!window.confirm(
-      `${vorab.anzahl} Beispieldatensätze werden endgültig entfernt. `
-      + "Alles, was du selbst angelegt hast, bleibt unangetastet. Fortfahren?"))
-      return;
+    if (!(await bestaetigen({
+      titel: "Beispieldaten entfernen?",
+      text: `${vorab.anzahl} Beispieldatensätze werden endgültig entfernt. `
+        + "Alles, was du selbst angelegt hast, bleibt unangetastet.",
+      ja: "Entfernen", gefahr: true,
+    }))) return;
     setLaeuft("entfernen"); setMeldung("");
     try {
       const weg = await beispiel.beispieldatenEntfernen();
@@ -886,8 +892,11 @@ function Sicherungsteil() {
 
   /* Aus einer automatischen Kopie im Browser zurueckholen. */
   const ausKopie = async (k) => {
-    if (!window.confirm("Den Stand vom " + new Date(k.zeit).toLocaleString("de-DE")
-      + " zurückholen? Der jetzige Stand wandert in den Papierkorb, Bilder und Aufnahmen bleiben.")) return;
+    if (!(await bestaetigen({
+      titel: "Stand vom " + new Date(k.zeit).toLocaleString("de-DE") + " zurückholen?",
+      text: "Der jetzige Stand wandert in den Papierkorb, Bilder und Aufnahmen bleiben.",
+      ja: "Zurückholen",
+    }))) return;
     setFehler(""); setMeldung("");
     try {
       const datei = await kopieAlsSicherung(k.id);
@@ -955,8 +964,12 @@ function Sicherungsteil() {
         <Knopf symbol="muell" onClick={async () => {
           const vorab = await verwaisteBilderAufraeumen({ trocken: true });
           if (!vorab.anzahl) { setMeldung("Es liegt nichts Verwaistes herum."); return; }
-          if (!window.confirm(vorab.anzahl + " Dateien gehören zu keiner Karte mehr (rund "
-            + groesseText(vorab.bytes) + "). Löschen?")) return;
+          if (!(await bestaetigen({
+            titel: "Verwaistes wegräumen?",
+            text: vorab.anzahl + " Dateien gehören zu keiner Karte mehr (rund "
+              + groesseText(vorab.bytes) + ").",
+            ja: "Löschen", gefahr: true,
+          }))) return;
           const weg = await verwaisteBilderAufraeumen();
           setMeldung(weg.anzahl + " Dateien weggeräumt.");
           navigator.storage?.estimate?.().then(setPlatz).catch(() => {});

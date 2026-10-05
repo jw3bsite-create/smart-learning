@@ -27,7 +27,7 @@ Sprache, soweit sie die Sache benennen (`karten`, `zustaende`, `abrufVerbuchen`)
 ```
 npm install
 npm run dev      # http://localhost:5180
-npm test         # 430 Prüfungen (Kern, Speicher, Abgleich)
+npm test         # 441 Prüfungen (Kern, Speicher, Abgleich, Dialoge)
 npm run lint
 npm run symbole  # Symbole aus "Anchor Logo.pdf" (braucht: pip install pymupdf pillow)
 ```
@@ -91,7 +91,7 @@ prompts/      Die Systemanweisungen als eigene Dateien, versioniert
 src/modes/    Abrufen, Fragen, Feynman, Pretest, Tutor, Pruefung + die sieben
               Übungsmodi
 src/ui/       Bildschirme und Bausteine
-test/         424 Prüfungen (npm test), darunter der ganze Weg der Daten
+test/         441 Prüfungen (npm test), darunter der ganze Weg der Daten
               gegen einen Testspeicher (fake-indexeddb)
 werkzeug/     Erzeugt die Symbole aus dem Logo (Python: pymupdf, pillow)
 ```
@@ -343,6 +343,21 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
 45. **Ein leeres Antwortfeld ist kein Durchklicken.** Wer im Kopf antwortet
     und sich ehrlich bewertet, hat abgerufen; bei Rechenweg-Karten ist das
     Feld am Ende ohnehin leer. Unecht ist nur, was zu schnell kommt.
+46. **Keine Browserfenster.** `window.confirm`, `prompt` und `alert` sehen auf
+    dem iPhone fremd aus und fehlen in mancher installierten App ganz. Dafür
+    gibt es `bestaetigen`, `erfragen` und `hinweisen` aus `ui/Rueckfragen.jsx`,
+    jeweils mit `await`.
+47. **Klickbare Flächen, die keine Knöpfe sein können** (Kachel mit Menü,
+    Ordnerzeile mit Pfeil), bekommen `{...KLICKBAR}` aus `basis.jsx`. Sonst
+    kommt man mit der Tastatur nicht hin. Alles andere ist ein `<button>`.
+48. **Knöpfe in Formularen.** `Knopf` und `SymbolKnopf` sind von sich aus
+    `type="button"`; absenden tut nur, wer `type="submit"` trägt. Vorher
+    speicherte das Kreuz „Abbrechen" neben einem Namensfeld den Namen.
+49. **Kopfzeilen:** Titel als `h1`, Knöpfe in `.kopf-werkzeuge`, das „···" in
+    `.kopf-mehr`. Einzeln neben den Titel gestellt, brechen sie auf dem
+    Telefon zu einer Treppe um.
+50. **Dialoge übereinander:** Escape und Tabulator gelten nur dem obersten
+    (`ui/dialogstapel.js`). Nicht selbst auf Escape hören.
 
 ## Stapel aus Lernmaterial (im Chat)
 

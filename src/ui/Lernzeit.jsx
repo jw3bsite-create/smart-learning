@@ -9,7 +9,7 @@ import {
   LERNZEIT_EREIGNIS, LEERLAUF_TEXT, zeitraeume, verlauf, jeFach, dauerText, dauerKurz,
   wochenBeginn, monatsBeginn, jahresBeginn,
 } from "../core/lernzeit.js";
-import { Knopf, Symbol, useMerker } from "./basis.jsx";
+import { Knopf, Symbol, useMerker, FachPunkt } from "./basis.jsx";
 
 /** Die Zeitblöcke aus der Ablage — neu gelesen, sobald sich etwas ändert. */
 export function useLernzeiten() {
@@ -219,8 +219,7 @@ export default function Lernzeit() {
               {nachFach.map((f) => (
                 <div key={f.subjectId || "ohne"}>
                   <div className="reihe" style={{ gap: 8 }}>
-                    <span style={{ width: 9, height: 9, borderRadius: 2, flex: "none",
-                      background: fachFarbe(f.subjectId) }} />
+                    <FachPunkt farbe={fachFarbe(f.subjectId)} />
                     <span className="dehnen">{fachName(f.subjectId)}</span>
                     <span className="klein">{dauerText(f.lernen)}</span>
                     <span className="klein blass">+ {dauerText(f.erstellen)} erstellt</span>

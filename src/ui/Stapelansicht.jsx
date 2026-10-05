@@ -14,7 +14,7 @@ import { wegName } from "../core/verlauf.js";
 import { herunterladen } from "../core/datei.js";
 import { alsStapeldatei } from "../core/stapeldatei.js";
 import {
-  Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Bild, Stern, Leer, Dialog, Rueckfrage,
+  Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Bild, Stern, Leer, Dialog, Rueckfrage, KLICKBAR,
 } from "./basis.jsx";
 import Formel from "./Formel.jsx";
 import Auswahlleiste from "./Kartenauswahl.jsx";
@@ -101,36 +101,40 @@ export default function Stapelansicht({ setId }) {
             {vorherName || ersatzName}
           </button>
         </div>
-        <h1 style={{ flex: 1 }}>{derStapel.title || "Ohne Titel"}</h1>
-        <Knopf symbol="stift" onClick={() => gehe("/stapel/" + setId + "/bearbeiten")}>
-          Bearbeiten</Knopf>
-        <Menue knopf={<SymbolKnopf symbol="mehr" titel="Mehr" art="" />}>
-          <MenuePunkt symbol="mischen" onClick={() => kartenOrdnen(mische(karten).map((k) => k.id))}>
-            Reihenfolge mischen</MenuePunkt>
-          <MenuePunkt symbol="tauschen" onClick={() => seitenTauschen(setId)}>
-            Vorder- und Rückseite tauschen</MenuePunkt>
-          <MenuePunkt symbol="auge" onClick={() => gehe("/vorab/" + setId)}>
-            Vorab abfragen …</MenuePunkt>
-          <MenuePunkt symbol="zahnrad" onClick={() => setAngaben(true)}>
-            Titel und Sprachen …</MenuePunkt>
-          <hr />
-          <MenuePunkt symbol="herunter" onClick={() => ausfuhr("stapeldatei")}>
-            Als Stapeldatei sichern</MenuePunkt>
-          <MenuePunkt symbol="herunter" onClick={() => ausfuhr("csv")}>Als CSV sichern</MenuePunkt>
-          <MenuePunkt symbol="herunter" onClick={() => ausfuhr("anki")}>Für Anki sichern</MenuePunkt>
-          <MenuePunkt symbol="herunter" onClick={() => ausfuhr("plan")}>
-            Mit Lernstand sichern</MenuePunkt>
-          <MenuePunkt symbol="drucken" onClick={() => window.print()}>Drucken</MenuePunkt>
-          <MenuePunkt symbol="stapel" onClick={async () => {
-            const kopie = await stapelVervielfaeltigen(setId);
-            if (kopie) gehe("/stapel/" + kopie.id);
-          }}>Kopie anlegen</MenuePunkt>
-          <hr />
-          <MenuePunkt symbol="zurueckSetzen" onClick={() => setSetztZurueck(true)}>
-            Lernstand zurücksetzen</MenuePunkt>
-          <MenuePunkt symbol="muell" gefahr onClick={() => setLoescht(true)}>
-            In den Papierkorb</MenuePunkt>
-        </Menue>
+        <h1>{derStapel.title || "Ohne Titel"}</h1>
+        <div className="kopf-werkzeuge">
+          <Knopf symbol="stift" onClick={() => gehe("/stapel/" + setId + "/bearbeiten")}>
+            Bearbeiten</Knopf>
+        </div>
+        <div className="kopf-mehr">
+          <Menue knopf={<SymbolKnopf symbol="mehr" titel="Mehr" art="" />}>
+            <MenuePunkt symbol="mischen" onClick={() => kartenOrdnen(mische(karten).map((k) => k.id))}>
+              Reihenfolge mischen</MenuePunkt>
+            <MenuePunkt symbol="tauschen" onClick={() => seitenTauschen(setId)}>
+              Vorder- und Rückseite tauschen</MenuePunkt>
+            <MenuePunkt symbol="auge" onClick={() => gehe("/vorab/" + setId)}>
+              Vorab abfragen …</MenuePunkt>
+            <MenuePunkt symbol="zahnrad" onClick={() => setAngaben(true)}>
+              Titel und Sprachen …</MenuePunkt>
+            <hr />
+            <MenuePunkt symbol="herunter" onClick={() => ausfuhr("stapeldatei")}>
+              Als Stapeldatei sichern</MenuePunkt>
+            <MenuePunkt symbol="herunter" onClick={() => ausfuhr("csv")}>Als CSV sichern</MenuePunkt>
+            <MenuePunkt symbol="herunter" onClick={() => ausfuhr("anki")}>Für Anki sichern</MenuePunkt>
+            <MenuePunkt symbol="herunter" onClick={() => ausfuhr("plan")}>
+              Mit Lernstand sichern</MenuePunkt>
+            <MenuePunkt symbol="drucken" onClick={() => window.print()}>Drucken</MenuePunkt>
+            <MenuePunkt symbol="stapel" onClick={async () => {
+              const kopie = await stapelVervielfaeltigen(setId);
+              if (kopie) gehe("/stapel/" + kopie.id);
+            }}>Kopie anlegen</MenuePunkt>
+            <hr />
+            <MenuePunkt symbol="zurueckSetzen" onClick={() => setSetztZurueck(true)}>
+              Lernstand zurücksetzen</MenuePunkt>
+            <MenuePunkt symbol="muell" gefahr onClick={() => setLoescht(true)}>
+              In den Papierkorb</MenuePunkt>
+          </Menue>
+        </div>
       </div>
 
       {derStapel.description && (
@@ -146,13 +150,12 @@ export default function Stapelansicht({ setId }) {
       ) : (
         <>
           {/* ------------------------- Der Lernweg ---------------------- */}
-          <div className="kachel" style={{ marginBottom: 20, minHeight: 0,
-            borderColor: "var(--akzent)" }}
+          <div {...KLICKBAR} className="kachel lernweg-kachel"
             onClick={() => gehe(derStapel.subjectId
               ? "/abrufen/" + derStapel.subjectId : "/faecher")}>
-            <div className="reihe">
+            <div className="lernweg-raster">
               <Symbol name="blitz" groesse={20} />
-              <div className="dehnen">
+              <div>
                 <div className="titel">Abrufen</div>
                 <div className="klein matt">
                   {derStapel.subjectId
@@ -161,7 +164,8 @@ export default function Stapelansicht({ setId }) {
                 </div>
               </div>
               <select className="feld" style={{ width: "auto" }} value={derStapel.subjectId || ""}
-                onClick={(e) => e.stopPropagation()}
+                aria-label="Fach dieses Stapels"
+                onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}
                 onChange={(e) => stapelAendern(setId, { subjectId: e.target.value || null })}>
                 <option value="">(ohne Fach)</option>
                 {faecher.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
@@ -175,14 +179,14 @@ export default function Stapelansicht({ setId }) {
           </div>
           <div className="gitter" style={{ marginBottom: 24, gridTemplateColumns: "repeat(auto-fill, minmax(215px, 1fr))" }}>
             {MODI.map((m) => (
-              <div key={m.id} className="kachel" style={{ minHeight: 96 }}
+              <button type="button" key={m.id} className="kachel" style={{ minHeight: 96 }}
                 onClick={() => gehe("/stapel/" + setId + "/" + m.id)}>
                 <div className="reihe">
                   <Symbol name={m.symbol} groesse={19} />
                   <div className="titel dehnen">{m.name}</div>
                 </div>
                 <div className="klein matt">{m.text}</div>
-              </div>
+              </button>
             ))}
           </div>
 

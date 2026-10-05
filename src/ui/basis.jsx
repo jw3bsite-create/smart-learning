@@ -7,8 +7,9 @@
  * verlieren ihren Zustand.
  */
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useId } from "react";
 import { bildUrl } from "../core/media.js";
+import { auflegen, obenauf, anzahlOffen, fokusZiele, naechstesZiel } from "./dialogstapel.js";
 
 /* ------------------------------ Sinnbilder ----------------------------- */
 
@@ -80,38 +81,105 @@ export function Symbol({ name, groesse = 18, fuell = false, ...rest }) {
 
 /* -------------------------------- Knöpfe ------------------------------- */
 
-export function Knopf({ art = "", symbol, kinder, children, ...rest }) {
+/*
+ * Knöpfe sind schlichte Knöpfe, solange niemand ausdrücklich `type="submit"`
+ * sagt. Ohne diese Vorgabe schickt der Browser jeden Knopf in einem Formular
+ * ab — der Kreuz-Knopf „Abbrechen" neben einem Namensfeld speicherte so den
+ * Namen, statt die Eingabe zu verwerfen.
+ */
+export function Knopf({ art = "", symbol, kinder, children, type = "button", ...rest }) {
   return (
-    <button className={"knopf " + art} {...rest}>
+    <button type={type} className={"knopf " + art} {...rest}>
       {symbol && <Symbol name={symbol} />}
       {children || kinder}
     </button>
   );
 }
 
-export function SymbolKnopf({ symbol, titel, art = "leer klein", groesse = 18, ...rest }) {
+export function SymbolKnopf({ symbol, titel, art = "leer klein", groesse = 18, type = "button", ...rest }) {
   return (
-    <button className={"knopf " + art} title={titel} aria-label={titel} {...rest}>
+    <button type={type} className={"knopf " + art} title={titel} aria-label={titel} {...rest}>
       <Symbol name={symbol} groesse={groesse} />
     </button>
   );
 }
 
+/*
+ * Klickbare Flächen, die keine Knöpfe sein können.
+ *
+ * Eine Stapelkachel enthält ihr eigenes Menü, eine Ordnerzeile ihren
+ * Aufklapp-Pfeil — Knöpfe in Knöpfen erlaubt HTML nicht. Solche Flächen
+ * waren darum `div`s mit `onClick`: Mit der Tastatur kam man nicht hin, und
+ * Bildschirmleser sagten nicht, dass man sie anklicken kann. `KLICKBAR` macht
+ * sie zu Knöpfen im Sinne der Bedienung: erreichbar mit Tab, ausgelöst mit
+ * Eingabe oder Leertaste, angesagt als Knopf.
+ */
+export function tasteWieKlick(e) {
+  if (e.target !== e.currentTarget) return;   // Tasten auf Knöpfen darin gelten denen
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    e.currentTarget.click();
+  }
+}
+export const KLICKBAR = { role: "button", tabIndex: 0, onKeyDown: tasteWieKlick };
+
 /* -------------------------------- Dialog ------------------------------- */
 
-export function Dialog({ titel, kinder, children, fuss, aufSchliessen, weit = false, oben = false }) {
+/*
+ * Ein Dialog.
+ *
+ * Er führt den Fokus: beim Öffnen hinein (es sei denn, ein Feld darin hat ihn
+ * schon), die Tabulatortaste bleibt drinnen, beim Schließen kehrt der Fokus
+ * dorthin zurück, wo er vorher war. Solange er offen ist, steht die Seite
+ * dahinter still — auf dem Telefon rollte sonst der Hintergrund mit.
+ *
+ * Escape und Tabulator gelten nur dem obersten Dialog (siehe dialogstapel.js).
+ */
+export function Dialog({ titel, kinder, children, fuss, aufSchliessen, weit = false, oben = false,
+  klasse = "" }) {
+  const kasten = useRef(null);
+  const titelKennung = useId();
+  // Über einen Verweis, damit der Hörer nicht bei jedem Zeichnen neu entsteht
+  // und dabei im Stapel nach oben rutscht.
+  const schliessen = useRef(aufSchliessen);
+  schliessen.current = aufSchliessen;
+  const [vorher] = useState(() => (typeof document !== "undefined" ? document.activeElement : null));
+
   useEffect(() => {
-    const taste = (e) => { if (e.key === "Escape") { e.stopPropagation(); aufSchliessen?.(); } };
+    const ich = {};
+    const abnehmen = auflegen(ich);
+    const wurzel = document.documentElement;
+    wurzel.classList.add("dialog-offen");
+    if (kasten.current && !kasten.current.contains(document.activeElement))
+      kasten.current.focus({ preventScroll: true });
+
+    const taste = (e) => {
+      if (!obenauf(ich)) return;
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        schliessen.current?.();
+      } else if (e.key === "Tab") {
+        const ziel = naechstesZiel(fokusZiele(kasten.current), document.activeElement,
+          e.shiftKey, kasten.current);
+        if (ziel) { e.preventDefault(); ziel.focus(); }
+      }
+    };
     window.addEventListener("keydown", taste, true);
-    return () => window.removeEventListener("keydown", taste, true);
-  }, [aufSchliessen]);
+    return () => {
+      window.removeEventListener("keydown", taste, true);
+      abnehmen();
+      if (anzahlOffen() === 0) wurzel.classList.remove("dialog-offen");
+      if (vorher?.focus && document.contains(vorher)) vorher.focus({ preventScroll: true });
+    };
+  }, [vorher]);
 
   return (
-    <div className={"schleier" + (oben ? " oben" : "")}
+    <div className={"schleier" + (oben ? " oben" : "") + (klasse ? " " + klasse : "")}
       onMouseDown={(e) => { if (e.target === e.currentTarget) aufSchliessen?.(); }}>
-      <div className={"dialog" + (weit ? " weit" : "")} onMouseDown={(e) => e.stopPropagation()}>
+      <div ref={kasten} className={"dialog" + (weit ? " weit" : "")} role="dialog" aria-modal="true"
+        aria-labelledby={titelKennung} tabIndex={-1} onMouseDown={(e) => e.stopPropagation()}>
         <div className="dialog-kopf">
-          <h2 style={{ flex: 1 }}>{titel}</h2>
+          <h2 id={titelKennung} style={{ flex: 1 }}>{titel}</h2>
           <SymbolKnopf symbol="kreuz" titel="Schließen" onClick={aufSchliessen} />
         </div>
         <div className="dialog-inhalt">{children || kinder}</div>
@@ -189,6 +257,20 @@ export function MenuePunkt({ symbol, children, gefahr = false, ...rest }) {
       {symbol && <Symbol name={symbol} groesse={16} />}
       <span>{children}</span>
     </button>
+  );
+}
+
+/*
+ * Das farbige Quadrat eines Fachs.
+ *
+ * Es stand an acht Stellen, jedes Mal von Hand gesetzt — mal acht, mal neun,
+ * zehn, zwölf oder vierzehn Punkte groß, mal mit zwei, mal mit drei Punkten
+ * Rundung. Nebeneinander sah man das. Jetzt gibt es zwei Größen.
+ */
+export function FachPunkt({ farbe, gross = false }) {
+  return (
+    <span className={"fach-punkt" + (gross ? " gross" : "")} aria-hidden="true"
+      style={{ background: farbe || "var(--akzent)" }} />
   );
 }
 

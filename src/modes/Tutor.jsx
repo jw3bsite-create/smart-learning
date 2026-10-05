@@ -180,11 +180,11 @@ function MitnehmenKnopf({ schluessel, stoff, hilfsgrad, art = "klein" }) {
         )}
         <div className="gitter" style={{ marginTop: 22 }}>
           {TUTOREN.map((t) => (
-            <div key={t.schluessel} className="kachel"
+            <button type="button" key={t.schluessel} className="kachel"
               onClick={() => gehe("/tutor/" + t.schluessel)}>
               <div className="titel">{t.name}</div>
               <div className="klein matt">{t.sperre}</div>
-            </div>
+            </button>
           ))}
         </div>
         <div className="zahl-kachel" style={{ marginTop: 22 }}>

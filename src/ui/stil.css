@@ -147,6 +147,20 @@ a { color: var(--akzent); }
   margin-bottom: 18px;
 }
 
+/*
+ * Titel und Werkzeuge einer Kopfzeile.
+ *
+ * Standen die Knöpfe einzeln neben dem Titel, brach auf dem Telefon jeder für
+ * sich um: Der Titel wurde zur schmalen Säule, und das „···" stand allein in
+ * einer eigenen Zeile. Jetzt bilden die Werkzeuge eine Gruppe. Passt sie
+ * neben den Titel, steht sie rechts davon, sonst geschlossen darunter.
+ */
+.kopfzeile > h1 { flex: 1 1 12rem; min-width: 0; overflow-wrap: anywhere; }
+.kopf-werkzeuge { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; order: 2; }
+/* Das „···" steht am Rechner am Ende der Werkzeuge, auf dem Telefon oben
+   rechts neben dem Titel — dort, wo man es von anderen Apps her sucht. */
+.kopf-mehr { display: flex; order: 3; }
+
 h1, h2, h3 { font-family: var(--schrift-karten); font-weight: 600; margin: 0; }
 h1 { font-size: 30px; letter-spacing: -0.2px; }
 h2 { font-size: 21px; }
@@ -476,6 +490,13 @@ select.feld { appearance: none; padding-right: 30px;
      den Inhalt aus dem Bild zu schieben. */
   .reihe { flex-wrap: wrap; }
   .reihe.starr { flex-wrap: nowrap; }
+
+  /* Auf dem Telefon stehen die Werkzeuge einer Kopfzeile immer unter dem
+     Titel, und ihre Knöpfe teilen sich die Zeile wie überall sonst. Das
+     „···" behält seine Breite. */
+  .kopf-werkzeuge { flex: 1 1 100%; }
+  .kopf-werkzeuge > .knopf { flex: 1 1 auto; }
+  .kopf-mehr { order: 1; }
 
   /* Im leeren Zustand stehen die Knoepfe untereinander und gleich breit.
      Mittig gesetzte Kaesten verschiedener Breite ergaben dort eine Raute. */
@@ -980,3 +1001,97 @@ math-field.formel-feld::part(menu-toggle) { display: none; }
 .hinweisleiste.fehler { background: color-mix(in srgb, var(--rot) 18%, var(--grund-2)); }
 .marke-knopf { border: 0; cursor: pointer; font: inherit; }
 .marke-knopf:hover { filter: brightness(1.15); }
+
+/* ----------------------------- Feinschliff ---------------------------- */
+
+/*
+ * Ein Fokusring für alles, was sich mit der Tastatur erreichen lässt.
+ * Nur bei Tastaturbedienung (:focus-visible) — wer tippt oder klickt,
+ * sieht ihn nicht.
+ */
+:where(button, a, [role="button"], [tabindex="0"], summary):focus-visible {
+  outline: 2px solid var(--akzent); outline-offset: 2px;
+}
+.dialog:focus { outline: none; }
+
+/* Solange ein Dialog offen ist, steht die Seite dahinter still. */
+html.dialog-offen { overflow: hidden; }
+
+/* Ein rot gefüllter Knopf für Rückfragen, die etwas endgültig entfernen. */
+.knopf.voll.gefahr-voll { background: var(--rot); border-color: var(--rot); color: #fff; }
+.knopf.voll.gefahr-voll:hover { filter: brightness(1.08); }
+
+/* Das farbige Quadrat eines Fachs, in zwei Größen. */
+.fach-punkt { width: 10px; height: 10px; border-radius: 3px; flex: none; display: inline-block; }
+.fach-punkt.gross { width: 14px; height: 14px; border-radius: 4px; }
+
+/*
+ * Listenzeilen: ein Eintrag, eine Zeile.
+ *
+ * Prüfungen und zuletzt gelernte Stapel standen in großen Kacheln, die für
+ * Titel, Beschreibung und Balken gemacht sind — mit einer einzigen Zeile
+ * Inhalt waren sie zu drei Vierteln leer.
+ */
+.liste { display: grid; gap: 6px; }
+.listenzeile {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  padding: 12px 14px; min-height: 48px; text-align: left;
+  background: var(--grund-2); border: 1px solid var(--rand);
+  border-radius: calc(var(--rund) * 0.85); color: var(--schrift);
+  font: inherit; cursor: pointer;
+  transition: border-color var(--wechsel), background var(--wechsel);
+}
+.listenzeile:hover { border-color: var(--akzent); }
+.listenzeile .dehnen { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (pointer: coarse) { .listenzeile:hover { border-color: var(--rand); } }
+.listenzeile:active { background: var(--grund-3); }
+
+/* Schnellzugriff: gleich breite Felder statt einer Reihe verschieden langer
+   Knöpfe. Bleibt am Ende eines übrig, nimmt es die ganze Zeile. */
+.schnell-raster { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+@media (max-width: 480px) {
+  .schnell-raster { grid-template-columns: 1fr 1fr; }
+  .schnell-raster > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+.schnell-raster > .knopf { justify-content: flex-start; }
+
+/* Eine Kennzahl, die zu mehr führt. */
+.zahl-verweis { cursor: pointer; border-radius: 8px; }
+
+/* Der Pfad über einem Titel: Fächer › Mathematik. Die Glieder sind Knöpfe,
+   das letzte ist der Ort, an dem man steht. */
+.pfad { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; flex: 1 1 100%; }
+.pfad-verweis {
+  background: none; border: 0; padding: 2px 0; font: inherit; color: inherit;
+  cursor: pointer; border-radius: 4px;
+}
+.pfad-verweis:hover { color: var(--schrift); text-decoration: underline; text-underline-offset: 3px; }
+.pfad-hier { color: var(--schrift); }
+@media (pointer: coarse) { .pfad-verweis { min-height: 32px; } }
+
+/* Der Fehlertext in der Auffanglinie einer Seite. */
+.fehler-text {
+  white-space: pre-wrap; font-size: 12px; background: var(--grund-3);
+  padding: 12px; border-radius: 8px; margin-top: 8px; max-height: 300px;
+  overflow: auto; color: var(--schrift-matt);
+}
+
+/*
+ * Die Abrufen-Kachel eines Stapels: Sinnbild, Text, Fachwahl.
+ *
+ * In einer Reihe drückte die Fachwahl den Text auf dem Telefon in eine
+ * Spalte von drei Wörtern Breite. Im Raster rutscht sie dort unter den Text.
+ */
+.lernweg-kachel { margin-bottom: 20px; min-height: 0; border-color: var(--akzent); }
+.lernweg-raster {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center; gap: 8px 12px;
+}
+@media (max-width: 560px) {
+  .lernweg-raster { grid-template-columns: auto minmax(0, 1fr); }
+  .lernweg-raster > select { grid-column: 2; justify-self: start; }
+}
+
+/* Rückfragen liegen über jedem anderen Dialog — sie kommen fast immer aus
+   einem heraus, stehen im Seitenaufbau aber vor ihm. */
+.schleier.rueckfrage { z-index: 70; }

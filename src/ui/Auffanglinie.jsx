@@ -9,6 +9,11 @@
  * Diese Hülle fängt den Absturz, sagt zuerst das Wichtigste — die Daten liegen
  * unversehrt in der Datenbank, nicht im Fenster — und bietet an, sofort eine
  * Sicherung zu ziehen. Erst danach kommt der technische Teil.
+ *
+ * Es gibt sie zweimal. Ganz außen fängt sie, was den Datenspeicher selbst
+ * umwirft. Um jede einzelne Seite liegt eine zweite mit `bereich`: Stürzt nur
+ * die Statistik ab, bleiben Menü und Kopfzeile stehen, und ein Klick auf eine
+ * andere Seite genügt — die Hülle hängt am Weg und beginnt dort frisch.
  */
 
 import React from "react";
@@ -37,6 +42,7 @@ export default class Auffanglinie extends React.Component {
 
   render() {
     if (!this.state.fehler) return this.props.children;
+    if (this.props.bereich) return this.bereichZeichnen();
 
     return (
       <div style={{ maxWidth: 640, margin: "60px auto", padding: "0 20px" }}>
@@ -77,6 +83,41 @@ export default class Auffanglinie extends React.Component {
             damit lässt sich der Fehler nachstellen.
           </p>
         </details>
+      </div>
+    );
+  }
+
+  /* Die knappe Fassung innerhalb einer Seite: Menü und Kopfzeile stehen noch. */
+  bereichZeichnen() {
+    return (
+      <div className="mitte">
+        <div className="zahl-kachel" role="alert" style={{ maxWidth: 620 }}>
+          <h2 style={{ marginBottom: 6 }}>Diese Ansicht ist abgestürzt</h2>
+          <p className="matt" style={{ marginTop: 0 }}>
+            <strong style={{ color: "var(--gruen)" }}>Deine Karten und dein Lernstand sind
+            unversehrt.</strong> Nur die Anzeige ist hängengeblieben. Über das Menü geht es
+            woandershin weiter, oder du versuchst es hier noch einmal.
+          </p>
+          <div className="reihe umbruch" style={{ marginTop: 14 }}>
+            <button type="button" className="knopf voll"
+              onClick={() => this.setState({ fehler: null, stelle: null })}>
+              Noch einmal versuchen
+            </button>
+            <button type="button" className="knopf" onClick={() => { window.location.hash = "/start"; }}>
+              Zur Startseite
+            </button>
+            <button type="button" className="knopf leer" onClick={() => this.sicherungZiehen()}>
+              Sicherung herunterladen
+            </button>
+          </div>
+          <details style={{ marginTop: 14 }}>
+            <summary className="klein blass" style={{ cursor: "pointer" }}>Was genau passiert ist</summary>
+            <pre className="fehler-text">
+              {String(this.state.fehler?.stack || this.state.fehler)}
+              {this.state.stelle}
+            </pre>
+          </details>
+        </div>
       </div>
     );
   }

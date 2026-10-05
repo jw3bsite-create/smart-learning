@@ -17,7 +17,7 @@ import { richtungName, istRelevant } from "../core/model.js";
 import { rueckfaelleSeitFreigabe } from "../core/fsrs.js";
 import { anzahl, datumKurz } from "../core/util.js";
 import { gehe } from "../App.jsx";
-import { Symbol, Knopf, Leer, useMerker } from "./basis.jsx";
+import { Symbol, Knopf, Leer, useMerker, FachPunkt } from "./basis.jsx";
 import Formel from "./Formel.jsx";
 
 function Wahl({ werte, wert, setWert }) {
@@ -83,12 +83,14 @@ export default function Fehlerheft({ fachId = null }) {
   return (
     <div className="mitte">
       <div className="kopfzeile">
-        <h1 style={{ flex: 1 }}>Fehlerheft</h1>
+        <h1>Fehlerheft</h1>
         {gefiltert.length > 0 && (
-          <Knopf art="voll" symbol="wuerfel"
-            onClick={() => gehe("/fragen/fehler" + (fach ? "/" + fach : ""))}>
-            Fehler üben
-          </Knopf>
+          <div className="kopf-werkzeuge">
+            <Knopf art="voll" symbol="wuerfel"
+              onClick={() => gehe("/fragen/fehler" + (fach ? "/" + fach : ""))}>
+              Fehler üben
+            </Knopf>
+          </div>
         )}
       </div>
 
@@ -185,8 +187,7 @@ export default function Fehlerheft({ fachId = null }) {
           {gruppen.map((g) => (
             <section key={g.subjectId || "ohne"} style={{ marginBottom: 24 }}>
               <div className="reihe" style={{ marginBottom: 8 }}>
-                <span style={{ width: 10, height: 10, borderRadius: 3, flex: "none",
-                  background: fachVon(g.subjectId)?.farbe || "var(--rand)" }} />
+                <FachPunkt farbe={fachVon(g.subjectId)?.farbe || "var(--rand)"} />
                 <h3 className="dehnen" style={{ margin: 0 }}>{fachName(g.subjectId)}</h3>
                 <span className="klein blass">{anzahl(g.fehler, "Fehler", "Fehler")}</span>
               </div>

@@ -28,7 +28,7 @@ import { FachEinstellungen } from "./Faecher.jsx";
 import { punkteZuLernfach } from "./Noten.jsx";
 import StapeldateiEinfuhr from "./Stapeldatei.jsx";
 import {
-  Symbol, SymbolKnopf, Knopf, MenuePunkt, Leer, Dialog,
+  Symbol, SymbolKnopf, Knopf, MenuePunkt, Leer, Dialog, FachPunkt,
 } from "./basis.jsx";
 
 export default function FachSeite({ fachId }) {
@@ -89,13 +89,13 @@ export default function FachSeite({ fachId }) {
   return (
     <div className="mitte">
       <div className="kopfzeile">
-        <div className="klein matt" style={{ width: "100%" }}>
-          <span style={{ cursor: "pointer" }} onClick={() => gehe("/faecher")}>Fächer</span>
-          {" › "}<span style={{ color: "var(--schrift)" }}>{fach.name}</span>
-        </div>
-        <span style={{ width: 14, height: 14, borderRadius: 4, flex: "none",
-          background: fach.farbe || "var(--akzent)", display: "block" }} />
-        <h1 style={{ flex: 1 }}>{fach.name}</h1>
+        <nav className="pfad klein matt" aria-label="Ablage">
+          <button type="button" className="pfad-verweis" onClick={() => gehe("/faecher")}>Fächer</button>
+          <span aria-hidden="true">›</span>
+          <span className="pfad-hier" aria-current="page">{fach.name}</span>
+        </nav>
+        <FachPunkt farbe={fach.farbe} gross />
+        <h1>{fach.name}</h1>
         <SymbolKnopf symbol="zahnrad" titel="Einstellungen des Fachs"
           onClick={() => setEinstellungen(true)} />
       </div>

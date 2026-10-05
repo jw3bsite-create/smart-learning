@@ -8,7 +8,8 @@ import { useDaten } from "../core/store.jsx";
 import { baueBaum } from "../core/model.js";
 import { fehlerZahlKurz } from "../core/fehler.js";
 import { gehe, START } from "../App.jsx";
-import { Symbol, SymbolKnopf, Knopf, useMerker } from "./basis.jsx";
+import { Symbol, SymbolKnopf, Knopf, useMerker, KLICKBAR, FachPunkt } from "./basis.jsx";
+import { erfragen } from "./Rueckfragen.jsx";
 import Flamme from "./Flamme.jsx";
 
 function Zweig({ ordner, tiefe, aktiv, offen, umschalten, aufAblegen }) {
@@ -18,7 +19,7 @@ function Zweig({ ordner, tiefe, aktiv, offen, umschalten, aufAblegen }) {
 
   return (
     <div>
-      <div
+      <div {...KLICKBAR}
         className={"baum-zeile" + (aktiv === ordner.id ? " aktiv" : "") + (ziel ? " ziel" : "")}
         style={{ paddingLeft: 8 + tiefe * 14 }}
         onClick={() => gehe("/ordner/" + ordner.id)}
@@ -30,7 +31,11 @@ function Zweig({ ordner, tiefe, aktiv, offen, umschalten, aufAblegen }) {
           if (nutzlast) aufAblegen(nutzlast, ordner.id);
         }}
       >
-        <span className="pfeil" onClick={(e) => { e.stopPropagation(); umschalten(ordner.id); }}>
+        <span className="pfeil" onClick={(e) => { e.stopPropagation(); umschalten(ordner.id); }}
+          {...(hatKinder ? {
+            ...KLICKBAR, "aria-expanded": istOffen,
+            "aria-label": (istOffen ? "Zuklappen: " : "Aufklappen: ") + ordner.name,
+          } : {})}>
           {hatKinder ? <Symbol name={istOffen ? "runter" : "weiter"} groesse={14} /> : null}
         </span>
         <Symbol name="ordner" groesse={16} />
@@ -70,9 +75,10 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
   };
 
   const neuerOrdner = async () => {
-    const name = window.prompt("Name des Ordners");
+    const name = await erfragen({ titel: "Neuer Ordner", platzhalter: "Name des Ordners",
+      ja: "Anlegen", leerErlaubt: true });
     if (name === null) return;
-    const o = await ordnerAnlegen(name.trim() || "Neuer Ordner", aktiverOrdner);
+    const o = await ordnerAnlegen(name || "Neuer Ordner", aktiverOrdner);
     if (aktiverOrdner) setAufgeklappt((alt) => [...alt, aktiverOrdner]);
     gehe("/ordner/" + o.id);
   };
@@ -117,19 +123,23 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
 
       <div className="leiste-inhalt">
         {/* Der Lernweg steht oben — er ist der Zweck der App. */}
-        <div className={"baum-zeile" + (weg.startsWith("/abrufen") ? " aktiv" : "")}
+        <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/abrufen") ? " aktiv" : "")}
           onClick={() => gehe("/abrufen")}>
           <span className="pfeil" />
           <Symbol name="blitz" groesse={16} />
           <span className="name dehnen">Abrufen</span>
           {faellig > 0 && <span className="marke gelb klein">{faellig}</span>}
         </div>
-        <div className={"baum-zeile" + (weg.startsWith("/faecher") ? " aktiv" : "")}
+        <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/faecher") ? " aktiv" : "")}
           onClick={() => gehe("/faecher")}>
           {/* Der Pfeil klappt nur die Liste auf, die Zeile selbst fuehrt zur
               Uebersicht — wie beim Ordnerbaum darunter. */}
           <span className="pfeil"
-            onClick={(e) => { e.stopPropagation(); setFaecherOffen((o) => !o); }}>
+            onClick={(e) => { e.stopPropagation(); setFaecherOffen((o) => !o); }}
+            {...(faecher.length > 0 ? {
+              ...KLICKBAR, "aria-expanded": faecherOffen,
+              "aria-label": faecherOffen ? "Fächer zuklappen" : "Fächer aufklappen",
+            } : {})}>
             {faecher.length > 0 && (
               <Symbol name={faecherOffen ? "runter" : "weiter"} groesse={14} />
             )}
@@ -143,53 +153,52 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
         {faecherOffen && [...faecher]
           .sort((a, b) => (a.name || "").localeCompare(b.name || "", "de"))
           .map((f) => (
-            <div key={f.id}
+            <div {...KLICKBAR} key={f.id}
               className={"baum-zeile" + (weg === "/fach/" + f.id ? " aktiv" : "")}
               style={{ paddingLeft: 30 }}
               onClick={() => gehe("/fach/" + f.id)}>
-              <span style={{ width: 8, height: 8, borderRadius: 2, flex: "none",
-                background: f.farbe || "var(--akzent)", display: "inline-block" }} />
+              <FachPunkt farbe={f.farbe} />
               <span className="name dehnen">{f.name}</span>
             </div>
           ))}
-        <div className={"baum-zeile" + (weg.startsWith("/erklaeren") ? " aktiv" : "")}
+        <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/erklaeren") ? " aktiv" : "")}
           onClick={() => gehe("/erklaeren")}>
           <span className="pfeil" />
           <Symbol name="buch" groesse={16} />
           <span className="name">Erklären</span>
         </div>
-        <div className={"baum-zeile" + (weg.startsWith("/pruefung") ? " aktiv" : "")}
+        <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/pruefung") ? " aktiv" : "")}
           onClick={() => gehe("/pruefung")}>
           <span className="pfeil" />
           <Symbol name="papier" groesse={16} />
           <span className="name">Prüfungen</span>
         </div>
-        <div className={"baum-zeile" + (weg.startsWith("/tutor") ? " aktiv" : "")}
+        <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/tutor") ? " aktiv" : "")}
           onClick={() => gehe("/tutor")}>
           <span className="pfeil" />
           <Symbol name="schreiben" groesse={16} />
           <span className="name">Tutoren</span>
         </div>
-        <div className={"baum-zeile" + (weg.startsWith("/fehler") ? " aktiv" : "")}
+        <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/fehler") ? " aktiv" : "")}
           onClick={() => gehe("/fehler")}>
           <span className="pfeil" />
           <Symbol name="kreuz" groesse={16} />
           <span className="name dehnen">Fehlerheft</span>
           {fehlerZahl > 0 && <span className="marke rot klein">{fehlerZahl}</span>}
         </div>
-        <div className={"baum-zeile" + (weg.startsWith("/kalibrierung") ? " aktiv" : "")}
+        <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/kalibrierung") ? " aktiv" : "")}
           onClick={() => gehe("/kalibrierung")}>
           <span className="pfeil" />
           <Symbol name="auge" groesse={16} />
           <span className="name">Kalibrierung</span>
         </div>
-        <div className={"baum-zeile" + (weg.startsWith("/fragen") ? " aktiv" : "")}
+        <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/fragen") ? " aktiv" : "")}
           onClick={() => gehe("/fragen")}>
           <span className="pfeil" />
           <Symbol name="wuerfel" groesse={16} />
           <span className="name">Fragen</span>
         </div>
-        <div className={"baum-zeile" + (weg.startsWith("/punkte") ? " aktiv" : "")}
+        <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/punkte") ? " aktiv" : "")}
           onClick={() => gehe("/punkte")}>
           <span className="pfeil" />
           <Symbol name="statistik" groesse={16} />
@@ -201,7 +210,7 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
         <hr className="trennlinie" style={{ margin: "12px 0" }} />
         <div className="klein blass" style={{ padding: "0 8px 6px" }}>Stapel verwalten</div>
 
-        <div className={"baum-zeile" + (weg === "/" ? " aktiv" : "")}
+        <div {...KLICKBAR} className={"baum-zeile" + (weg === "/" ? " aktiv" : "")}
           onClick={() => gehe("/")}
           onDragOver={(e) => e.preventDefault()}
           onDrop={(e) => {
@@ -220,7 +229,7 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
         ))}
 
         {ohneOrdner > 0 && (
-          <div className="baum-zeile" style={{ opacity: 0.75 }} onClick={() => gehe("/")}>
+          <div {...KLICKBAR} className="baum-zeile" style={{ opacity: 0.75 }} onClick={() => gehe("/")}>
             <span className="pfeil" />
             <Symbol name="stapel" groesse={16} />
             <span className="name" style={{ flex: 1 }}>Ohne Ordner</span>
@@ -235,17 +244,17 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
       </div>
 
       <div className="leiste-fuss">
-        <div className="baum-zeile" onClick={() => gehe("/statistik")}>
+        <div {...KLICKBAR} className="baum-zeile" onClick={() => gehe("/statistik")}>
           <Symbol name="statistik" groesse={16} /><span className="name">Fortschritt</span>
         </div>
-        <div className="baum-zeile" onClick={() => gehe("/papierkorb")}>
+        <div {...KLICKBAR} className="baum-zeile" onClick={() => gehe("/papierkorb")}>
           <Symbol name="papierkorb" groesse={16} /><span className="name">Papierkorb</span>
         </div>
-        <div className="baum-zeile" onClick={() => gehe("/einstellungen")}>
+        <div {...KLICKBAR} className="baum-zeile" onClick={() => gehe("/einstellungen")}>
           <Symbol name="zahnrad" groesse={16} /><span className="name">Einstellungen</span>
         </div>
         {wolkeStand.zustand !== "aus" && (
-          <div className="baum-zeile klein" title={wolkeStand.text} onClick={aufAbgleich}>
+          <div {...KLICKBAR} className="baum-zeile klein" title={wolkeStand.text} onClick={aufAbgleich}>
             <span className={punktKlasse} />
             <span className="name">{wolkeStand.zustand === "arbeitet" ? wolkeStand.text : "Cloud"}</span>
           </div>

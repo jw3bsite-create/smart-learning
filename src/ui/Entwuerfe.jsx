@@ -151,16 +151,18 @@ export default function Entwuerfe({ setId }) {
           <h1>Entwürfe</h1>
           <div className="klein matt">{derStapel.title}</div>
         </div>
-        <Knopf art={"klein" + (zeichen ? " voll" : "")} symbol="sigma"
-          aria-pressed={zeichen} title="Mathematische Zeichen"
-          onClick={() => setZeichen((z) => !z)}>
-          Zeichen
-        </Knopf>
-        {meine.length > 0 && (
-          <Knopf art="leer klein gefahr" onClick={() => setAlleVerwerfen(true)}>
-            Alle verwerfen
+        <div className="kopf-werkzeuge">
+          <Knopf art={"klein" + (zeichen ? " voll" : "")} symbol="sigma"
+            aria-pressed={zeichen} title="Mathematische Zeichen"
+            onClick={() => setZeichen((z) => !z)}>
+            Zeichen
           </Knopf>
-        )}
+          {meine.length > 0 && (
+            <Knopf art="leer klein gefahr" onClick={() => setAlleVerwerfen(true)}>
+              Alle verwerfen
+            </Knopf>
+          )}
+        </div>
       </div>
 
       {zeichen && <Zeichenleiste aufSchliessen={() => setZeichen(false)} />}

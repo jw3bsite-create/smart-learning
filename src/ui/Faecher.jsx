@@ -27,7 +27,7 @@ const PUNKTFARBE = {
 import { gehe } from "../App.jsx";
 import Kalenderausfuhr from "./Kalenderausfuhr.jsx";
 import {
-  Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Leer, Dialog, Rueckfrage,
+  Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Leer, Dialog, Rueckfrage, KLICKBAR, FachPunkt,
 } from "./basis.jsx";
 
 /** Vorschlag beim ersten Mal — Fächer des Technischen Gymnasiums. */
@@ -104,7 +104,7 @@ function NeuesFach({ aufSchliessen }) {
         <label className="beschriftung" style={{ marginTop: 16 }}>Farbe</label>
         <Farbwahl wert={farbe} setzen={setFarbe} />
         <div className="reihe" style={{ gap: 8, marginTop: 14 }}>
-          <span style={{ width: 12, height: 12, borderRadius: 3, background: farbe }} />
+          <FachPunkt farbe={farbe} />
           <span className="klein matt">{name.trim() || "So erscheint das Fach"}</span>
         </div>
       </form>
@@ -287,16 +287,18 @@ export default function Faecher() {
   return (
     <div className="mitte">
       <div className="kopfzeile">
-        <h1 style={{ flex: 1 }}>Fächer</h1>
-        <Knopf symbol="papier" onClick={() => setKalenderAus(true)}>
-          Termine in den Kalender
-        </Knopf>
-        <Knopf symbol="plus" onClick={() => setNeuesFach(true)}>Fach</Knopf>
-        {gesamt.faellig + gesamt.neu > 0 && (
-          <Knopf art="voll" symbol="blitz" onClick={() => gehe("/abrufen")}>
-            Alles abrufen ({gesamt.faellig + Math.min(gesamt.neu, 20)})
+        <h1>Fächer</h1>
+        <div className="kopf-werkzeuge">
+          <Knopf symbol="papier" onClick={() => setKalenderAus(true)}>
+            Termine in den Kalender
           </Knopf>
-        )}
+          <Knopf symbol="plus" onClick={() => setNeuesFach(true)}>Fach</Knopf>
+          {gesamt.faellig + gesamt.neu > 0 && (
+            <Knopf art="voll" symbol="blitz" onClick={() => gehe("/abrufen")}>
+              Alles abrufen ({gesamt.faellig + Math.min(gesamt.neu, 20)})
+            </Knopf>
+          )}
+        </div>
       </div>
 
       {/* --------------------------- Tageslage --------------------------- */}
@@ -360,10 +362,9 @@ export default function Faecher() {
           return (
             /* Ein Klick oeffnet das Fach mit seinem Material. Ins Abrufen fuehrt
                der eigene Knopf auf der Kachel — ein Klick, wie vorher. */
-            <div key={f.id} className="kachel" onClick={() => gehe("/fach/" + f.id)}>
+            <div {...KLICKBAR} key={f.id} className="kachel" onClick={() => gehe("/fach/" + f.id)}>
               <div className="reihe">
-                <span style={{ width: 10, height: 10, borderRadius: 3,
-                  background: f.farbe || "var(--akzent)", display: "block" }} />
+                <FachPunkt farbe={f.farbe} />
                 <div className="titel dehnen">{f.name}</div>
                 <Menue knopf={<SymbolKnopf symbol="mehr" titel="Mehr" />}>
                   <MenuePunkt symbol="zahnrad" onClick={() => setEinstellungenFuer(f)}>

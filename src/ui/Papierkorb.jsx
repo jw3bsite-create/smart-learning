@@ -43,7 +43,7 @@ export default function Papierkorb() {
   return (
     <div className="mitte">
       <div className="kopfzeile">
-        <h1 style={{ flex: 1 }}>Papierkorb</h1>
+        <h1>Papierkorb</h1>
       </div>
 
       {leer ? (

@@ -24,6 +24,8 @@ import Startseite from "./ui/Startseite.jsx";
 import Fehlerheft from "./ui/Fehlerheft.jsx";
 import Zeitmesser from "./ui/Zeitmesser.jsx";
 import { Ladefehler, Hinweisleiste } from "./ui/Meldungen.jsx";
+import Auffanglinie from "./ui/Auffanglinie.jsx";
+import RueckfragenWurzel, { hinweisen } from "./ui/Rueckfragen.jsx";
 import Kalibrierung from "./ui/Kalibrierung.jsx";
 import Noten from "./ui/Noten.jsx";
 import Fragen from "./modes/Fragen.jsx";
@@ -187,7 +189,7 @@ export default function App() {
       });
     } catch (fehler) {
       setWolkeStand({ zustand: "fehler", zeit: Date.now(), text: fehler.message });
-      if (!still) window.alert("Abgleich misslungen: " + fehler.message);
+      if (!still) hinweisen({ titel: "Abgleich misslungen", text: fehler.message });
     } finally {
       abgleichLaeuft.current = false;
     }
@@ -243,6 +245,7 @@ export default function App() {
     <>
       <Zeitmesser weg={weg} />
       <Hinweisleiste />
+      <RueckfragenWurzel />
       <Inhalt weg={weg} leisteOffen={leisteOffen} setLeisteOffen={setLeisteOffen}
         abgleichen={abgleichen} />
     </>
@@ -253,29 +256,33 @@ export default function App() {
 function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
   const teile = weg.split("/").filter(Boolean);
 
+  /* Jede Seite in ihrer eigenen Auffanglinie. Der Schlüssel ist der Weg:
+     Wer nach einem Absturz woandershin geht, bekommt eine frische Hülle. */
+  const gefangen = (seite) => <Auffanglinie bereich key={weg}>{seite}</Auffanglinie>;
+
   /* Das Abrufen ist der verbindliche Lernweg und bekommt die ganze Fläche. */
   if (teile[0] === "abrufen") {
-    return <Abrufen fachId={teile[1] || null}
-      aufSchliessen={() => zurueck("/faecher")} />;
+    return gefangen(<Abrufen fachId={teile[1] || null}
+      aufSchliessen={() => zurueck("/faecher")} />);
   }
 
   if (teile[0] === "erklaeren") {
-    return <Feynman erklaerungId={teile[1] || null}
-      aufSchliessen={() => (teile[1] ? zurueckZu("/erklaeren") : zurueck("/faecher"))} />;
+    return gefangen(<Feynman erklaerungId={teile[1] || null}
+      aufSchliessen={() => (teile[1] ? zurueckZu("/erklaeren") : zurueck("/faecher"))} />);
   }
 
   if (teile[0] === "pruefung") {
-    return <Pruefung pruefungId={teile[1] || null}
-      aufSchliessen={() => (teile[1] ? zurueckZu("/pruefung") : zurueck("/faecher"))} />;
+    return gefangen(<Pruefung pruefungId={teile[1] || null}
+      aufSchliessen={() => (teile[1] ? zurueckZu("/pruefung") : zurueck("/faecher"))} />);
   }
 
   if (teile[0] === "tutor") {
-    return <Tutor tutorSchluessel={teile[1] || null}
-      aufSchliessen={() => (teile[1] ? zurueckZu("/tutor") : zurueck("/faecher"))} />;
+    return gefangen(<Tutor tutorSchluessel={teile[1] || null}
+      aufSchliessen={() => (teile[1] ? zurueckZu("/tutor") : zurueck("/faecher"))} />);
   }
 
   if (teile[0] === "vorab" && teile[1]) {
-    return <Pretest setId={teile[1]} aufSchliessen={() => zurueckZu("/stapel/" + teile[1])} />;
+    return gefangen(<Pretest setId={teile[1]} aufSchliessen={() => zurueckZu("/stapel/" + teile[1])} />);
   }
 
   /* Lernmodi bekommen die ganze Fläche. */
@@ -284,13 +291,13 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
     const setId = teile[1];
     const modus = teile[2];
     const gemeinsam = { setId, aufSchliessen: () => zurueckZu("/stapel/" + setId) };
-    if (modus === "karten") return <Karteikarten {...gemeinsam} />;
-    if (modus === "lernen") return <Lernen {...gemeinsam} />;
-    if (modus === "schreiben") return <Schreiben {...gemeinsam} />;
-    if (modus === "buchstabieren") return <Buchstabieren {...gemeinsam} />;
-    if (modus === "test") return <Test {...gemeinsam} />;
-    if (modus === "zuordnen") return <Zuordnen {...gemeinsam} />;
-    if (modus === "meteor") return <Meteor {...gemeinsam} />;
+    if (modus === "karten") return gefangen(<Karteikarten {...gemeinsam} />);
+    if (modus === "lernen") return gefangen(<Lernen {...gemeinsam} />);
+    if (modus === "schreiben") return gefangen(<Schreiben {...gemeinsam} />);
+    if (modus === "buchstabieren") return gefangen(<Buchstabieren {...gemeinsam} />);
+    if (modus === "test") return gefangen(<Test {...gemeinsam} />);
+    if (modus === "zuordnen") return gefangen(<Zuordnen {...gemeinsam} />);
+    if (modus === "meteor") return gefangen(<Meteor {...gemeinsam} />);
   }
 
   let inhalt = <Bibliothek ordnerId={null} />;
@@ -335,7 +342,7 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
             <span>Anchor</span>
           </button>
         </div>
-        {inhalt}
+        {gefangen(inhalt)}
       </main>
     </div>
   );

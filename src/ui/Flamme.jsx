@@ -14,7 +14,7 @@ import { kalibrierung } from "../core/kalibrierung.js";
 import { istFaellig } from "../core/fsrs.js";
 import { anzahl } from "../core/util.js";
 import { gehe } from "../App.jsx";
-import { Symbol, Knopf } from "./basis.jsx";
+import { Symbol, Knopf, KLICKBAR } from "./basis.jsx";
 
 export default function Flamme({ knapp = false }) {
   const { reviews, zustaende } = useDaten();
@@ -31,7 +31,7 @@ export default function Flamme({ knapp = false }) {
   /* Kurze Fassung für die Seitenleiste. */
   if (knapp) {
     return (
-      <div className="baum-zeile" onClick={() => gehe("/statistik")}
+      <div {...KLICKBAR} className="baum-zeile" onClick={() => gehe("/statistik")}
         title={stand.heuteGeschafft
           ? "Heute erledigt" : stand.fehlendHeute + " Abrufe fehlen heute"}>
         <span className="pfeil" />

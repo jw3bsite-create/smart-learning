@@ -10,7 +10,7 @@ import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { anzahl } from "../core/util.js";
 import { gehe } from "../App.jsx";
-import { Knopf, SymbolKnopf, Dialog, Rueckfrage, Symbol } from "./basis.jsx";
+import { Knopf, SymbolKnopf, Dialog, Rueckfrage, Symbol, FachPunkt } from "./basis.jsx";
 
 /* ------------------------------ Zielwahl ------------------------------- */
 
@@ -86,8 +86,7 @@ function Zielwahl({ art, setArt, anzahlKarten, vonSetId, aufWaehlen, aufAbbreche
         {gruppen.map((g) => (
           <div key={g.id || "ohne"}>
             <div className="reihe" style={{ gap: 8, marginBottom: 6 }}>
-              <span style={{ width: 9, height: 9, borderRadius: 2, flex: "none",
-                background: g.farbe || "var(--rand)" }} />
+              <FachPunkt farbe={g.farbe || "var(--rand)"} />
               <strong className="dehnen klein">{g.name}</strong>
               {neuIn !== g.id && (
                 <Knopf art="klein" symbol="plus" onClick={() => oeffnen(g.id)}>

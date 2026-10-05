@@ -10,8 +10,9 @@ import { ordnerZweig } from "../core/model.js";
 import * as beispiel from "../core/beispiel.js";
 import { anzahl } from "../core/util.js";
 import { gehe } from "../App.jsx";
+import { erfragen } from "./Rueckfragen.jsx";
 import {
-  Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Leer, Dialog, Rueckfrage,
+  Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Leer, Dialog, Rueckfrage, KLICKBAR,
 } from "./basis.jsx";
 import Formel from "./Formel.jsx";
 import StapeldateiEinfuhr from "./Stapeldatei.jsx";
@@ -29,7 +30,7 @@ export function StapelKachel({ stapel, karten, zustaende, aufMenue }) {
   const anteile = anteileNachStufe(stand.zustaende);
   const { faellig: faellige, neu } = stand;
   return (
-    <div className="kachel" draggable
+    <div {...KLICKBAR} className="kachel" draggable
       onDragStart={(e) => { e.dataTransfer.setData("text/kk", stapel.id); }}
       onClick={() => gehe("/stapel/" + stapel.id)}>
       <div className="reihe">
@@ -82,7 +83,7 @@ function Suchergebnis({ begriff }) {
           <h3 className="matt" style={{ marginBottom: 10 }}>Stapel</h3>
           <div className="gitter" style={{ marginBottom: 26 }}>
             {treffer.stapelTreffer.map((s) => (
-              <div key={s.id} className="kachel" onClick={() => gehe("/stapel/" + s.id)}>
+              <div {...KLICKBAR} key={s.id} className="kachel" onClick={() => gehe("/stapel/" + s.id)}>
                 <div className="titel">{s.title}</div>
                 <div className="klein matt">{s.description}</div>
               </div>
@@ -186,9 +187,10 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
   };
 
   const neuerUnterordner = async () => {
-    const name = window.prompt("Name des Ordners");
+    const name = await erfragen({ titel: "Neuer Ordner", platzhalter: "Name des Ordners",
+      ja: "Anlegen", leerErlaubt: true });
     if (name === null) return;
-    await ordnerAnlegen(name.trim() || "Neuer Ordner", ordnerId);
+    await ordnerAnlegen(name || "Neuer Ordner", ordnerId);
   };
 
   const menuePunkte = (s) => (
@@ -208,37 +210,44 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
     <div className="mitte">
       <div className="kopfzeile">
         {pfad.length > 0 && (
-          <div className="klein matt" style={{ width: "100%" }}>
-            <span style={{ cursor: "pointer" }} onClick={() => gehe("/")}>Alle Stapel</span>
+          <nav className="pfad klein matt" aria-label="Ablage">
+            <button type="button" className="pfad-verweis" onClick={() => gehe("/")}>Alle Stapel</button>
             {pfad.map((o, i) => (
-              <span key={o.id}>
-                {" › "}
-                <span style={{ cursor: "pointer", color: i === pfad.length - 1 ? "var(--schrift)" : undefined }}
-                  onClick={() => gehe("/ordner/" + o.id)}>{o.name}</span>
-              </span>
+              <React.Fragment key={o.id}>
+                <span aria-hidden="true">›</span>
+                {i === pfad.length - 1
+                  ? <span className="pfad-hier" aria-current="page">{o.name}</span>
+                  : <button type="button" className="pfad-verweis"
+                    onClick={() => gehe("/ordner/" + o.id)}>{o.name}</button>}
+              </React.Fragment>
             ))}
-          </div>
+          </nav>
         )}
-        <h1 style={{ flex: 1 }}>{derOrdner ? derOrdner.name : "Alle Stapel"}</h1>
-        <Knopf symbol="plus" onClick={neuerUnterordner}>Ordner</Knopf>
-        <Knopf art="voll" symbol="plus" onClick={neuerStapel}>Stapel</Knopf>
-        <Menue knopf={<SymbolKnopf symbol="mehr" titel="Mehr" art="klein" />}>
-          <MenuePunkt symbol="hinauf" onClick={() => setLiestEin(true)}>
-            Stapeldatei einlesen …</MenuePunkt>
-          {derOrdner && (
-            <>
-              <hr />
-              <MenuePunkt symbol="stift" onClick={() => {
-                const name = window.prompt("Neuer Name", derOrdner.name);
-                if (name) ordnerAendern(derOrdner.id, { name: name.trim() });
-              }}>Umbenennen</MenuePunkt>
-              <MenuePunkt symbol="muell" gefahr
-                onClick={() => setLoescht({ art: "ordner", ...derOrdner })}>
-                Ordner löschen
-              </MenuePunkt>
-            </>
-          )}
-        </Menue>
+        <h1>{derOrdner ? derOrdner.name : "Alle Stapel"}</h1>
+        <div className="kopf-werkzeuge">
+          <Knopf symbol="plus" onClick={neuerUnterordner}>Ordner</Knopf>
+          <Knopf art="voll" symbol="plus" onClick={neuerStapel}>Stapel</Knopf>
+        </div>
+        <div className="kopf-mehr">
+          <Menue knopf={<SymbolKnopf symbol="mehr" titel="Mehr" art="" />}>
+            <MenuePunkt symbol="hinauf" onClick={() => setLiestEin(true)}>
+              Stapeldatei einlesen …</MenuePunkt>
+            {derOrdner && (
+              <>
+                <hr />
+                <MenuePunkt symbol="stift" onClick={async () => {
+                  const name = await erfragen({ titel: "Ordner umbenennen", vorgabe: derOrdner.name,
+                    ja: "Umbenennen" });
+                  if (name) ordnerAendern(derOrdner.id, { name });
+                }}>Umbenennen</MenuePunkt>
+                <MenuePunkt symbol="muell" gefahr
+                  onClick={() => setLoescht({ art: "ordner", ...derOrdner })}>
+                  Ordner löschen
+                </MenuePunkt>
+              </>
+            )}
+          </Menue>
+        </div>
         {liestEin && (
           <StapeldateiEinfuhr ordnerId={ordnerId} aufSchliessen={() => setLiestEin(false)} />
         )}
@@ -249,7 +258,7 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
           <h3 className="matt" style={{ marginBottom: 10 }}>Heute dran</h3>
           <div className="gitter">
             {zuLernen.map((x) => (
-              <div key={x.stapel.id} className="kachel" onClick={() => gehe("/stapel/" + x.stapel.id + "/lernen")}>
+              <div {...KLICKBAR} key={x.stapel.id} className="kachel" onClick={() => gehe("/stapel/" + x.stapel.id + "/lernen")}>
                 <div className="reihe">
                   <Symbol name="blitz" />
                   <div className="titel dehnen">{x.stapel.title}</div>
@@ -276,7 +285,7 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
             const zweig = ordnerZweig(ordner, o.id);
             const drin = stapel.filter((s) => zweig.has(s.folderId)).length;
             return (
-              <div key={o.id} className="kachel" style={{ minHeight: 90 }}
+              <div {...KLICKBAR} key={o.id} className="kachel" style={{ minHeight: 90 }}
                 onClick={() => gehe("/ordner/" + o.id)}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
@@ -313,13 +322,13 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
 
       {verschiebt && (
         <Dialog titel={"„" + verschiebt.title + "“ verschieben"} aufSchliessen={() => setVerschiebt(null)}>
-          <div className="baum-zeile" onClick={() => {
+          <div {...KLICKBAR} className="baum-zeile" onClick={() => {
             stapelAendern(verschiebt.id, { folderId: null }); setVerschiebt(null);
           }}>
             <Symbol name="buch" groesse={16} /><span className="name">Ohne Ordner</span>
           </div>
           {ordner.sort((a, b) => a.name.localeCompare(b.name, "de")).map((o) => (
-            <div key={o.id} className="baum-zeile" onClick={() => {
+            <div {...KLICKBAR} key={o.id} className="baum-zeile" onClick={() => {
               stapelAendern(verschiebt.id, { folderId: o.id }); setVerschiebt(null);
             }}>
               <Symbol name="ordner" groesse={16} /><span className="name">{o.name}</span>

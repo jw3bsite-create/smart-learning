@@ -323,8 +323,10 @@ export default function Noten() {
   return (
     <div className="mitte">
       <div className="kopfzeile">
-        <h1 className="dehnen">Punkte</h1>
-        <Knopf art="voll" symbol="plus" onClick={() => setAnlegen(true)}>Fach</Knopf>
+        <h1>Punkte</h1>
+        <div className="kopf-werkzeuge">
+          <Knopf art="voll" symbol="plus" onClick={() => setAnlegen(true)}>Fach</Knopf>
+        </div>
       </div>
 
       {/* --------------------------- Der Schnitt -------------------------- */}

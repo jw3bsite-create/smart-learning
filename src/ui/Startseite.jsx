@@ -16,7 +16,7 @@ import { fachZaehlung, tageBisPruefung } from "../core/warteschlange.js";
 import { straehne } from "../core/straehne.js";
 import { anzahl, datumKurz } from "../core/util.js";
 import { gehe } from "../App.jsx";
-import { Symbol, Knopf, Leer } from "./basis.jsx";
+import { Symbol, Knopf, Leer, KLICKBAR, FachPunkt } from "./basis.jsx";
 import { useLernzeiten } from "./Lernzeit.jsx";
 import { summe, tagesBeginn, dauerText } from "../core/lernzeit.js";
 
@@ -121,8 +121,8 @@ export default function Startseite() {
                 </div>
               </div>
               {heuteZeit && (
-                <div style={{ minWidth: 140, cursor: "pointer" }} onClick={() => gehe("/statistik")}
-                  title="Mehr unter Fortschritt">
+                <div {...KLICKBAR} className="zahl-verweis" style={{ minWidth: 140 }}
+                  onClick={() => gehe("/statistik")} title="Mehr unter Fortschritt">
                   <div className="reihe klein matt" style={{ gap: 6 }}>
                     <Symbol name="uhr" groesse={15} /> Heute gelernt
                   </div>
@@ -146,18 +146,17 @@ export default function Startseite() {
           {/* ---------------------------- Prüfungen --------------------------- */}
           {pruefungen.length > 0 && (
             <Abschnitt titel="Nächste Prüfungen">
-              <div style={{ display: "grid", gap: 8 }}>
+              <div className="liste">
                 {pruefungen.map(({ fach, tage }) => (
-                  <div key={fach.id} className="kachel reihe" style={{ flexDirection: "row", gap: 12 }}
+                  <button type="button" key={fach.id} className="listenzeile"
                     onClick={() => gehe("/fach/" + fach.id)}>
-                    <span style={{ width: 10, height: 10, borderRadius: 3, flex: "none",
-                      background: fach.farbe || "var(--akzent)" }} />
+                    <FachPunkt farbe={fach.farbe} />
                     <span className="dehnen">{fach.name}</span>
                     <span className="klein" style={{ color: tage < 30 ? "var(--gelb)" : "var(--schrift-matt)" }}>
                       {tage === 0 ? "heute" : tage === 1 ? "morgen" : "in " + tage + " Tagen"}
                     </span>
-                    <span className="klein blass">{datumKurz(fach.pruefungsdatum)}</span>
-                  </div>
+                    <span className="klein blass nur-breit">{datumKurz(fach.pruefungsdatum)}</span>
+                  </button>
                 ))}
               </div>
             </Abschnitt>
@@ -169,10 +168,9 @@ export default function Startseite() {
               rechts={<Knopf art="klein" onClick={() => gehe("/faecher")}>Übersicht</Knopf>}>
               <div className="start-faecher">
                 {faecherSortiert.map(({ fach, z }) => (
-                  <div key={fach.id} className="kachel" onClick={() => gehe("/fach/" + fach.id)}>
+                  <div {...KLICKBAR} key={fach.id} className="kachel" onClick={() => gehe("/fach/" + fach.id)}>
                     <div className="reihe" style={{ gap: 8 }}>
-                      <span style={{ width: 10, height: 10, borderRadius: 3, flex: "none",
-                        background: fach.farbe || "var(--akzent)" }} />
+                      <FachPunkt farbe={fach.farbe} />
                       <span className="titel dehnen">{fach.name}</span>
                     </div>
                     <div className="klein blass">
@@ -189,14 +187,14 @@ export default function Startseite() {
           {/* ---------------------------- Zuletzt ----------------------------- */}
           {zuletzt.length > 0 && (
             <Abschnitt titel="Zuletzt gelernt">
-              <div style={{ display: "grid", gap: 8 }}>
+              <div className="liste">
                 {zuletzt.map(({ s, zeit }) => (
-                  <div key={s.id} className="kachel reihe" style={{ flexDirection: "row", gap: 12 }}
+                  <button type="button" key={s.id} className="listenzeile"
                     onClick={() => gehe("/stapel/" + s.id)}>
                     <Symbol name="stapel" groesse={16} />
                     <span className="dehnen">{s.title || "Ohne Titel"}</span>
                     <span className="klein blass">{datumKurz(zeit)}</span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </Abschnitt>
@@ -206,7 +204,7 @@ export default function Startseite() {
 
       {/* ---------------------------- Schnellzugriff -------------------------- */}
       <Abschnitt titel="Schnell">
-        <div className="reihe umbruch" style={{ gap: 8 }}>
+        <div className="schnell-raster">
           <Knopf symbol="wuerfel" onClick={() => gehe("/fragen")}>Fragen</Knopf>
           <Knopf symbol="buch" onClick={() => gehe("/erklaeren")}>Erklären</Knopf>
           <Knopf symbol="papier" onClick={() => gehe("/pruefung")}>Prüfungen</Knopf>

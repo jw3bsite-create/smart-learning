@@ -401,20 +401,24 @@ export default function Bearbeiten({ setId }) {
       <div className="kopfzeile">
         <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer"
           onClick={() => zurueckZu("/stapel/" + setId)} />
-        <h1 style={{ flex: 1 }}>Bearbeiten</h1>
-        <Knopf symbol="hinauf" onClick={() => setTextEinfuhr(true)}>Text einfügen</Knopf>
-        <Knopf symbol="kamera" onClick={() => setBildEinfuhr(true)}>Aus Bild</Knopf>
-        <Knopf symbol="blitz" onClick={() => setGenerator(true)}>Aus Vorlage</Knopf>
-        <Knopf symbol="sigma" art={zeichen ? "voll" : ""} aria-pressed={zeichen}
-          title="Mathematische Zeichen" onClick={() => setZeichen((z) => !z)}>
-          Zeichen
-        </Knopf>
-        <Knopf art="voll" symbol="haken" onClick={() => zurueckZu("/stapel/" + setId)}>Fertig</Knopf>
-        <Menue knopf={<SymbolKnopf symbol="mehr" titel="Mehr" art="klein" />}>
-          <MenuePunkt symbol="hinauf" onClick={() => setQuizlet(true)}>
-            Aus Quizlet …</MenuePunkt>
-          <MenuePunkt symbol="auge" onClick={() => setHilfe(true)}>Tastenkürzel</MenuePunkt>
-        </Menue>
+        <h1>Bearbeiten</h1>
+        <div className="kopf-werkzeuge">
+          <Knopf symbol="hinauf" onClick={() => setTextEinfuhr(true)}>Text einfügen</Knopf>
+          <Knopf symbol="kamera" onClick={() => setBildEinfuhr(true)}>Aus Bild</Knopf>
+          <Knopf symbol="blitz" onClick={() => setGenerator(true)}>Aus Vorlage</Knopf>
+          <Knopf symbol="sigma" art={zeichen ? "voll" : ""} aria-pressed={zeichen}
+            title="Mathematische Zeichen" onClick={() => setZeichen((z) => !z)}>
+            Zeichen
+          </Knopf>
+          <Knopf art="voll" symbol="haken" onClick={() => zurueckZu("/stapel/" + setId)}>Fertig</Knopf>
+        </div>
+        <div className="kopf-mehr">
+          <Menue knopf={<SymbolKnopf symbol="mehr" titel="Mehr" art="" />}>
+            <MenuePunkt symbol="hinauf" onClick={() => setQuizlet(true)}>
+              Aus Quizlet …</MenuePunkt>
+            <MenuePunkt symbol="auge" onClick={() => setHilfe(true)}>Tastenkürzel</MenuePunkt>
+          </Menue>
+        </div>
       </div>
 
       {zeichen && <Zeichenleiste aufSchliessen={() => setZeichen(false)} />}

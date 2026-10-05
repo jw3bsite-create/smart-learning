@@ -11,6 +11,7 @@ import React, { useEffect, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { notsicherungHerunterladen } from "../core/notsicherung.js";
 import { beobachteUpdate, updateAnwenden } from "../core/aktualisierung.js";
+import { stoerungsText } from "../core/stoerung.js";
 import { Knopf } from "./basis.jsx";
 
 /** Die Seite, wenn der Speicher sich nicht öffnen lässt. */
@@ -42,7 +43,16 @@ export function Ladefehler({ text }) {
 export function Hinweisleiste() {
   const { speicherfehler, dbHinweis, speicherfehlerVergessen } = useDaten();
   const [update, setUpdate] = useState(false);
+  const [stoerung, setStoerung] = useState(null);
   useEffect(() => beobachteUpdate(() => setUpdate(true)), []);
+  useEffect(() => {
+    const auffangen = (e) => {
+      const text = stoerungsText(e.reason);
+      if (text) setStoerung(text);
+    };
+    window.addEventListener("unhandledrejection", auffangen);
+    return () => window.removeEventListener("unhandledrejection", auffangen);
+  }, []);
 
   if (dbHinweis === "neueFassung" || dbHinweis === "blockiert") {
     return (
@@ -67,6 +77,16 @@ export function Hinweisleiste() {
           Notsicherung
         </Knopf>
         <Knopf art="klein leer" onClick={speicherfehlerVergessen}>Ausblenden</Knopf>
+      </div>
+    );
+  }
+  if (stoerung) {
+    return (
+      <div className="hinweisleiste fehler" role="alert">
+        <span className="dehnen">
+          <strong>Das hat nicht geklappt.</strong> {stoerung}
+        </span>
+        <Knopf art="klein leer" onClick={() => setStoerung(null)}>Ausblenden</Knopf>
       </div>
     );
   }
