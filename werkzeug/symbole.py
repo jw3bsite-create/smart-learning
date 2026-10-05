@@ -4,7 +4,7 @@ Erzeugt die Symbole der App aus dem Logo.
 Aufruf (im Ordner Anchor):  python werkzeug/symbole.py
 Braucht einmalig:                   python -m pip install --user pymupdf pillow
 
-Vorlage ist "Anchor Logo.pdf" im Hauptordner. Die Datei selbst
+Vorlage ist "A Logo.ai" (oder "Anchor Logo.pdf") im Hauptordner. Die Datei selbst
 liegt nicht im Git (Quelldateien des Entwurfs); die fertigen Symbole schon.
 
 Was entsteht, und wofür:
@@ -28,15 +28,16 @@ from PIL import Image
 HIER = os.path.dirname(os.path.abspath(__file__))
 WURZEL = os.path.dirname(HIER)
 VORLAGE = next((os.path.join(WURZEL, n) for n in
-                ("Anchor Logo.pdf", "Deep Dive Logo.pdf", "Deep Learning Logo.pdf",
-                 "Smart Learning Logo.pdf")
+                ("A Logo.ai", "Anchor Logo.pdf", "Deep Dive Logo.pdf",
+                 "Deep Learning Logo.pdf", "Smart Learning Logo.pdf")
                 if os.path.exists(os.path.join(WURZEL, n))),
                os.path.join(WURZEL, "Anchor Logo.pdf"))
 ZIEL = os.path.join(WURZEL, "public")
 
-# Die Farbe am Rand des Logos: dunkles Nachtblau. Damit wird beim
-# maskierbaren Symbol aufgefüllt, damit der Rand nahtlos anschließt.
-RAND = (0x00, 0x0B, 0x1F)
+# Mit der Farbe am Rand des Logos wird beim maskierbaren Symbol aufgefüllt,
+# damit der Rand nahtlos anschließt. Sie wird aus der Ecke des Logos
+# gelesen (eine `.ai`-Datei aus Illustrator ist zugleich ein PDF) — so passt
+# sie auch, wenn das Logo die Farbe wechselt.
 
 
 def rastern(kante):
@@ -51,6 +52,8 @@ def main():
         sys.exit("Vorlage fehlt: " + VORLAGE)
     gross = rastern(2048)
     klein = lambda n: gross.resize((n, n), Image.LANCZOS)
+    rand = gross.getpixel((4, 4))
+    print("Vorlage:", os.path.basename(VORLAGE), "· Randfarbe: #%02x%02x%02x" % rand)
 
     def schreibe(name, bild):
         pfad = os.path.join(ZIEL, name)
@@ -66,7 +69,7 @@ def main():
     # Maskierbar: Das Logo auf 78 % verkleinert, außen mit der Randfarbe
     # aufgefüllt. Die Buchstaben bleiben so in dem Kreis, den Android auf
     # jeden Fall stehen lässt.
-    masken = Image.new("RGB", (512, 512), RAND)
+    masken = Image.new("RGB", (512, 512), rand)
     innen = klein(400)
     masken.paste(innen, ((512 - 400) // 2, (512 - 400) // 2))
     schreibe("symbol-maskable-512.png", masken)
