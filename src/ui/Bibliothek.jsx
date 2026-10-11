@@ -7,6 +7,7 @@ import { useDaten } from "../core/store.jsx";
 import { anteileNachStufe } from "../core/fsrs.js";
 import { stapelStand } from "../core/warteschlange.js";
 import { ordnerZweig } from "../core/model.js";
+import { allgemeineOrdner, istFachordner, fachKennungen } from "../core/fachordner.js";
 import * as beispiel from "../core/beispiel.js";
 import { anzahl } from "../core/util.js";
 import { gehe } from "../App.jsx";
@@ -148,7 +149,7 @@ function BeispielKnopf() {
 export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
   const daten = useDaten();
   const {
-    ordner, stapel, kartenNachStapel, zustaende,
+    ordner, stapel, kartenNachStapel, zustaende, faecher,
     ordnerAnlegen, ordnerAendern, ordnerLoeschen,
     stapelAnlegen, stapelAendern, stapelLoeschen, stapelVervielfaeltigen,
   } = daten;
@@ -159,7 +160,9 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
   if (suchbegriff) return <Suchergebnis begriff={suchbegriff} />;
 
   const derOrdner = ordnerId ? ordner.find((o) => o.id === ordnerId) : null;
-  const unterordner = ordner.filter((o) => o.parentId === (ordnerId || null))
+  // Ordner in Fächern stehen beim Fach (siehe core/fachordner.js).
+  const unterordner = (ordnerId ? ordner : allgemeineOrdner(ordner, faecher))
+    .filter((o) => o.parentId === (ordnerId || null))
     .sort((a, b) => a.name.localeCompare(b.name, "de"));
   const sichtbareStapel = (ordnerId
     ? stapel.filter((s) => s.folderId === ordnerId)
@@ -327,11 +330,19 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
           }}>
             <Symbol name="buch" groesse={16} /><span className="name">Ohne Ordner</span>
           </div>
-          {ordner.sort((a, b) => a.name.localeCompare(b.name, "de")).map((o) => (
+          {/* Ein Fachordner nimmt den Stapel samt Fach auf; er steht mit dem
+              Namen des Fachs davor, sonst gäbe es drei „Analysis“. */}
+          {[...ordner].map((o) => {
+            const imFach = istFachordner(o, fachKennungen(faecher));
+            const name = imFach ? (faecher.find((f) => f.id === o.subjectId)?.name + " › " + o.name) : o.name;
+            return { o, imFach, name };
+          }).sort((a, b) => a.name.localeCompare(b.name, "de")).map(({ o, imFach, name }) => (
             <div {...KLICKBAR} key={o.id} className="baum-zeile" onClick={() => {
-              stapelAendern(verschiebt.id, { folderId: o.id }); setVerschiebt(null);
+              stapelAendern(verschiebt.id, imFach
+                ? { folderId: o.id, subjectId: o.subjectId } : { folderId: o.id });
+              setVerschiebt(null);
             }}>
-              <Symbol name="ordner" groesse={16} /><span className="name">{o.name}</span>
+              <Symbol name="ordner" groesse={16} /><span className="name">{name}</span>
             </div>
           ))}
         </Dialog>

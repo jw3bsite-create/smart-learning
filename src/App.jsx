@@ -311,7 +311,8 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
   else if (teile[0] === "statistik") inhalt = <Statistik />;
   else if (teile[0] === "papierkorb") inhalt = <Papierkorb />;
   else if (teile[0] === "faecher") inhalt = <Faecher />;
-  else if (teile[0] === "fach") inhalt = <FachSeite fachId={teile[1]} />;
+  else if (teile[0] === "fach")
+    inhalt = <FachSeite fachId={teile[1]} ordnerId={teile[2] === "ordner" ? teile[3] : null} />;
   else if (teile[0] === "kalibrierung") inhalt = <Kalibrierung />;
   else if (teile[0] === "fehler") inhalt = <Fehlerheft fachId={teile[1] || null} />;
   else if (teile[0] === "punkte") inhalt = <Noten />;

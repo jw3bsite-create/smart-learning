@@ -6,6 +6,7 @@
 import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { baueBaum } from "../core/model.js";
+import { allgemeineOrdner } from "../core/fachordner.js";
 import { fehlerZahlKurz } from "../core/fehler.js";
 import { gehe, START } from "../App.jsx";
 import { Symbol, SymbolKnopf, Knopf, useMerker, KLICKBAR, FachPunkt } from "./basis.jsx";
@@ -60,7 +61,8 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
   const weg = window.location.hash.slice(1) || START;
   const aktiverOrdner = weg.startsWith("/ordner/") ? weg.split("/")[2] : null;
 
-  const baum = useMemo(() => baueBaum(ordner), [ordner]);
+  // Ordner in Fächern stehen beim Fach, nicht hier.
+  const baum = useMemo(() => baueBaum(allgemeineOrdner(ordner, faecher)), [ordner, faecher]);
   const ohneOrdner = stapel.filter((s) => !s.folderId).length;
 
   const faellig = anstehend.faellig;
@@ -154,7 +156,7 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
           .sort((a, b) => (a.name || "").localeCompare(b.name || "", "de"))
           .map((f) => (
             <div {...KLICKBAR} key={f.id}
-              className={"baum-zeile" + (weg === "/fach/" + f.id ? " aktiv" : "")}
+              className={"baum-zeile" + (weg === "/fach/" + f.id || weg.startsWith("/fach/" + f.id + "/") ? " aktiv" : "")}
               style={{ paddingLeft: 30 }}
               onClick={() => gehe("/fach/" + f.id)}>
               <FachPunkt farbe={f.farbe} />

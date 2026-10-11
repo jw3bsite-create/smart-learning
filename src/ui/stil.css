@@ -1095,3 +1095,7 @@ html.dialog-offen { overflow: hidden; }
 /* Rückfragen liegen über jedem anderen Dialog — sie kommen fast immer aus
    einem heraus, stehen im Seitenaufbau aber vor ihm. */
 .schleier.rueckfrage { z-index: 70; }
+
+/* Ein Ordner im Fach: kleiner als eine Stapelkachel, mit Ziehziel. */
+.ordner-kachel { min-height: calc(92px * var(--dichte)); }
+.ordner-kachel.ziel { border-color: var(--akzent); outline: 2px dashed var(--akzent); outline-offset: 2px; }

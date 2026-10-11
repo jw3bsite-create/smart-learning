@@ -27,7 +27,7 @@ Sprache, soweit sie die Sache benennen (`karten`, `zustaende`, `abrufVerbuchen`)
 ```
 npm install
 npm run dev      # http://localhost:5180
-npm test         # 441 Prüfungen (Kern, Speicher, Abgleich, Dialoge)
+npm test         # 453 Prüfungen (Kern, Speicher, Abgleich, Dialoge)
 npm run lint
 npm run symbole  # Symbole aus "Anchor Logo.pdf" (braucht: pip install pymupdf pillow)
 ```
@@ -91,7 +91,7 @@ prompts/      Die Systemanweisungen als eigene Dateien, versioniert
 src/modes/    Abrufen, Fragen, Feynman, Pretest, Tutor, Pruefung + die sieben
               Übungsmodi
 src/ui/       Bildschirme und Bausteine
-test/         441 Prüfungen (npm test), darunter der ganze Weg der Daten
+test/         453 Prüfungen (npm test), darunter der ganze Weg der Daten
               gegen einen Testspeicher (fake-indexeddb)
 werkzeug/     Erzeugt die Symbole aus dem Logo (Python: pymupdf, pillow)
 ```
@@ -356,6 +356,12 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
 49. **Kopfzeilen:** Titel als `h1`, Knöpfe in `.kopf-werkzeuge`, das „···" in
     `.kopf-mehr`. Einzeln neben den Titel gestellt, brechen sie auf dem
     Telefon zu einer Treppe um.
+51. **Ordner in Fächern sind gewöhnliche Ordner mit `subjectId`** (siehe
+    `core/fachordner.js`). Kein zweites Ordnersystem anlegen. Sie stehen nur
+    beim Fach, nicht im allgemeinen Ordnerbaum; ist das Fach weg, werden sie
+    wieder gewöhnliche Ordner. Auflösen statt Löschen: Stapel rücken hinauf,
+    nichts wandert in den Papierkorb außer dem Ordner. Abgerufen wird immer
+    das ganze Fach, nie ein Ordner.
 50. **Dialoge übereinander:** Escape und Tabulator gelten nur dem obersten
     (`ui/dialogstapel.js`). Nicht selbst auf Escape hören.
 

@@ -23,6 +23,7 @@
 
 import * as dbStandard from "./db.js";
 import * as model from "./model.js";
+import * as fachordner from "./fachordner.js";
 import * as noten from "./noten.js";
 import { bewerte } from "./scheduler.js";
 import { neuerZustand, bewerteKarte, freigeben } from "./fsrs.js";
@@ -208,8 +209,10 @@ export function erzeugeBestand({ db = dbStandard, jetzt = () => Date.now() } = {
 
   /* ------------------------------ Ordner ------------------------------ */
 
-  async function ordnerAnlegen(name, parentId = null) {
-    const o = model.neuerOrdner(name || "Neuer Ordner", parentId);
+  /* `fachId` macht ihn zum Ordner in einem Fach (siehe core/fachordner.js). */
+  async function ordnerAnlegen(name, parentId = null, fachId = null) {
+    const o = { ...model.neuerOrdner(name || "Neuer Ordner", parentId),
+      ...(fachId ? { subjectId: fachId } : {}) };
     setze({ ordner: [...zustand.ordner, o] });
     await schreibe({ folders: [o] });
     melde();
@@ -248,6 +251,24 @@ export function erzeugeBestand({ db = dbStandard, jetzt = () => Date.now() } = {
     melde();
   }
 
+  /**
+   * Löst einen Fachordner auf: Seine Stapel und Unterordner rücken eine
+   * Ebene hinauf, nur der Ordner selbst geht in den Papierkorb. Anders als
+   * `ordnerLoeschen` verschwindet dabei kein Stapel und keine Karte.
+   */
+  async function ordnerAufloesen(kennung) {
+    const plan = fachordner.aufloesenPlan(zustand.ordner, zustand.stapel, kennung, jetzt());
+    if (!plan.ordner.length) return;
+    const weg = new Set(plan.ordner.filter((o) => o.deleted).map((o) => o.id));
+    setze({
+      ordner: ersetzeIn(zustand.ordner.filter((o) => !weg.has(o.id)),
+        plan.ordner.filter((o) => !o.deleted)),
+      stapel: ersetzeIn(zustand.stapel, plan.stapel),
+    });
+    await schreibe({ folders: plan.ordner, sets: plan.stapel });
+    melde();
+  }
+
   /* ------------------------------ Stapel ------------------------------ */
 
   async function stapelAnlegen(titel, folderId = null) {
@@ -274,6 +295,9 @@ export function erzeugeBestand({ db = dbStandard, jetzt = () => Date.now() } = {
     if (!alt) return;
     const zeit = jetzt();
     const neu = { ...alt, ...aenderung, updatedAt: zeit };
+    /* Wer das Fach wechselt, verlässt den Fachordner des alten Fachs. */
+    if ("subjectId" in aenderung && !("folderId" in aenderung))
+      neu.folderId = fachordner.ordnerNachFachwechsel(alt, zustand.ordner, aenderung.subjectId);
     const nach = "subjectId" in aenderung && (aenderung.subjectId || null) !== (alt.subjectId || null)
       ? zustaendeMit((z) => z.setId === kennung, { subjectId: aenderung.subjectId || null }, zeit)
       : [];
@@ -718,12 +742,18 @@ export function erzeugeBestand({ db = dbStandard, jetzt = () => Date.now() } = {
     const stapelNeu = zustand.stapel.filter((s) => s.subjectId === kennung)
       .map((s) => ({ ...s, subjectId: null, updatedAt: zeit }));
     const nach = zustaendeMit((z) => z.subjectId === kennung, { subjectId: null }, zeit);
+    /* Die Ordner des Fachs werden gewöhnliche Ordner: Sie stehen danach im
+       Ordnerbaum unter „Stapel verwalten", samt ihren Stapeln. */
+    const ordnerNeu = zustand.ordner.filter((o) => o.subjectId === kennung)
+      .map((o) => ({ ...o, subjectId: null, updatedAt: zeit }));
     setze({
       faecher: zustand.faecher.filter((x) => x.id !== kennung),
       stapel: ersetzeIn(zustand.stapel, stapelNeu),
+      ordner: ersetzeIn(zustand.ordner, ordnerNeu),
       zustaende: { ...zustand.zustaende, ...verzeichnis(nach) },
     });
-    await schreibe({ subjects: f ? [tot(f, zeit)] : [], sets: stapelNeu, cardstates: nach });
+    await schreibe({ subjects: f ? [tot(f, zeit)] : [], sets: stapelNeu, folders: ordnerNeu,
+      cardstates: nach });
     melde();
   }
 
@@ -905,7 +935,7 @@ export function erzeugeBestand({ db = dbStandard, jetzt = () => Date.now() } = {
 
   const aktionen = {
     laden, neuLaden, setzeEinstellung,
-    ordnerAnlegen, ordnerAendern, ordnerLoeschen,
+    ordnerAnlegen, ordnerAendern, ordnerLoeschen, ordnerAufloesen,
     stapelAnlegen, stapelAendern, stapelLoeschen, stapelVervielfaeltigen,
     karteAnlegen, kartenAnlegenViele, karteAendern, karteLoeschen, kartenOrdnen,
     kartenKopieren, kartenVerschieben, kartenLoeschenViele, seitenTauschen,
