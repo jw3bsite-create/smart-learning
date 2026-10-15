@@ -35,6 +35,51 @@ export function erlaubnisStand() {
   return Notification.permission;   // default | granted | denied
 }
 
+/*
+ * Eine Nachricht zeigen.
+ *
+ * `new Notification(...)` ist auf Telefonen verboten: Chrome auf Android
+ * wirft „Illegal constructor", Safari auf dem iPhone kennt den Weg in einer
+ * installierten App gar nicht. Dort geht es nur über den Dienst-Arbeiter.
+ * Der Fehler wurde bisher verschluckt — auf dem Handy kam darum nie etwas,
+ * auch nicht bei geöffneter App. Der alte Weg bleibt als Rückfall für
+ * Browser ohne Dienst-Arbeiter.
+ */
+export async function zeigen(titel, optionen) {
+  const reg = typeof navigator !== "undefined" && navigator.serviceWorker
+    ? await navigator.serviceWorker.getRegistration().catch(() => null) : null;
+  if (reg && typeof reg.showNotification === "function") {
+    await reg.showNotification(titel, optionen);
+    return;
+  }
+  new Notification(titel, optionen);
+}
+
+/** Läuft Anchor als installierte App (vom Startbildschirm)? */
+export function alsAppGeoeffnet() {
+  if (typeof window === "undefined") return false;
+  return window.matchMedia?.("(display-mode: standalone)").matches
+    || window.navigator.standalone === true;
+}
+
+/** Ein iPhone oder iPad, egal welcher Browser. */
+export function istApple() {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone|iPad|iPod/.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+/** Eine Probe, damit man sofort sieht, ob Nachrichten ankommen. */
+export async function probe() {
+  const erlaubnis = await erlaubnisHolen();
+  if (erlaubnis !== "granted") return erlaubnis;
+  await zeigen("Anchor", {
+    body: "So sieht die Tageserinnerung aus.",
+    tag: "karteikasten-probe", icon: "./symbol-192.png", badge: "./symbol-192.png",
+  });
+  return "gezeigt";
+}
+
 export async function erlaubnisHolen() {
   if (typeof Notification === "undefined") return "geht nicht";
   if (Notification.permission !== "default") return Notification.permission;
@@ -55,10 +100,12 @@ export async function vielleichtErinnern({ faellig, text }) {
   if (!faellig) return false;                          // nichts zu melden
 
   try {
-    new Notification("Anchor", {
+    await zeigen("Anchor", {
       body: text,
       tag: "karteikasten-tag",                         // ersetzt die vorige
       silent: true,
+      icon: "./symbol-192.png",
+      badge: "./symbol-192.png",
     });
     await einstellungSchreiben({ ...e, zuletzt: heute });
     return true;

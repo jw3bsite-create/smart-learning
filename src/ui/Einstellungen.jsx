@@ -612,6 +612,7 @@ function Erinnerungsteil() {
   const [e, setE] = useState(null);
   const [kalender, setKalender] = useState(false);
   const [erlaubnis, setErlaubnis] = useState(erinnerung.erlaubnisStand());
+  const [probe, setProbe] = useState("");
 
   useEffect(() => { erinnerung.einstellungLesen().then(setE); }, []);
   if (!e) return null;
@@ -664,6 +665,23 @@ function Erinnerungsteil() {
       </div>
       {kalender && <Kalenderausfuhr aufSchliessen={() => setKalender(false)} />}
 
+      {erlaubnis !== "geht nicht" && (
+        <div className="reihe umbruch" style={{ gap: 10, marginTop: 10 }}>
+          <Knopf art="klein" onClick={async () => {
+            setProbe("");
+            try {
+              const r = await erinnerung.probe();
+              setErlaubnis(erinnerung.erlaubnisStand());
+              setProbe(r === "gezeigt" ? "Gesendet. Kam nichts an, sieh in den Mitteilungen "
+                + "des Geräts nach, ob sie für Anchor erlaubt sind." : "");
+            } catch (f) {
+              setProbe("Ging nicht: " + (f?.message || f));
+            }
+          }}>Probe senden</Knopf>
+          {probe && <span className="klein matt">{probe}</span>}
+        </div>
+      )}
+
       {erlaubnis === "denied" && (
         <div className="rueckmeldung schlecht klein" style={{ marginTop: 10 }}>
           Der Browser hat Benachrichtigungen für diese Seite abgelehnt. Das
@@ -672,7 +690,10 @@ function Erinnerungsteil() {
       )}
       {erlaubnis === "geht nicht" && (
         <div className="klein blass" style={{ marginTop: 10 }}>
-          Dieser Browser kennt keine Benachrichtigungen.
+          {erinnerung.istApple() && !erinnerung.alsAppGeoeffnet()
+            ? "Auf dem iPhone gibt es Benachrichtigungen nur, wenn Anchor vom "
+              + "Home-Bildschirm aus geöffnet ist, nicht im Safari-Fenster."
+            : "Dieser Browser kennt keine Benachrichtigungen."}
         </div>
       )}
 

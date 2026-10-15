@@ -43,6 +43,17 @@ self.addEventListener("message", (e) => {
   if (e.data === "SKIP_WAITING") self.skipWaiting();
 });
 
+/* Tippen auf eine Nachricht holt ein offenes Anchor nach vorn, sonst
+   öffnet es eines — beim Abrufen, denn darum ging es in der Nachricht. */
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((fenster) => {
+    const offen = fenster.find((f) => "focus" in f);
+    if (offen) return offen.focus();
+    return self.clients.openWindow("./#/abrufen");
+  }));
+});
+
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) =>
     // Einzeln statt addAll: Ein fehlender Baustein soll nicht den ganzen
