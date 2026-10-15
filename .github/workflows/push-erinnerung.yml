@@ -1,0 +1,49 @@
+# Schickt die Tageserinnerung als Push-Nachricht, auch wenn Anchor zu ist.
+#
+# Läuft zweimal in der Stunde. Ob eine Nachricht hinausgeht, entscheidet
+# werkzeug/push-senden.mjs: erst ab der eingestellten Stunde, einmal am Tag,
+# und nur, wenn Karten fällig sind. GitHub startet geplante Aufträge oft
+# einige Minuten später — die Nachricht kommt also nicht auf die Minute.
+#
+# Einmalig einzurichten (Settings → Secrets and variables → Actions):
+#
+#   WOLKE_URL         wie beim Wachhalten
+#   WOLKE_SCHLUESSEL  wie beim Wachhalten (der öffentliche, nie service_role)
+#   ANCHOR_PUSH       die Zeichenkette aus Anchor → Einstellungen →
+#                     Tageserinnerung → Push einrichten
+#
+# Ohne diese Geheimnisse tut der Auftrag nichts. Nebenbei hält er das
+# Supabase-Projekt wach.
+
+name: Push-Erinnerung
+
+on:
+  schedule:
+    - cron: "11,41 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: push-erinnerung
+  cancel-in-progress: false
+
+jobs:
+  senden:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Abhängigkeiten
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Erinnerungen senden
+        env:
+          WOLKE_URL: ${{ secrets.WOLKE_URL }}
+          WOLKE_SCHLUESSEL: ${{ secrets.WOLKE_SCHLUESSEL }}
+          ANCHOR_PUSH: ${{ secrets.ANCHOR_PUSH }}
+        run: node werkzeug/push-senden.mjs

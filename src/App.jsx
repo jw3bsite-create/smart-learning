@@ -7,6 +7,9 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useDaten } from "./core/store.jsx";
 import * as wolke from "./core/cloud.js";
 import * as erinnerung from "./core/erinnerung.js";
+import { lageSchreiben } from "./core/push.js";
+import { tagesplan } from "./core/pushplan.js";
+import { zustaendeImPlan } from "./core/warteschlange.js";
 import { tagesLage } from "./core/straehne.js";
 import { anwenden as gestaltungAnwenden } from "./core/gestaltung.js";
 import { fortschreiben, vorheriger } from "./core/verlauf.js";
@@ -226,6 +229,22 @@ export default function App() {
     const takt = setInterval(pruefen, 3600000);
     return () => clearInterval(takt);
   }, [bereit]);
+
+  /*
+   * Die Vorschau für die Push-Erinnerung (core/push.js): wie viele Karten an
+   * den nächsten Tagen fällig sind. Geschrieben wird, wenn sich etwas
+   * geändert hat und eine halbe Minute Ruhe ist — nach einer Lernrunde also
+   * gleich, damit abends keine Nachricht über Erledigtes kommt. Ohne Cloud
+   * oder ohne die Tabelle bleibt es still.
+   */
+  const { karten, zustaende, stapelVon, wolkeStand } = daten;
+  useEffect(() => {
+    if (!bereit) return undefined;
+    const t = setTimeout(() => {
+      lageSchreiben(tagesplan(zustaendeImPlan(karten, zustaende, stapelVon))).catch(() => {});
+    }, 30000);
+    return () => clearTimeout(t);
+  }, [bereit, karten, zustaende, stapelVon, wolkeStand.zeit]);
 
   /* Beim Wechsel des Weges die Leiste auf schmalen Geräten schließen. */
   useEffect(() => { setLeisteOffen(false); }, [weg]);

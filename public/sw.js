@@ -43,6 +43,19 @@ self.addEventListener("message", (e) => {
   if (e.data === "SKIP_WAITING") self.skipWaiting();
 });
 
+/* Eine Push-Nachricht vom Absender auf GitHub (werkzeug/push-senden.mjs).
+   Sie muss immer sichtbar werden — Safari entzieht sonst das Abonnement. */
+self.addEventListener("push", (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (f) { d = { text: e.data ? e.data.text() : "" }; }
+  e.waitUntil(self.registration.showNotification(d.titel || "Anchor", {
+    body: d.text || "Karten warten auf dich.",
+    tag: "karteikasten-tag",
+    icon: "./symbol-192.png",
+    badge: "./symbol-192.png",
+  }));
+});
+
 /* Tippen auf eine Nachricht holt ein offenes Anchor nach vorn, sonst
    öffnet es eines — beim Abrufen, denn darum ging es in der Nachricht. */
 self.addEventListener("notificationclick", (e) => {

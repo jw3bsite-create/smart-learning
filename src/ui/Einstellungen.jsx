@@ -8,6 +8,7 @@ import { useDaten } from "../core/store.jsx";
 import * as wolke from "../core/cloud.js";
 import * as ki from "../core/ki.js";
 import * as erinnerung from "../core/erinnerung.js";
+import * as push from "../core/push.js";
 import { stimmen, beiStimmen, sprich } from "../core/speech.js";
 import { verwaisteBilderAufraeumen } from "../core/media.js";
 import {
@@ -629,7 +630,14 @@ function Erinnerungsteil() {
       setErlaubnis(antwort);
       if (antwort !== "granted") return;
     }
-    aendern({ an });
+    // Wer die Erinnerung abschaltet, will auch keine Push-Nachricht mehr.
+    if (!an && e.push) await push.geraetAbmelden().catch(() => {});
+    aendern(an ? { an } : { an, push: false });
+  };
+
+  const stundeAendern = (stunde) => {
+    aendern({ stunde });
+    if (e.push) push.stundeSetzen(stunde).catch(() => {});
   };
 
   return (
@@ -645,9 +653,14 @@ function Erinnerungsteil() {
         <label className="reihe klein matt" style={{ gap: 8, marginTop: 10 }}>
           Ab
           <input className="feld" type="number" min="0" max="23" style={{ width: 80 }}
-            value={e.stunde} onChange={(ev) => aendern({ stunde: Number(ev.target.value) })} />
+            value={e.stunde} onChange={(ev) => stundeAendern(Number(ev.target.value))} />
           Uhr
         </label>
+      )}
+
+      {e.an && (
+        <PushTeil stunde={e.stunde} aktivHier={Boolean(e.push)}
+          setzeAktivHier={(an) => aendern({ push: an })} />
       )}
 
       {/*
@@ -697,12 +710,158 @@ function Erinnerungsteil() {
         </div>
       )}
 
-      <p className="klein blass" style={{ marginTop: 10 }}>
-        Die Nachricht erscheint nur, solange die App irgendwo geöffnet ist,
-        ohne eigenen Server geht es nicht anders. Auf dem Handy also beim
-        Öffnen, nicht davor.
-      </p>
+      {!e.push && (
+        <p className="klein blass" style={{ marginTop: 10 }}>
+          Ohne Push erscheint die Nachricht nur, solange die App irgendwo geöffnet
+          ist. Auf dem Handy also beim Öffnen, nicht davor.
+        </p>
+      )}
     </Abschnitt>
+  );
+}
+
+/*
+ * Push: die Erinnerung auch bei geschlossener App (core/push.js).
+ *
+ * Einmal einrichten erzeugt ein Schlüsselpaar und ein Geheimnis; das
+ * Geheimnis kommt als ANCHOR_PUSH zu GitHub, wo der Absender läuft. Danach
+ * schaltet man jedes Gerät einzeln ein.
+ */
+function PushTeil({ stunde, aktivHier, setzeAktivHier }) {
+  const [lage, setLage] = useState({ stand: "laedt" });
+  const [fehler, setFehler] = useState("");
+  const [laeuft, setLaeuft] = useState(false);
+  const [geheimnis, setGeheimnis] = useState("");
+  const [kopiert, setKopiert] = useState(false);
+
+  const pruefen = async () => {
+    setFehler("");
+    if (!push.unterstuetzt()) { setLage({ stand: "geht nicht" }); return; }
+    try {
+      if (!(await wolke.sitzung())) { setLage({ stand: "abgemeldet" }); return; }
+      const [zugang, geraet] = await Promise.all([push.zugangLesen(), push.geraetStand()]);
+      setLage({ stand: "bereit", zugang, geraet });
+    } catch (f) {
+      setLage({ stand: "fehler" });
+      setFehler(f.message);
+    }
+  };
+  useEffect(() => { pruefen(); }, []);
+
+  /* Die Erlaubnis zuerst und ohne Umweg: Safari fragt nur, solange der
+     Klick noch frisch ist, nicht nach einer Netzabfrage. */
+  const erlaubnisZuerst = async () => {
+    const antwort = await Notification.requestPermission();
+    if (antwort !== "granted")
+      throw new Error("Benachrichtigungen sind nicht erlaubt. Das lässt sich in den "
+        + "Einstellungen des Geräts unter Mitteilungen ändern.");
+  };
+
+  const einrichten = async () => {
+    if (lage.zugang && !(await bestaetigen({
+      titel: "Push neu einrichten?",
+      text: "Es entsteht ein neues Geheimnis. Du musst es auf GitHub als ANCHOR_PUSH ersetzen "
+        + "und jedes Gerät noch einmal einschalten.",
+      ja: "Neu einrichten",
+    }))) return;
+    setLaeuft(true); setFehler("");
+    try {
+      await erlaubnisZuerst();
+      const r = await push.einrichten();
+      await push.geraetAnmelden({ oeffentlich: r.oeffentlich, stunde });
+      setzeAktivHier(true);
+      setGeheimnis(r.geheimnis); setKopiert(false);
+      await pruefen();
+    } catch (f) {
+      setFehler(f.message);
+    } finally { setLaeuft(false); }
+  };
+
+  const umschalten = async (an) => {
+    setLaeuft(true); setFehler("");
+    try {
+      if (an) {
+        await erlaubnisZuerst();
+        await push.geraetAnmelden({ oeffentlich: lage.zugang.oeffentlich, stunde });
+      } else {
+        await push.geraetAbmelden();
+      }
+      setzeAktivHier(an);
+      await pruefen();
+    } catch (f) {
+      setFehler(f.message);
+    } finally { setLaeuft(false); }
+  };
+
+  const hier = lage.stand === "bereit" && Boolean(lage.geraet) && aktivHier;
+
+  return (
+    <div className="zahl-kachel" style={{ marginTop: 14 }}>
+      <strong>Auch bei geschlossener App</strong>
+      <p className="klein matt" style={{ margin: "6px 0 10px" }}>
+        Als echte Push-Nachricht, verschickt über GitHub. Sie kommt ab {stunde} Uhr,
+        meist innerhalb einer halben Stunde, und nur, wenn Karten warten. Hast du
+        vorher schon gelernt, bleibt sie aus.
+      </p>
+
+      {lage.stand === "laedt" && <div className="klein blass">Prüfe …</div>}
+      {lage.stand === "geht nicht" && (
+        <div className="klein blass">
+          {erinnerung.istApple() && !erinnerung.alsAppGeoeffnet()
+            ? "Auf dem iPhone geht das nur, wenn Anchor vom Home-Bildschirm aus geöffnet ist."
+            : "Dieser Browser kann keine Push-Nachrichten empfangen."}
+        </div>
+      )}
+      {lage.stand === "abgemeldet" && (
+        <div className="klein blass">Dafür musst du unten unter „Cloud“ angemeldet sein.</div>
+      )}
+
+      {lage.stand === "bereit" && !lage.zugang && (
+        <Knopf art="voll" disabled={laeuft} onClick={einrichten}>Push einrichten</Knopf>
+      )}
+      {lage.stand === "bereit" && lage.zugang && (
+        <>
+          <label className="schalter">
+            <input type="checkbox" checked={hier} disabled={laeuft}
+              onChange={(ev) => umschalten(ev.target.checked)} />
+            <span>Auf diesem Gerät</span>
+          </label>
+          <button type="button" className="pfad-verweis klein blass" disabled={laeuft}
+            onClick={einrichten}>Neu einrichten (neues Geheimnis) …</button>
+        </>
+      )}
+
+      {fehler && <div className="rueckmeldung schlecht klein" style={{ marginTop: 10 }}>{fehler}</div>}
+
+      {geheimnis && (
+        <Dialog titel="Noch ein Schritt auf GitHub" aufSchliessen={() => setGeheimnis("")}
+          fuss={<Knopf art="voll" onClick={() => setGeheimnis("")}>Erledigt</Knopf>}>
+          <p className="matt" style={{ marginTop: 0 }}>
+            Dieses Gerät ist angemeldet. Damit die Nachrichten verschickt werden, braucht
+            GitHub das Geheimnis unten. <strong>Es wird nur jetzt angezeigt</strong> und
+            nirgends gespeichert.
+          </p>
+          <textarea className="feld mono" readOnly rows={4} value={geheimnis}
+            onFocus={(ev) => ev.target.select()} style={{ fontSize: 12 }} />
+          <div className="reihe umbruch" style={{ marginTop: 8 }}>
+            <Knopf symbol="papier" onClick={async () => {
+              try { await navigator.clipboard.writeText(geheimnis); setKopiert(true); }
+              catch (f) { setKopiert(false); }
+            }}>{kopiert ? "Kopiert" : "Kopieren"}</Knopf>
+          </div>
+          <ol className="klein matt" style={{ paddingLeft: 18, marginBottom: 0 }}>
+            <li>Auf GitHub dein Projekt <strong>smart-learning</strong> öffnen.</li>
+            <li><strong>Settings</strong> → links <strong>Secrets and variables</strong> →
+              <strong> Actions</strong> → <strong>New repository secret</strong>.</li>
+            <li>Name: <strong>ANCHOR_PUSH</strong>, darunter das Kopierte einfügen,
+              <strong> Add secret</strong>.</li>
+            <li>Zum Ausprobieren: <strong>Actions</strong> → <strong>Push-Erinnerung</strong> →
+              <strong> Run workflow</strong>. Nach deiner Uhrzeit und mit fälligen Karten
+              kommt die Nachricht dann sofort.</li>
+          </ol>
+        </Dialog>
+      )}
+    </div>
   );
 }
 

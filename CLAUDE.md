@@ -27,7 +27,7 @@ Sprache, soweit sie die Sache benennen (`karten`, `zustaende`, `abrufVerbuchen`)
 ```
 npm install
 npm run dev      # http://localhost:5180
-npm test         # 453 Prüfungen (Kern, Speicher, Abgleich, Dialoge)
+npm test         # 471 Prüfungen (Kern, Speicher, Abgleich, Dialoge, Push)
 npm run lint
 npm run symbole  # Symbole aus "Anchor Logo.pdf" (braucht: pip install pymupdf pillow)
 ```
@@ -91,7 +91,7 @@ prompts/      Die Systemanweisungen als eigene Dateien, versioniert
 src/modes/    Abrufen, Fragen, Feynman, Pretest, Tutor, Pruefung + die sieben
               Übungsmodi
 src/ui/       Bildschirme und Bausteine
-test/         453 Prüfungen (npm test), darunter der ganze Weg der Daten
+test/         471 Prüfungen (npm test), darunter der ganze Weg der Daten
               gegen einen Testspeicher (fake-indexeddb)
 werkzeug/     Erzeugt die Symbole aus dem Logo (Python: pymupdf, pillow)
 ```
@@ -364,6 +364,14 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     wieder gewöhnliche Ordner. Auflösen statt Löschen: Stapel rücken hinauf,
     nichts wandert in den Papierkorb außer dem Ordner. Abgerufen wird immer
     das ganze Fach, nie ein Ordner.
+52. **Push-Erinnerung ohne eigenen Server** (`core/pushplan.js`, `core/push.js`,
+    `werkzeug/push-senden.mjs`, Auftrag `push-erinnerung.yml`). Die App schreibt
+    nur Zahlen (fällige Karten je Tag) in `anchor_lage`; der Absender auf
+    GitHub liest über `anchor_push_auftraege` mit einem Geheimnis, dessen
+    Fingerabdruck in `anchor_push_zugang` liegt. Kein service_role. Die
+    Protokolle des öffentlichen Projekts sind lesbar: dort nie Geräte,
+    Adressen oder Kartenzahlen ausgeben. `web-push` ist Entwicklungs-
+    abhängigkeit nur für den Absender, nicht im Bündel der App.
 
 ## Stapel aus Lernmaterial (im Chat)
 

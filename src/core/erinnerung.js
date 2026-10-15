@@ -20,6 +20,7 @@ export const STANDARD = {
   an: false,
   stunde: 17,          // Tageszeit, zu der erinnert wird
   zuletzt: "",         // Tagesschlüssel der letzten Nachricht
+  push: false,         // dieses Gerät bekommt sie als Push (siehe push.js)
 };
 
 export async function einstellungLesen() {
@@ -93,6 +94,7 @@ export async function erlaubnisHolen() {
 export async function vielleichtErinnern({ faellig, text }) {
   const e = await einstellungLesen();
   if (!e.an || erlaubnisStand() !== "granted") return false;
+  if (e.push) return false;                            // kommt schon als Push
 
   const heute = tagesSchluessel();
   if (e.zuletzt === heute) return false;              // heute schon geschehen

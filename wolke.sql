@@ -4,7 +4,7 @@
 -- Danach in den Einstellungen der App Adresse und öffentlichen Schlüssel
 -- (Project URL und anon key) eintragen und anmelden.
 --
--- Fassung 3 (Oktober 2026). Wer eine frühere Fassung schon ausgeführt
+-- Fassung 4 (Oktober 2026). Wer eine frühere Fassung schon ausgeführt
 -- hat, führt diese einfach noch einmal aus; jeder Schritt verträgt das.
 -- Daten gehen dabei nicht verloren.
 --
@@ -142,6 +142,106 @@ create policy "eigene bilder" on storage.objects
   for all
   using (bucket_id = 'bilder' and (storage.foldername(name))[1] = auth.uid()::text)
   with check (bucket_id = 'bilder' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- ---------------------------------------------------------------------
+-- Push-Nachrichten (Fassung 4 dieser Datei).
+--
+-- Damit die Tageserinnerung auch bei geschlossener App kommt, schickt ein
+-- Auftrag auf GitHub sie stündlich (werkzeug/push-senden.mjs). Er braucht
+-- dafür drei Dinge, und nur diese:
+--
+--   anchor_push_zugang  je Kennung: der öffentliche Push-Schlüssel und der
+--                       Fingerabdruck (SHA-256) des Geheimnisses, das nur
+--                       noch als GitHub-Secret existiert
+--   anchor_push_abo     je Gerät: wohin die Nachricht geht und ab wann
+--   anchor_lage         je Kennung: wie viele Karten an den nächsten Tagen
+--                       fällig sind — nur Zahlen, keine Inhalte
+--
+-- Die App liest und schreibt das wie alles andere nur mit den eigenen
+-- Rechten (Zeilenregeln). Der Auftrag dagegen ist nicht angemeldet. Er ruft
+-- zwei Funktionen auf, die nur antworten, wenn er das richtige Geheimnis
+-- mitbringt, und dann nur Abonnements und Zahlen herausgeben. Den
+-- service_role key braucht es dafür nicht.
+-- ---------------------------------------------------------------------
+
+create extension if not exists pgcrypto with schema extensions;
+
+create table if not exists public.anchor_push_zugang (
+  user_id         uuid primary key default auth.uid() references auth.users (id) on delete cascade,
+  oeffentlich     text not null,
+  geheimnis_hash  text not null,
+  geaendert       timestamptz not null default now()
+);
+
+create table if not exists public.anchor_push_abo (
+  user_id    uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  endpoint   text not null,
+  abo        jsonb not null,
+  stunde     integer not null default 17,
+  zeitzone   text not null default 'Europe/Berlin',
+  letzte     text,
+  geaendert  timestamptz not null default now(),
+  primary key (user_id, endpoint)
+);
+
+create table if not exists public.anchor_lage (
+  user_id    uuid primary key default auth.uid() references auth.users (id) on delete cascade,
+  plan       jsonb not null default '{}'::jsonb,
+  geaendert  timestamptz not null default now()
+);
+
+alter table public.anchor_push_zugang enable row level security;
+alter table public.anchor_push_abo    enable row level security;
+alter table public.anchor_lage        enable row level security;
+
+drop policy if exists "eigener zugang" on public.anchor_push_zugang;
+create policy "eigener zugang" on public.anchor_push_zugang
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "eigene abos" on public.anchor_push_abo;
+create policy "eigene abos" on public.anchor_push_abo
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+drop policy if exists "eigene lage" on public.anchor_lage;
+create policy "eigene lage" on public.anchor_lage
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- Was der Auftrag sehen darf: Abonnements und Zahlen der Kennung, zu der
+-- das Geheimnis gehört. Ohne passendes Geheimnis: nichts.
+create or replace function public.anchor_push_auftraege(geheimnis text)
+  returns table (endpoint text, abo jsonb, stunde integer, zeitzone text, letzte text, plan jsonb)
+  language sql security definer set search_path = public, extensions as $$
+  select a.endpoint, a.abo, a.stunde, a.zeitzone, a.letzte, coalesce(l.plan, '{}'::jsonb)
+    from public.anchor_push_zugang z
+    join public.anchor_push_abo a on a.user_id = z.user_id
+    left join public.anchor_lage l on l.user_id = z.user_id
+   where length(coalesce(geheimnis, '')) >= 32
+     and z.geheimnis_hash = encode(extensions.digest(geheimnis, 'sha256'), 'hex');
+$$;
+
+-- Was der Auftrag ändern darf: vermerken, dass heute gesendet wurde, oder
+-- ein Abonnement entfernen, das der Push-Dienst nicht mehr kennt.
+create or replace function public.anchor_push_vermerken(geheimnis text, endpunkt text,
+  datum text, entfernen boolean default false)
+  returns void language plpgsql security definer set search_path = public, extensions as $$
+declare
+  kennung uuid;
+begin
+  if length(coalesce(geheimnis, '')) < 32 then return; end if;
+  select user_id into kennung from public.anchor_push_zugang
+   where geheimnis_hash = encode(extensions.digest(geheimnis, 'sha256'), 'hex');
+  if kennung is null then return; end if;
+  if entfernen then
+    delete from public.anchor_push_abo where user_id = kennung and endpoint = endpunkt;
+  else
+    update public.anchor_push_abo set letzte = datum where user_id = kennung and endpoint = endpunkt;
+  end if;
+end $$;
+
+revoke all on function public.anchor_push_auftraege(text) from public;
+revoke all on function public.anchor_push_vermerken(text, text, text, boolean) from public;
+grant execute on function public.anchor_push_auftraege(text) to anon, authenticated;
+grant execute on function public.anchor_push_vermerken(text, text, text, boolean) to anon, authenticated;
 
 -- Den Zwischenspeicher der Schnittstelle neu einlesen. Ohne diese Zeile kann
 -- es einen Moment dauern, bis die neue Tabelle gefunden wird; die Meldung
