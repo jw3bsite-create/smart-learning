@@ -739,8 +739,9 @@ function PushTeil({ stunde, aktivHier, setzeAktivHier }) {
     if (!push.unterstuetzt()) { setLage({ stand: "geht nicht" }); return; }
     try {
       if (!(await wolke.sitzung())) { setLage({ stand: "abgemeldet" }); return; }
-      const [zugang, geraet] = await Promise.all([push.zugangLesen(), push.geraetStand()]);
-      setLage({ stand: "bereit", zugang, geraet });
+      const [zugang, geraet, moeglich] = await Promise.all([
+        push.zugangLesen(), push.geraetStand(), push.geraetMoeglich()]);
+      setLage({ stand: "bereit", zugang, geraet, moeglich });
     } catch (f) {
       setLage({ stand: "fehler" });
       setFehler(f.message);
@@ -748,15 +749,13 @@ function PushTeil({ stunde, aktivHier, setzeAktivHier }) {
   };
   useEffect(() => { pruefen(); }, []);
 
-  /* Die Erlaubnis zuerst und ohne Umweg: Safari fragt nur, solange der
-     Klick noch frisch ist, nicht nach einer Netzabfrage. */
-  const erlaubnisZuerst = async () => {
-    const antwort = await Notification.requestPermission();
-    if (antwort !== "granted")
-      throw new Error("Benachrichtigungen sind nicht erlaubt. Das lässt sich in den "
-        + "Einstellungen des Geräts unter Mitteilungen ändern.");
-  };
-
+  /*
+   * Einrichten heißt: Schlüssel und Geheimnis erzeugen und das Geheimnis
+   * zeigen. Das Gerät anzumelden ist ein zweiter, eigener Schritt. Vorher
+   * hing beides zusammen, und scheiterte die Anmeldung (etwa am Rechner
+   * ohne Dienst-Arbeiter), war das Geheimnis schon erzeugt, aber nie zu
+   * sehen gewesen.
+   */
   const einrichten = async () => {
     if (lage.zugang && !(await bestaetigen({
       titel: "Push neu einrichten?",
@@ -766,10 +765,8 @@ function PushTeil({ stunde, aktivHier, setzeAktivHier }) {
     }))) return;
     setLaeuft(true); setFehler("");
     try {
-      await erlaubnisZuerst();
       const r = await push.einrichten();
-      await push.geraetAnmelden({ oeffentlich: r.oeffentlich, stunde });
-      setzeAktivHier(true);
+      setzeAktivHier(false);
       setGeheimnis(r.geheimnis); setKopiert(false);
       await pruefen();
     } catch (f) {
@@ -781,7 +778,8 @@ function PushTeil({ stunde, aktivHier, setzeAktivHier }) {
     setLaeuft(true); setFehler("");
     try {
       if (an) {
-        await erlaubnisZuerst();
+        // Die Erlaubnis als Allererstes, solange der Tipp frisch ist.
+        await push.erlaubnisSichern();
         await push.geraetAnmelden({ oeffentlich: lage.zugang.oeffentlich, stunde });
       } else {
         await push.geraetAbmelden();
@@ -821,11 +819,19 @@ function PushTeil({ stunde, aktivHier, setzeAktivHier }) {
       )}
       {lage.stand === "bereit" && lage.zugang && (
         <>
-          <label className="schalter">
-            <input type="checkbox" checked={hier} disabled={laeuft}
-              onChange={(ev) => umschalten(ev.target.checked)} />
-            <span>Auf diesem Gerät</span>
-          </label>
+          {lage.moeglich ? (
+            <label className="schalter">
+              <input type="checkbox" checked={hier} disabled={laeuft}
+                onChange={(ev) => umschalten(ev.target.checked)} />
+              <span>Auf diesem Gerät</span>
+            </label>
+          ) : (
+            <div className="klein blass" style={{ marginBottom: 6 }}>
+              Eingerichtet. {push.laeuftLokal()
+                ? "Hier am Rechner (localhost) gibt es keine Push-Nachrichten — schalte sie auf dem Handy ein."
+                : "Dieses Gerät kann keine Push-Nachrichten empfangen."}
+            </div>
+          )}
           <button type="button" className="pfad-verweis klein blass" disabled={laeuft}
             onClick={einrichten}>Neu einrichten (neues Geheimnis) …</button>
         </>
@@ -837,9 +843,10 @@ function PushTeil({ stunde, aktivHier, setzeAktivHier }) {
         <Dialog titel="Noch ein Schritt auf GitHub" aufSchliessen={() => setGeheimnis("")}
           fuss={<Knopf art="voll" onClick={() => setGeheimnis("")}>Erledigt</Knopf>}>
           <p className="matt" style={{ marginTop: 0 }}>
-            Dieses Gerät ist angemeldet. Damit die Nachrichten verschickt werden, braucht
-            GitHub das Geheimnis unten. <strong>Es wird nur jetzt angezeigt</strong> und
-            nirgends gespeichert.
+            Damit die Nachrichten verschickt werden, braucht GitHub das Geheimnis
+            unten. <strong>Es wird nur jetzt angezeigt</strong> und nirgends
+            gespeichert. Danach schaltest du jedes Gerät einzeln unter „Auf diesem
+            Gerät“ ein.
           </p>
           <textarea className="feld mono" readOnly rows={4} value={geheimnis}
             onFocus={(ev) => ev.target.select()} style={{ fontSize: 12 }} />

@@ -103,10 +103,51 @@ export async function einrichten() {
 
 /* ------------------------------- Das Gerät ------------------------------ */
 
+/*
+ * Ohne Dienst-Arbeiter kein Push. Den gibt es nur in der veröffentlichten
+ * Fassung — nicht, wenn Anchor am Rechner über „Anchor starten“ von
+ * localhost läuft. Das ist kein Fehler: Dort braucht man keine
+ * Handy-Erinnerung, und einrichten lässt sie sich trotzdem.
+ */
+export function laeuftLokal() {
+  return typeof location !== "undefined"
+    && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
+}
+
+/** Kann sich dieses Gerät anmelden? */
+export async function geraetMoeglich() {
+  if (!unterstuetzt() || laeuftLokal()) return false;
+  return Boolean(await navigator.serviceWorker.getRegistration());
+}
+
 async function registrierung() {
   const reg = await navigator.serviceWorker.getRegistration();
-  if (!reg) throw new Error("Die App ist noch nicht fertig installiert. Lade einmal neu.");
+  if (!reg) {
+    throw new Error(laeuftLokal()
+      ? "Am Rechner läuft Anchor über localhost, dort gibt es keine Push-Nachrichten. "
+        + "Einschalten kannst du sie auf dem Handy."
+      : "Die App ist noch nicht fertig installiert. Lade einmal neu.");
+  }
   return reg;
+}
+
+/*
+ * Die Erlaubnis. Ist sie schon erteilt, wird nicht noch einmal gefragt —
+ * Safari antwortet sonst unter Umständen mit „nein“, weil der Tipp nicht
+ * mehr frisch genug ist. In der Meldung steht, was das Gerät geantwortet
+ * hat; das hilft beim Suchen.
+ */
+export async function erlaubnisSichern() {
+  if (typeof Notification === "undefined")
+    throw new Error("Dieser Browser kennt keine Benachrichtigungen.");
+  const antwort = Notification.permission === "granted"
+    ? "granted" : await Notification.requestPermission();
+  if (antwort !== "granted") {
+    throw new Error("Benachrichtigungen sind nicht erlaubt (Antwort des Geräts: "
+      + (antwort === "denied" ? "abgelehnt" : "nicht entschieden") + "). Auf dem iPhone: "
+      + "Einstellungen → Mitteilungen → Anchor. Hilft das nicht, nimm den Schalter "
+      + "„Auf diesem Gerät“ hier noch einmal — ohne vorher etwas anderes anzutippen.");
+  }
 }
 
 /** Ist dieses Gerät angemeldet? Zurück kommt das Abonnement oder null. */
@@ -122,11 +163,8 @@ export async function geraetStand() {
  */
 export async function geraetAnmelden({ oeffentlich, stunde }) {
   if (!unterstuetzt()) throw new Error("Dieser Browser kann keine Push-Nachrichten empfangen.");
-  const erlaubnis = await Notification.requestPermission();
-  if (erlaubnis !== "granted")
-    throw new Error("Benachrichtigungen sind nicht erlaubt. Das lässt sich in den "
-      + "Einstellungen des Geräts unter Mitteilungen ändern.");
   const reg = await registrierung();
+  await erlaubnisSichern();
   let abo = await reg.pushManager.getSubscription();
   // Ein Abonnement mit einem alten Schlüssel nimmt kein Push-Dienst mehr an.
   const passt = abo && abo.options?.applicationServerKey
