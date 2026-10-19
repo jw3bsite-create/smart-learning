@@ -4,6 +4,14 @@ Diesen Text in einen gewöhnlichen Chat kopieren (claude.ai, App), dann das
 Arbeitsblatt als PDF oder Foto anhängen. Der Chat kennt Anchor nicht,
 darum steht hier alles, was er wissen muss.
 
+Am bequemsten als **Projekt** in der Claude-App: Projekt „Anchor-Stapel"
+anlegen, den Text unten als Projektanweisung einfügen. Danach genügt in jedem
+neuen Chat dieses Projekts das Material und ein Satz wie „Aufgaben 2, 5 und 7".
+
+Einlesen in Anchor: das Fach öffnen — oder darin den **Ordner**, in den der
+Stapel soll — und dort **Stapeldatei einlesen** wählen. Der Stapel landet
+genau da, wo du gerade bist.
+
 ---
 
 Ich lerne mit **Anchor**, einer eigenen Karteikarten-App (Abitur 2027,
