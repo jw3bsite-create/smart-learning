@@ -27,7 +27,8 @@ Sprache, soweit sie die Sache benennen (`karten`, `zustaende`, `abrufVerbuchen`)
 ```
 npm install
 npm run dev      # http://localhost:5180
-npm test         # 481 Prüfungen (Kern, Speicher, Abgleich, Dialoge, Push, Abschnitte)
+npm test         # 495 Prüfungen (Kern, Speicher, Abgleich, Dialoge, Push, Abschnitte)
+npm run test:oberflaeche   # die gebaute App in Edge, am Handymaß (playwright-core)
 npm run lint
 npm run symbole  # Symbole aus "Anchor Logo.pdf" (braucht: pip install pymupdf pillow)
 ```
@@ -91,7 +92,7 @@ prompts/      Die Systemanweisungen als eigene Dateien, versioniert
 src/modes/    Abrufen, Fragen, Feynman, Pretest, Tutor, Pruefung + die sieben
               Übungsmodi
 src/ui/       Bildschirme und Bausteine
-test/         481 Prüfungen (npm test), darunter der ganze Weg der Daten
+test/         495 Prüfungen (npm test), darunter der ganze Weg der Daten
               gegen einen Testspeicher (fake-indexeddb)
 werkzeug/     Erzeugt die Symbole aus dem Logo (Python: pymupdf, pillow)
 ```
@@ -387,6 +388,18 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     (`core/nachlernen.js`), höchstens zweimal, dann **ohne Selbsteinschätzung**
     — sonst verfälschte der zweite Versuch die Kalibrierung. Das Ergebnis
     der Sitzung zählt nur erste Versuche.
+56. **Der Lerntag beginnt um 4 Uhr** (`util.js`: `tagesSchluessel`,
+    `lerntagBeginn`). Für Lernzahlen immer diese; für echte Daten
+    (Termine, Dateinamen) `kalenderSchluessel`. Wer Tage durchzählt, rechnet
+    ab 4 Uhr oder mittags, nie ab Mitternacht.
+57. **Seiten laden bei Bedarf** (`lazy` in `App.jsx`), KaTeX erst bei der
+    ersten Formel (`Formel.jsx`). Was beim Start zu sehen ist, nicht lazy
+    machen. Ein statischer Import aus einer eifrigen Datei hebt das Aufteilen
+    auf (Rolldown warnt: INEFFECTIVE_DYNAMIC_IMPORT).
+58. **Abstände nur in Stufen**: Klassen `oben-N`/`unten-N` mit N aus 0, 4, 8,
+    12, 16, 24, 32. Keine neuen Einzelwerte in `style`.
+59. **Vor größeren Umbauten `npm run test:oberflaeche`.** Er klickt die
+    Hauptwege durch und misst, ob am Handy etwas über den Rand ragt.
 
 ## Stapel aus Lernmaterial (im Chat)
 
