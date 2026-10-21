@@ -381,6 +381,12 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     ein paar Punkten Weg, Finger erst nach kurzem Halten. Felder und Knöpfe
     sind ausgenommen. Listen um Kartenzeilen brauchen
     `gridTemplateColumns: "minmax(0, 1fr)"`, sonst ragen sie am Telefon hinaus.
+55. **Rückgängig und Nachlernen im Abrufen.** `abrufZuruecknehmen` löscht die
+    Bewertung mit Vermerk und stellt den Zustand davor her (zehn Sekunden,
+    Taste Z). „Nochmal" reiht die Karte vier Karten später wieder ein
+    (`core/nachlernen.js`), höchstens zweimal, dann **ohne Selbsteinschätzung**
+    — sonst verfälschte der zweite Versuch die Kalibrierung. Das Ergebnis
+    der Sitzung zählt nur erste Versuche.
 
 ## Stapel aus Lernmaterial (im Chat)
 
@@ -422,10 +428,6 @@ Spezifikation gerade erodiert — dann Rückfrage, kein Alleingang.
   `scheduler.js`), der Plan mit FSRS. Beides nebeneinander ist gewollt, aber
   auf Dauer eine Quelle von Missverständnissen; die Namen sind inzwischen
   getrennt (`uebungsStufe`, `uebungsAnteile`).
-- Eine Rücknahme der letzten Bewertung gibt es nicht: Dafür müsste ein Review
-  den Zustand davor mitführen.
-- Falsch Beantwortetes kommt erst in der nächsten Sitzung wieder, nicht
-  innerhalb derselben.
 
 ## Vorgehen
 

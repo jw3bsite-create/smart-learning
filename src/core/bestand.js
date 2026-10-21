@@ -661,7 +661,33 @@ export function erzeugeBestand({ db = dbStandard, jetzt = () => Date.now() } = {
     });
     await schreibe({ reviews: [review], cardstates: zuSchreiben ? [zuSchreiben] : [] });
     melde();
-    return { review, zustand: neuerStand };
+    // `vorher` für „Rückgängig": der Zustand vor dieser Bewertung (oder keiner).
+    return { review, zustand: neuerStand, vorher: vorher || null, schluessel };
+  }
+
+  /**
+   * Nimmt eine Bewertung zurück — für den Fehlgriff, „Gut" statt „Nochmal".
+   *
+   * Die Bewertung wird gelöscht (mit Löschvermerk, damit auch andere Geräte
+   * sie verwerfen), der Kartenzustand kehrt zu dem davor zurück. War die
+   * Karte vorher neu, wird sie wieder neu. Der zurückgeholte Zustand trägt
+   * die jetzige Zeit: Er ist die jüngste Fassung, und der Abgleich soll ihn
+   * übernehmen, nicht den verworfenen.
+   */
+  async function abrufZuruecknehmen({ review, schluessel, vorher }) {
+    if (!review) return;
+    const zeit = jetzt();
+    const weg = { ...review, deleted: true, updatedAt: zeit };
+    const [cardId, richtung] = schluessel.split(":");
+    const zurueck = vorher
+      ? { ...vorher, updatedAt: zeit }
+      : neuerZustand(cardId, richtung, review.setId, review.subjectId, zeit);
+    setze({
+      reviews: zustand.reviews.filter((r) => r.id !== review.id),
+      zustaende: { ...zustand.zustaende, [schluessel]: zurueck },
+    });
+    await schreibe({ reviews: [weg], cardstates: [zurueck] });
+    melde();
   }
 
   /**
@@ -1022,7 +1048,7 @@ export function erzeugeBestand({ db = dbStandard, jetzt = () => Date.now() } = {
     alsSicherung, ausSicherung,
     setWolkeStand, setAenderungsMelder, speicherfehlerVergessen,
     fachAnlegen, fachAendern, fachLoeschen,
-    abrufVerbuchen, uebungVerbuchen, karteEntsperren, zustandZuruecksetzen,
+    abrufVerbuchen, abrufZuruecknehmen, uebungVerbuchen, karteEntsperren, zustandZuruecksetzen,
     entwuerfeAnlegen, entwurfAendern, entwurfVerwerfen, entwurfUebernehmen,
     erklaerungAnlegen, erklaerungFortschreiben, erklaerungLoeschen,
     pruefungAnlegen, pruefungAendern, pruefungLoeschen,

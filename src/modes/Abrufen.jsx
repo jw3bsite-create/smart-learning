@@ -33,6 +33,7 @@ import { sprich } from "../core/speech.js";
 import { seitenFuerRichtung } from "../core/ton.js";
 import Tonaufnahme from "../ui/Tonaufnahme.jsx";
 import { anzahl } from "../core/util.js";
+import { wiederEinreihen, einreihungZuruecknehmen, ersterVersuch } from "../core/nachlernen.js";
 import { gehe } from "../App.jsx";
 import {
   Knopf, SymbolKnopf, Symbol, Bild, Stern, Leer, useTastatur, useMerker,
@@ -135,7 +136,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
   const daten = useDaten();
   const {
     karten, zustaende, stapelVon, faecher, fachVon, einstellungen,
-    abrufVerbuchen, karteAendern, sitzungMerken,
+    abrufVerbuchen, abrufZuruecknehmen, karteAendern, sitzungMerken,
   } = daten;
 
   const fach = fachId ? fachVon(fachId) : null;
@@ -160,6 +161,16 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
   /* Eine Bewertung je Karte. Ein Doppeltipp oder eine gehaltene Taste
      bewertete sonst dieselbe Karte zweimal, und ihr Abstand sprang doppelt. */
   const bewertet = useRef(false);
+  /* Die letzte Bewertung, solange sie sich zurücknehmen lässt (zehn
+     Sekunden). Nach dem Zurücknehmen zählt die ursprüngliche Antwortzeit —
+     sonst hielte die App die zweite Bewertung für Durchklicken. */
+  const [letzte, setLetzte] = useState(null);
+  const alteAntwortzeit = useRef(null);
+  useEffect(() => {
+    if (!letzte) return undefined;
+    const t = setTimeout(() => setLetzte(null), 10000);
+    return () => clearTimeout(t);
+  }, [letzte]);
 
   const faecherVon = useCallback(() => faecher, [faecher]);
 
@@ -270,8 +281,9 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
   const bewerten = async (note) => {
     if (phase !== "aufgedeckt" || !aufgabe || bewertet.current) return;
     bewertet.current = true;
-    const antwortzeit = Date.now() - beginn.current;
-    await abrufVerbuchen({
+    const antwortzeit = alteAntwortzeit.current ?? (Date.now() - beginn.current);
+    alteAntwortzeit.current = null;
+    const verbucht = await abrufVerbuchen({
       karte: aufgabe.karte, stapel: aufgabe.stapel, richtung: aufgabe.richtung,
       bewertung: note, konfidenz, antwortzeit,
       eingabeLeer: !eingabe.trim(), fach: fachVon(aufgabe.fachId),
@@ -279,13 +291,49 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
     });
     setErgebnisse((alt) => [...alt, {
       schluessel: aufgabe.schluessel, note, konfidenz, stimmtGenau,
+      wiederholung: aufgabe.wiederholung || 0,
       frage: teile.frage || teile.stuecke?.map((s) => s.text).join(" ") || "",
       loesung: teile.loesung,
     }]);
 
-    setEingabe(""); setKonfidenz(null); setPhase("konfidenz"); schritteZuruecksetzen();
-    if (stelle + 1 >= sitzung.aufgaben.length) setFertig(true);
+    /* „Nochmal": ein paar Karten später noch einmal (core/nachlernen.js). */
+    const liste = note === NOTEN.NOCHMAL
+      ? wiederEinreihen(sitzung.aufgaben, stelle, aufgabe) : sitzung.aufgaben;
+    const eingereiht = liste !== sitzung.aufgaben ? (aufgabe.wiederholung || 0) + 1 : null;
+    if (eingereiht) setSitzung((alt) => ({ ...alt, aufgaben: liste }));
+
+    setLetzte({
+      verbucht, aufgabe, stelle, note, konfidenz, eingabe, antwortzeit,
+      schrittErgebnisse, schrittNr, eingereiht,
+    });
+
+    const naechste = liste[stelle + 1];
+    setEingabe(""); setKonfidenz(null); schritteZuruecksetzen();
+    // Eine nachgereihte Karte kommt ohne Selbsteinschätzung.
+    setPhase(naechste?.wiederholung ? "tippen" : "konfidenz");
+    if (stelle + 1 >= liste.length) setFertig(true);
     else setStelle((s) => s + 1);
+  };
+
+  /* Die letzte Bewertung zurücknehmen: Karte wieder aufgedeckt vor sich,
+     mit derselben Eingabe — man bewertet einfach neu. */
+  const rueckgaengig = async () => {
+    const l = letzte;
+    if (!l) return;
+    setLetzte(null);
+    await abrufZuruecknehmen(l.verbucht);
+    if (l.eingereiht) {
+      setSitzung((alt) => ({ ...alt, aufgaben: einreihungZuruecknehmen(alt.aufgaben, l.stelle,
+        l.aufgabe.schluessel, l.eingereiht) }));
+    }
+    setErgebnisse((alt) => alt.slice(0, -1));
+    setFertig(false);
+    setStelle(l.stelle);
+    setKonfidenz(l.konfidenz); setEingabe(l.eingabe);
+    setSchrittErgebnisse(l.schrittErgebnisse); setSchrittNr(l.schrittNr);
+    setPhase("aufgedeckt");
+    alteAntwortzeit.current = l.antwortzeit;
+    bewertet.current = false;
   };
 
   useTastatur({
@@ -304,12 +352,14 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
     } },
   }, Boolean(aufgabe) && !fertig);
 
+  useTastatur({ z: rueckgaengig, Z: rueckgaengig }, Boolean(letzte));
+
   useEffect(() => {
     if (!fertig || !ergebnisse.length) return;
     sitzungMerken({
       setId: null, subjectId: fachId, modus: "abrufen",
-      gesamt: ergebnisse.length,
-      richtig: ergebnisse.filter((e) => e.note >= NOTEN.GUT).length,
+      gesamt: ergebnisse.filter(ersterVersuch).length,
+      richtig: ergebnisse.filter((e) => ersterVersuch(e) && e.note >= NOTEN.GUT).length,
       dauer: Date.now() - beginn.current,
     });
   }, [fertig]);
@@ -419,16 +469,26 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
     );
   }
 
+  /* Die Leiste zum Zurücknehmen, unten am Rand. */
+  const rueckgaengigLeiste = letzte && (
+    <div className="rueckgaengig-leiste" role="status">
+      <span><strong>{NOTEN_NAMEN[letzte.note]}</strong> verbucht</span>
+      <Knopf art="klein" symbol="zurueckSetzen" onClick={rueckgaengig}>Rückgängig</Knopf>
+    </div>
+  );
+
   if (fertig) {
-    const k = kalibrierung(ergebnisse.map((e) => ({
+    // Nachgelernte Karten zählen nicht doppelt: Gewertet wird der erste Versuch.
+    const erste = ergebnisse.filter(ersterVersuch);
+    const k = kalibrierung(erste.map((e) => ({
       flag: "normal", konfidenz: e.konfidenz, bewertung: e.note,
     })));
-    const gewusst = ergebnisse.filter((e) => e.note >= NOTEN.GUT).length;
+    const gewusst = erste.filter((e) => e.note >= NOTEN.GUT).length;
     return (
       <ModusRahmen titel={titel} symbol="blitz" aufSchliessen={aufSchliessen} anteil={1}>
         <div style={{ textAlign: "center", paddingTop: 20 }}>
           <div style={{ fontFamily: "var(--serifen)", fontSize: 52 }}>
-            {gewusst}<span style={{ fontSize: 24 }}> / {ergebnisse.length}</span>
+            {gewusst}<span style={{ fontSize: 24 }}> / {erste.length}</span>
           </div>
           <h1 style={{ marginTop: 6 }}>Sitzung beendet</h1>
           <p className="matt">{kalibrierungInWorten(k)}</p>
@@ -457,6 +517,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
             <Knopf art="gross" onClick={() => gehe("/faecher")}>Zur Übersicht</Knopf>
           </div>
         </div>
+        {rueckgaengigLeiste}
       </ModusRahmen>
     );
   }
@@ -476,7 +537,8 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
       anteil={stelle / sitzung.aufgaben.length}
       rechts={<>
         {cram && <span className="marke rot">Endspurt, zählt nicht für den Plan</span>}
-        {frisch && !cram && <span className="marke">neu</span>}
+        {frisch && !cram && !aufgabe.wiederholung && <span className="marke">neu</span>}
+        {aufgabe.wiederholung > 0 && <span className="marke gelb">noch einmal</span>}
         <span className="klein matt mono">{stelle + 1} / {sitzung.aufgaben.length}</span>
       </>}>
 
@@ -702,6 +764,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
           </div>
         </>
       )}
+      {rueckgaengigLeiste}
     </ModusRahmen>
   );
 }

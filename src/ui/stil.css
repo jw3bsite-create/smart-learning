@@ -1141,3 +1141,12 @@ html.zieht { cursor: grabbing; }
   .modus-raster > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
 .modus-erklaerung { font-size: 13px; color: var(--schrift-matt); padding: 8px 16px 0; }
+
+/* Rückgängig nach einer Bewertung: unten in der Mitte, zehn Sekunden lang. */
+.rueckgaengig-leiste {
+  position: fixed; left: 50%; transform: translateX(-50%); z-index: 45;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px;
+  background: var(--grund-3); border: 1px solid var(--rand); border-radius: 999px;
+  box-shadow: var(--schatten); font-size: 14px; white-space: nowrap;
+}
