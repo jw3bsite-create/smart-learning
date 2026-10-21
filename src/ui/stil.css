@@ -454,7 +454,10 @@ select.feld { appearance: none; padding-right: 30px;
   .nur-breit { display: none !important; }
   .mitte { padding: 18px 14px 90px; }
   h1 { font-size: 24px; }
-  .karten-zeile { grid-template-columns: 1fr; }
+  /* minmax(0, …): Sonst bestimmt die Knopfleiste oben in der Karte die
+     Breite, und die Zeile ragt auf dem Telefon über den Rand. */
+  .karten-zeile { grid-template-columns: minmax(0, 1fr); }
+  .karten-zeile > * { min-width: 0; }
   .karte-text { font-size: 23px; }
 
   /*
@@ -1099,3 +1102,42 @@ html.dialog-offen { overflow: hidden; }
 /* Ein Ordner im Fach: kleiner als eine Stapelkachel, mit Ziehziel. */
 .ordner-kachel { min-height: calc(92px * var(--dichte)); }
 .ordner-kachel.ziel { border-color: var(--akzent); outline: 2px dashed var(--akzent); outline-offset: 2px; }
+
+/* Während eine Karte gezogen wird: kein Markieren von Text, kein Menü des
+   Systems beim langen Druck. */
+html.zieht, html.zieht * { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+html.zieht { cursor: grabbing; }
+
+/* Auf dem Telefon in der Kartenliste (nicht im Editor): Ein langer Druck
+   soll die Karte anheben, nicht ein Wort markieren. */
+@media (pointer: coarse) {
+  .karten-zeile.nur-ansehen { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+}
+
+/* Abschnitte: Zwischenüberschriften in einem Stapel. Keine Karte, darum
+   ohne Rahmen — eine Linie und ein Titel. */
+.abschnitt-kopf {
+  display: flex; align-items: center; gap: 8px; margin: 18px 0 2px;
+  padding: 6px 2px 8px; border-bottom: 1px solid var(--rand);
+}
+.abschnitt-kopf:first-child { margin-top: 0; }
+.abschnitt-kopf .abschnitt-titel {
+  font-family: var(--schrift-karten); font-size: 18px; font-weight: 600; flex: 1; min-width: 0;
+}
+.abschnitt-kopf input.abschnitt-titel {
+  background: transparent; border: 1px solid transparent; border-radius: 8px;
+  padding: 4px 8px; margin-left: -8px; color: var(--schrift);
+}
+.abschnitt-kopf input.abschnitt-titel:hover { border-color: var(--rand); }
+.abschnitt-kopf input.abschnitt-titel:focus { border-color: var(--akzent); outline: none; }
+
+/* Die Übungsmodi als knappe Felder: Sinnbild und Name. Was ein Modus
+   tut, steht im Modus selbst. */
+.modus-raster { display: grid; gap: 8px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  margin-bottom: 24px; }
+.modus-raster .knopf { justify-content: flex-start; padding: 12px 14px; }
+@media (max-width: 480px) {
+  .modus-raster { grid-template-columns: 1fr 1fr; }
+  .modus-raster > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+.modus-erklaerung { font-size: 13px; color: var(--schrift-matt); padding: 8px 16px 0; }

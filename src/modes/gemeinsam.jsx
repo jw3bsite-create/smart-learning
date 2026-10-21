@@ -9,6 +9,7 @@ import { sprich, schweig } from "../core/speech.js";
 import { istUebbar } from "../core/kartenseiten.js";
 import { istRelevant } from "../core/model.js";
 import { gehe } from "../App.jsx";
+import { modusNachName } from "./modi.js";
 import { Symbol, SymbolKnopf, Knopf, Bild } from "../ui/basis.jsx";
 import Formel from "../ui/Formel.jsx";
 
@@ -49,6 +50,10 @@ export function useBrauchbar(karten, nurMarkierte = false) {
 }
 
 export function ModusRahmen({ titel, symbol, aufSchliessen, anteil = null, rechts, children }) {
+  /* Was der Modus tut, steht nicht mehr auf seiner Kachel, sondern hier
+     hinter dem „?“ — wer ihn kennt, braucht den Satz nicht. */
+  const erklaerung = modusNachName(titel)?.text || null;
+  const [erklaert, setErklaert] = useState(false);
   return (
     <div>
       <div className="modus-kopf">
@@ -56,9 +61,15 @@ export function ModusRahmen({ titel, symbol, aufSchliessen, anteil = null, recht
           onClick={aufSchliessen} />
         <Symbol name={symbol} groesse={18} />
         <strong style={{ fontFamily: "var(--serifen)", fontWeight: 600 }}>{titel}</strong>
+        {erklaerung && (
+          <SymbolKnopf symbol="frage" titel={erklaert ? "Erklärung ausblenden" : "Was macht dieser Modus?"}
+            art={"leer klein" + (erklaert ? " aktiv" : "")} aria-pressed={erklaert}
+            onClick={() => setErklaert((x) => !x)} />
+        )}
         <div className="dehnen" />
         {rechts}
       </div>
+      {erklaert && <div className="modus-erklaerung">{erklaerung}</div>}
       {anteil !== null && (
         <div className="balken" style={{ height: 4, borderRadius: 0 }}>
           <span className="vertraut" style={{ width: Math.round(anteil * 100) + "%",

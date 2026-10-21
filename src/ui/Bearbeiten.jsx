@@ -6,7 +6,7 @@
  * jeder Tastendruck in die Datenbank.
  */
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { bildAufnehmen, bildLoeschen, dateiAusEreignis } from "../core/media.js";
 import { anzahl } from "../core/util.js";
@@ -23,6 +23,7 @@ import { hatFormel, formelStellen, ersetzeFormel } from "../core/formel.js";
 import FormelEditor from "./FormelEditor.jsx";
 import KiGenerator from "./KiGenerator.jsx";
 import { useZiehen } from "./ziehen.js";
+import { gliederung, folgeVon } from "../core/abschnitte.js";
 
 /* ----------------------------- Eine Kartenzeile ------------------------ */
 
@@ -60,7 +61,7 @@ function schritteAlsText(schritte) {
 
 function Zeile({
   karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZeile, aufWandern,
-  ziehGriff = null, ziehZeile = {},
+  ziehGriff = null, ziehZeile = {}, anfassen = {},
 }) {
   const [term, setTerm] = useState(karte.term);
   const [definition, setDefinition] = useState(karte.definition);
@@ -271,7 +272,7 @@ function Zeile({
   };
 
   return (
-    <div data-zieh={ziehZeile["data-zieh"]}
+    <div data-zieh={ziehZeile["data-zieh"]} {...anfassen}
       className={"karten-zeile" + (ziehZeile.className ? " " + ziehZeile.className : "")}
       style={{ alignItems: "stretch", ...(ziehZeile.style || {}) }}>
       {formelStelle && (
@@ -344,13 +345,40 @@ function Zeile({
   );
 }
 
+/* ------------------------------ Abschnitt ----------------------------- */
+
+/*
+ * Eine Zwischenüberschrift im Editor (core/abschnitte.js): Titel zum
+ * Überschreiben, rücken, eine Karte darunter anlegen, entfernen. Entfernt
+ * wird nur die Überschrift — die Karten gehen in den Abschnitt davor.
+ */
+function AbschnittZeile({ abschnitt, anzahlKarten, zug, frisch, umbenennen, hoch, runter,
+  karteHier, entfernen }) {
+  const [titel, setTitel] = useState(abschnitt.titel || "");
+  useEffect(() => { setTitel(abschnitt.titel || ""); }, [abschnitt.titel]);
+  return (
+    <div data-zieh={zug["data-zieh"]} className="abschnitt-kopf" style={zug.style}>
+      <input className="abschnitt-titel" value={titel} autoFocus={frisch}
+        placeholder="Überschrift, etwa „Merkmale der Romantik“" aria-label="Überschrift des Abschnitts"
+        onChange={(e) => { setTitel(e.target.value); umbenennen(e.target.value); }} />
+      <span className="klein blass nur-breit">{anzahl(anzahlKarten, "Karte", "Karten")}</span>
+      <SymbolKnopf symbol="plus" titel="Karte in diesem Abschnitt anlegen" onClick={karteHier} />
+      <SymbolKnopf symbol="hoch" titel="Abschnitt nach oben" onClick={hoch} />
+      <SymbolKnopf symbol="runter" titel="Abschnitt nach unten" onClick={runter} />
+      <SymbolKnopf symbol="muell" titel="Überschrift entfernen (die Karten bleiben)" onClick={entfernen} />
+    </div>
+  );
+}
+
 /* ------------------------------ Die Ansicht ---------------------------- */
 
 export default function Bearbeiten({ setId }) {
   const {
-    stapel, kartenVon, stapelAendern, karteAnlegen, karteAendern, karteLoeschen, kartenOrdnen,
+    stapel, kartenVon, stapelAendern, karteAnlegen, karteAendern, karteLoeschen,
+    kartenGliedern, abschnittAnlegen, abschnittUmbenennen, abschnittRuecken, abschnittEntfernen,
     entwuerfe,
   } = useDaten();
+  const [frischerAbschnitt, setFrischerAbschnitt] = useState(null);
   const [textEinfuhr, setTextEinfuhr] = useState(false);
   const [quizlet, setQuizlet] = useState(false);
   const [zeichen, setZeichen] = useMerker("zeichenleisteOffen", false);
@@ -362,17 +390,27 @@ export default function Bearbeiten({ setId }) {
   const derStapel = stapel.find((s) => s.id === setId);
   const karten = kartenVon(setId);
   const wartendeEntwuerfe = entwuerfe.filter((e) => e.setId === setId).length;
-  /* Vor der Pruefung unten: Hooks muessen in fester Zahl laufen. */
-  const { griff, zeile } = useZiehen({
-    kennungen: karten.map((k) => k.id), aufOrdnen: kartenOrdnen, abstand: 10,
+  /* Karten unter ihren Abschnitten, in der Reihenfolge der Anzeige
+     (core/abschnitte.js). `reihe` sind nur die Karten, für Nummern und
+     Pfeiltasten. Vor der Pruefung unten: Hooks muessen in fester Zahl laufen. */
+  const liste = useMemo(() => gliederung(karten, derStapel?.abschnitte || []),
+    [karten, derStapel?.abschnitte]);
+  const folge = folgeVon(liste);
+  const reihe = liste.filter((e) => e.art === "karte").map((e) => e.karte);
+  const abschnitte = derStapel?.abschnitte || [];
+  const { griff, zeile, anfassen } = useZiehen({
+    kennungen: folge, aufOrdnen: (f) => kartenGliedern(setId, f), abstand: 10,
   });
 
   if (!derStapel) {
     return <div className="mitte"><Leer titel="Stapel nicht gefunden" /></div>;
   }
 
-  const neueKarte = async (ansEnde = true) => {
-    await karteAnlegen(setId);
+  /* Eine neue Karte unten kommt in den letzten Abschnitt — sonst stünde sie
+     ganz oben, vor der ersten Überschrift. */
+  const neueKarte = async (ansEnde = true,
+    abschnitt = abschnitte.length ? abschnitte[abschnitte.length - 1].id : null) => {
+    await karteAnlegen(setId, "", "", abschnitt);
     if (ansEnde) setTimeout(() => unten.current?.scrollIntoView({ behavior: "smooth" }), 60);
   };
 
@@ -383,17 +421,28 @@ export default function Bearbeiten({ setId }) {
    */
   const wandern = (art, karteId, seite, stelle, schritt = 0) => {
     if (art === "seite") return feldFokussieren(karteId, seite, stelle);
-    const i = karten.findIndex((k) => k.id === karteId);
-    const nachbar = karten[i + schritt];
+    const i = reihe.findIndex((k) => k.id === karteId);
+    const nachbar = reihe[i + schritt];
     return nachbar ? feldFokussieren(nachbar.id, seite, stelle) : false;
   };
 
-  const verschieben = (index, richtung) => {
+  /* Eine Stelle nach oben oder unten — über eine Überschrift hinweg heißt
+     das: in den Abschnitt daneben. */
+  const verschieben = (karteId, richtung) => {
+    const index = folge.indexOf(karteId);
     const ziel = index + richtung;
-    if (ziel < 0 || ziel >= karten.length) return;
-    const neu = [...karten];
+    if (index < 0 || ziel < 0 || ziel >= folge.length) return;
+    const neu = [...folge];
     [neu[index], neu[ziel]] = [neu[ziel], neu[index]];
-    kartenOrdnen(neu.map((k) => k.id));
+    kartenGliedern(setId, neu);
+  };
+
+  const neuerAbschnitt = async () => {
+    const a = await abschnittAnlegen(setId, "");
+    if (a) {
+      setFrischerAbschnitt(a.id);
+      setTimeout(() => unten.current?.scrollIntoView({ behavior: "smooth", block: "end" }), 60);
+    }
   };
 
   return (
@@ -447,27 +496,63 @@ export default function Bearbeiten({ setId }) {
       )}
 
       <div className="reihe" style={{ marginBottom: 12 }}>
-        <h3 className="dehnen">{anzahl(karten.length, "Karte", "Karten")}</h3>
+        <h3 className="dehnen">
+          {anzahl(karten.length, "Karte", "Karten")}
+          {abschnitte.length > 0 && (
+            <span className="klein blass" style={{ fontFamily: "var(--schrift-oberflaeche)", fontWeight: 400 }}>
+              {" in " + anzahl(abschnitte.length, "Abschnitt", "Abschnitten")}
+            </span>
+          )}
+        </h3>
         <span className="klein blass nur-breit">
           <span className="tastenhilfe">Strg</span> + <span className="tastenhilfe">↵</span> legt eine neue Karte an
         </span>
       </div>
 
-      <div style={{ display: "grid", gap: 10 }}>
-        {karten.map((k, i) => (
-          <Zeile key={k.id} karte={k} nummer={i + 1} aendern={karteAendern}
-            loeschen={karteLoeschen} ziehGriff={griff(k.id)} ziehZeile={zeile(k.id, i)}
-            aufHoch={() => verschieben(i, -1)} aufRunter={() => verschieben(i, 1)}
-            aufWandern={wandern}
-            aufNeueZeile={() => { if (i === karten.length - 1) neueKarte(); }} />
-        ))}
+      {/* minmax(0, 1fr): Ohne feste Spalte wuchs die Liste mit ihrem breitesten
+          Inhalt und ragte auf dem Telefon über den Rand. */}
+      <div style={{ display: "grid", gap: 10, gridTemplateColumns: "minmax(0, 1fr)" }}>
+        {liste.map((eintrag, i) => {
+          if (eintrag.art === "abschnitt") {
+            const a = eintrag.abschnitt;
+            return (
+              <AbschnittZeile key={"a" + a.id} abschnitt={a} zug={zeile(folge[i], i)}
+                frisch={frischerAbschnitt === a.id}
+                anzahlKarten={karten.filter((k) => k.abschnitt === a.id).length}
+                umbenennen={(titel) => abschnittUmbenennen(setId, a.id, titel)}
+                hoch={() => abschnittRuecken(setId, a.id, -1)}
+                runter={() => abschnittRuecken(setId, a.id, 1)}
+                karteHier={() => neueKarte(false, a.id)}
+                entfernen={() => abschnittEntfernen(setId, a.id)} />
+            );
+          }
+          const k = eintrag.karte;
+          const nr = reihe.indexOf(k);
+          return (
+            <Zeile key={k.id} karte={k} nummer={nr + 1} aendern={karteAendern}
+              loeschen={karteLoeschen} ziehGriff={griff(k.id)} ziehZeile={zeile(k.id, i)}
+              anfassen={anfassen(k.id)}
+              aufHoch={() => verschieben(k.id, -1)} aufRunter={() => verschieben(k.id, 1)}
+              aufWandern={wandern}
+              aufNeueZeile={() => {
+                if (nr === reihe.length - 1) neueKarte(true, k.abschnitt || null);
+              }} />
+          );
+        })}
       </div>
 
       <div ref={unten} style={{ marginTop: 16 }}>
-        <Knopf art="gross" symbol="plus" onClick={() => neueKarte()}
-          style={{ width: "100%", justifyContent: "center" }}>
-          Karte hinzufügen
-        </Knopf>
+        <div className="reihe umbruch">
+          <Knopf art="gross" symbol="plus" onClick={() => neueKarte()}
+            style={{ flex: "2 1 auto", justifyContent: "center" }}>
+            Karte hinzufügen
+          </Knopf>
+          {/* Eine Zwischenüberschrift, keine Karte: „Merkmale der Romantik“. */}
+          <Knopf art="gross" symbol="papier" onClick={neuerAbschnitt}
+            style={{ flex: "1 1 auto", justifyContent: "center" }}>
+            Überschrift
+          </Knopf>
+        </div>
       </div>
 
       {karten.length === 0 && (

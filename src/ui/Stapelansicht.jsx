@@ -19,11 +19,22 @@ import {
 import Formel from "./Formel.jsx";
 import Auswahlleiste from "./Kartenauswahl.jsx";
 import { useZiehen } from "./ziehen.js";
+import { gliederung, folgeVon } from "../core/abschnitte.js";
+
+/* „am 12. Oktober 2026“ — das Jahr nur, wenn es nicht das laufende ist. */
+function erstelltText(ms) {
+  if (!ms) return "";
+  const d = new Date(ms);
+  return "Angelegt am " + d.toLocaleDateString("de-DE", {
+    day: "numeric", month: "long",
+    ...(d.getFullYear() !== new Date().getFullYear() ? { year: "numeric" } : {}),
+  });
+}
 
 export default function Stapelansicht({ setId }) {
   const {
     stapel, ordner, kartenVon, karteAendern, stapelAendern,
-    stapelLoeschen, stapelVervielfaeltigen, kartenOrdnen, seitenTauschen,
+    stapelLoeschen, stapelVervielfaeltigen, kartenOrdnen, seitenTauschen, kartenGliedern,
     zustandZuruecksetzen,
     faecher, zustaende, stapelVon, fachVon,
   } = useDaten();
@@ -48,13 +59,25 @@ export default function Stapelansicht({ setId }) {
     return liste;
   }, [karten, sortierung, nurMarkierte, zustaende]);
 
+  /* In der eigenen Reihenfolge stehen die Karten unter ihren Abschnitten
+     (core/abschnitte.js); sortiert oder gefiltert als schlichte Liste. */
+  const gegliedert = sortierung === "eigen" && !nurMarkierte;
+  const eintraege = useMemo(() => (gegliedert
+    ? gliederung(karten, derStapel?.abschnitte || [])
+    : sortiert.map((karte) => ({ art: "karte", karte }))),
+  [gegliedert, karten, derStapel?.abschnitte, sortiert]);
+
   /* Ziehen zum Umordnen — nur in der eigenen Reihenfolge und ohne Filter:
-     In einer alphabetischen Liste hiesse Verschieben nichts. Der Hook steht
-     vor der Pruefung unten, weil React Hooks in fester Zahl erwartet. */
-  const { griff, zeile } = useZiehen({
-    kennungen: karten.map((k) => k.id), aufOrdnen: kartenOrdnen, abstand: 8,
+     In einer alphabetischen Liste hiesse Verschieben nichts. Gezogen wird
+     über die Abschnitte hinweg; wer eine Karte unter eine andere
+     Überschrift zieht, ordnet sie dort ein. Der Hook steht vor der
+     Pruefung unten, weil React Hooks in fester Zahl erwartet. */
+  const { griff, zeile, anfassen } = useZiehen({
+    kennungen: gegliedert ? folgeVon(eintraege) : karten.map((k) => k.id),
+    aufOrdnen: (folge) => (gegliedert ? kartenGliedern(setId, folge) : kartenOrdnen(folge)),
+    abstand: 8,
   });
-  const ziehbar = sortierung === "eigen" && !nurMarkierte && !waehlt;
+  const ziehbar = gegliedert && !waehlt;
 
   if (!derStapel) {
     return <div className="mitte"><Leer titel="Stapel nicht gefunden"
@@ -102,12 +125,17 @@ export default function Stapelansicht({ setId }) {
           </button>
         </div>
         <h1>{derStapel.title || "Ohne Titel"}</h1>
-        <div className="kopf-werkzeuge">
+        {/* Am Rechner als Knopf, auf dem Telefon im Menü „···“: Dort stand
+            er sonst als breiter Balken ganz oben, vor allem anderen. */}
+        <div className="kopf-werkzeuge nur-breit">
           <Knopf symbol="stift" onClick={() => gehe("/stapel/" + setId + "/bearbeiten")}>
             Bearbeiten</Knopf>
         </div>
         <div className="kopf-mehr">
           <Menue knopf={<SymbolKnopf symbol="mehr" titel="Mehr" art="" />}>
+            <MenuePunkt symbol="stift" onClick={() => gehe("/stapel/" + setId + "/bearbeiten")}>
+              Bearbeiten</MenuePunkt>
+            <hr />
             <MenuePunkt symbol="mischen" onClick={() => kartenOrdnen(mische(karten).map((k) => k.id))}>
               Reihenfolge mischen</MenuePunkt>
             <MenuePunkt symbol="tauschen" onClick={() => seitenTauschen(setId)}>
@@ -138,7 +166,12 @@ export default function Stapelansicht({ setId }) {
       </div>
 
       {derStapel.description && (
-        <p className="matt" style={{ marginTop: -6 }}>{derStapel.description}</p>
+        <p className="matt" style={{ marginTop: -6, marginBottom: 4 }}>{derStapel.description}</p>
+      )}
+      {derStapel.createdAt && (
+        <p className="klein blass" style={{ marginTop: derStapel.description ? 0 : -8 }}>
+          {erstelltText(derStapel.createdAt)}
+        </p>
       )}
 
       {karten.length === 0 ? (
@@ -177,16 +210,14 @@ export default function Stapelansicht({ setId }) {
           <div className="klein blass" style={{ marginBottom: 8 }}>
             Zum Üben, zählt für die Statistik, verschiebt aber keine Termine
           </div>
-          <div className="gitter" style={{ marginBottom: 24, gridTemplateColumns: "repeat(auto-fill, minmax(215px, 1fr))" }}>
+          {/* Nur Sinnbild und Name. Was ein Modus tut, steht im Modus hinter
+              dem „?“ (und hier beim Überfahren mit der Maus). */}
+          <div className="modus-raster">
             {MODI.map((m) => (
-              <button type="button" key={m.id} className="kachel" style={{ minHeight: 96 }}
+              <Knopf key={m.id} symbol={m.symbol} title={m.text}
                 onClick={() => gehe("/stapel/" + setId + "/" + m.id)}>
-                <div className="reihe">
-                  <Symbol name={m.symbol} groesse={19} />
-                  <div className="titel dehnen">{m.name}</div>
-                </div>
-                <div className="klein matt">{m.text}</div>
-              </button>
+                {m.name}
+              </Knopf>
             ))}
           </div>
 
@@ -245,7 +276,7 @@ export default function Stapelansicht({ setId }) {
           {karten.length > 1 && (
             <p className="klein blass" style={{ marginTop: -4, marginBottom: 10 }}>
               {ziehbar
-                ? "Zum Umordnen am Griff ⋮⋮ rechts in der Zeile ziehen, mit Maus oder Finger."
+                ? "Zum Umordnen eine Karte gedrückt halten und ziehen, auch unter eine andere Überschrift."
                 : "Umordnen geht in der eigenen Reihenfolge; ein Druck auf den Griff ⋮⋮ schaltet dorthin."}
             </p>
           )}
@@ -258,7 +289,20 @@ export default function Stapelansicht({ setId }) {
           )}
 
           <div style={{ display: "grid", gap: 8 }}>
-            {sortiert.map((k, i) => {
+            {eintraege.map((eintrag, i) => {
+              if (eintrag.art === "abschnitt") {
+                const a = eintrag.abschnitt;
+                const zugA = ziehbar ? zeile(folgeVon([eintrag])[0], i) : {};
+                const drin = karten.filter((x) => x.abschnitt === a.id).length;
+                return (
+                  <div key={"a" + a.id} data-zieh={zugA["data-zieh"]} className="abschnitt-kopf"
+                    style={zugA.style}>
+                    <span className="abschnitt-titel">{a.titel || "Ohne Titel"}</span>
+                    <span className="klein blass">{anzahl(drin, "Karte", "Karten")}</span>
+                  </div>
+                );
+              }
+              const k = eintrag.karte;
               const zug = ziehbar ? zeile(k.id, i) : {};
               /* Die schwächere der beiden Richtungen entscheidet, wie eine
                  Karte hier dasteht. */
@@ -267,8 +311,8 @@ export default function Stapelansicht({ setId }) {
               const s = (derStapel.richtungen || ["td"]).includes("dt")
                 ? Math.min(stufe(zTd), stufe(zDt)) : stufe(zTd);
               return (
-                <div key={k.id} data-zieh={zug["data-zieh"]}
-                  className={"karten-zeile" + (waehlt ? " waehlbar" : "")
+                <div key={k.id} data-zieh={zug["data-zieh"]} {...(ziehbar ? anfassen(k.id) : {})}
+                  className={"karten-zeile nur-ansehen" + (waehlt ? " waehlbar" : "")
                     + (ausgewaehlt.has(k.id) ? " gewaehlt" : "")
                     + (zug.className ? " " + zug.className : "")}
                   style={{ ...(k.nichtRelevant && !waehlt ? { opacity: 0.45 } : {}), ...(zug.style || {}) }}

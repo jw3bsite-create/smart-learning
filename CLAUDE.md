@@ -27,7 +27,7 @@ Sprache, soweit sie die Sache benennen (`karten`, `zustaende`, `abrufVerbuchen`)
 ```
 npm install
 npm run dev      # http://localhost:5180
-npm test         # 471 Prüfungen (Kern, Speicher, Abgleich, Dialoge, Push)
+npm test         # 481 Prüfungen (Kern, Speicher, Abgleich, Dialoge, Push, Abschnitte)
 npm run lint
 npm run symbole  # Symbole aus "Anchor Logo.pdf" (braucht: pip install pymupdf pillow)
 ```
@@ -91,7 +91,7 @@ prompts/      Die Systemanweisungen als eigene Dateien, versioniert
 src/modes/    Abrufen, Fragen, Feynman, Pretest, Tutor, Pruefung + die sieben
               Übungsmodi
 src/ui/       Bildschirme und Bausteine
-test/         471 Prüfungen (npm test), darunter der ganze Weg der Daten
+test/         481 Prüfungen (npm test), darunter der ganze Weg der Daten
               gegen einen Testspeicher (fake-indexeddb)
 werkzeug/     Erzeugt die Symbole aus dem Logo (Python: pymupdf, pillow)
 ```
@@ -372,6 +372,15 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     Protokolle des öffentlichen Projekts sind lesbar: dort nie Geräte,
     Adressen oder Kartenzahlen ausgeben. `web-push` ist Entwicklungs-
     abhängigkeit nur für den Absender, nicht im Bündel der App.
+53. **Abschnitte sind keine Karten** (`core/abschnitte.js`). Sie stehen am
+    Stapel (`abschnitte: [{ id, titel }]`), die Karte trägt `abschnitt`.
+    Kein Lernmodus und keine Zählung muss sie kennen. Nach jeder Änderung
+    an Abschnitten folgt `order` der Anzeige (`nachAnzeigeOrdnen`), damit
+    Übungsmodi in derselben Reihenfolge abfragen.
+54. **Ziehen an der ganzen Zeile** (`anfassen` in `ui/ziehen.js`): Maus nach
+    ein paar Punkten Weg, Finger erst nach kurzem Halten. Felder und Knöpfe
+    sind ausgenommen. Listen um Kartenzeilen brauchen
+    `gridTemplateColumns: "minmax(0, 1fr)"`, sonst ragen sie am Telefon hinaus.
 
 ## Stapel aus Lernmaterial (im Chat)
 

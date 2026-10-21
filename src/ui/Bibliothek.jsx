@@ -9,7 +9,7 @@ import { stapelStand } from "../core/warteschlange.js";
 import { ordnerZweig } from "../core/model.js";
 import { allgemeineOrdner, istFachordner, fachKennungen } from "../core/fachordner.js";
 import * as beispiel from "../core/beispiel.js";
-import { anzahl } from "../core/util.js";
+import { anzahl, datumKurz } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import { erfragen } from "./Rueckfragen.jsx";
 import {
@@ -52,6 +52,12 @@ export function StapelKachel({ stapel, karten, zustaende, aufMenue }) {
         <span>{anzahl(karten.length, "Karte", "Karten")}</span>
         {faellige > 0 && <span className="marke gelb">{faellige} fällig</span>}
         {neu > 0 && <span className="marke">{neu} neu</span>}
+        {/* Wann der Stapel angelegt wurde — ältere Stapel wissen es nicht. */}
+        {stapel.createdAt && (
+          <span className="blass" style={{ marginLeft: "auto" }} title="Angelegt am">
+            {datumKurz(stapel.createdAt)}
+          </span>
+        )}
       </div>
     </div>
   );

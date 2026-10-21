@@ -71,6 +71,11 @@ Eine Datei ist JSON und sieht so aus:
 - **`"art": "cloze"`**: Lückentext. Alles, was in `{{doppelte Klammern}}` steht,
   wird abgefragt. Mehrere Lücken sind erlaubt, jede wird eigenständig geplant.
 - `hinweis` ist freiwillig und wird beim Lernen erst auf Wunsch gezeigt.
+- `abschnitt` ist freiwillig: eine Zwischenüberschrift, unter der die Karte im
+  Stapel steht, etwa `"abschnitt": "Merkmale der Romantik"`. Gleiche Namen
+  ergeben einen Abschnitt, in der Reihenfolge ihres ersten Auftretens.
+  Abschnitte sind keine Karten und werden nicht abgefragt. Nutze sie, wenn
+  das Material deutlich gegliedert ist; bei wenigen Karten lieber nicht.
 - **Bilder gehen nicht.** Eine Karte, die ein Bild bräuchte, beschreibe ich
   lieber in Worten oder lasse sie weg.
 - Formeln stehen zwischen Dollarzeichen in LaTeX-Schreibweise: `$\frac{1}{2}$`,

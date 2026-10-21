@@ -8,6 +8,8 @@ import React, { useMemo, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { KARTENARTEN } from "../core/model.js";
 import { stapeldateiLesen, passendesFach, artenZaehlen } from "../core/stapeldatei.js";
+import { abschnitteAusNamen } from "../core/abschnitte.js";
+import { id as neueKennung } from "../core/model.js";
 import { anzahl } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import { Dialog, Knopf, Symbol } from "./basis.jsx";
@@ -81,11 +83,15 @@ export default function StapeldateiEinfuhr({ fachId = null, ordnerId = null, auf
       let subjectId = fach || null;
       if (fach === NEU) subjectId = (await fachAnlegen(stapel.fach, freieFarbe(faecher))).id;
       const s = await stapelAnlegen(derTitel.trim() || stapel.titel, ordnerId);
+      /* Überschriften aus der Datei: gleiche Namen ein Abschnitt. */
+      const { abschnitte, idVon } = abschnitteAusNamen(stapel.karten.map((k) => k.abschnitt),
+        () => neueKennung("a"));
       await stapelAendern(s.id, {
         ...(subjectId ? { subjectId } : {}),
         ...(stapel.beschreibung ? { description: stapel.beschreibung } : {}),
+        ...(abschnitte.length ? { abschnitte } : {}),
       });
-      await kartenAnlegenViele(s.id, stapel.karten);
+      await kartenAnlegenViele(s.id, stapel.karten.map((k) => ({ ...k, abschnitt: idVon(k.abschnitt) })));
       aufSchliessen();
       gehe("/stapel/" + s.id);
     } finally {

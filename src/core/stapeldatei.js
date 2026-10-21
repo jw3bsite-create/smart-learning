@@ -22,6 +22,10 @@
  *     ]
  *   }
  *
+ * Jede Karte darf `"abschnitt": "Merkmale der Romantik"` tragen. Gleiche
+ * Namen ergeben einen Abschnitt, in der Reihenfolge ihres ersten Auftretens
+ * (siehe core/abschnitte.js).
+ *
  * Eine Datei, die nicht stimmt, wird nicht halb eingelesen: Der Leser sagt,
  * was fehlt, und legt nichts an.
  */
@@ -56,6 +60,9 @@ function karteLesen(roh, nr, meldungen) {
   const vorderseite = text(roh.vorderseite ?? roh.term);
   const rueckseite = text(roh.rueckseite ?? roh.definition);
   const hinweis = text(roh.hinweis ?? roh.hint);
+  // Die Überschrift, unter der die Karte steht (core/abschnitte.js).
+  const abschnitt = text(roh.abschnitt);
+  const mit = (karte) => (abschnitt ? { ...karte, abschnitt } : karte);
 
   if (!vorderseite) {
     meldungen.fehler.push(wo + " hat keine Vorderseite.");
@@ -74,7 +81,7 @@ function karteLesen(roh, nr, meldungen) {
     }
     if (schritte.length < liste.length)
       meldungen.hinweise.push(wo + ": Schritte ohne Antwort wurden weggelassen.");
-    return { art, term: vorderseite, definition: rueckseite, hint: hinweis, schritte };
+    return mit({ art, term: vorderseite, definition: rueckseite, hint: hinweis, schritte });
   }
 
   if (art === "cloze") {
@@ -82,14 +89,14 @@ function karteLesen(roh, nr, meldungen) {
       meldungen.fehler.push(wo + " ist ein Lückentext ohne Lücke. Lücken stehen in {{doppelten Klammern}}.");
       return null;
     }
-    return { art, term: vorderseite, definition: rueckseite, hint: hinweis };
+    return mit({ art, term: vorderseite, definition: rueckseite, hint: hinweis });
   }
 
   if (!rueckseite) {
     meldungen.fehler.push(wo + " hat keine Rückseite.");
     return null;
   }
-  return { art, term: vorderseite, definition: rueckseite, hint: hinweis };
+  return mit({ art, term: vorderseite, definition: rueckseite, hint: hinweis });
 }
 
 /**
@@ -168,6 +175,7 @@ export function artenZaehlen(karten) {
 
 /** Ein Stapel der App als Stapeldatei. Lernstand und Bilder bleiben draußen. */
 export function alsStapeldatei(stapel, karten, fach = null) {
+  const abschnittName = new Map((stapel?.abschnitte || []).map((a) => [a.id, a.titel]));
   const aus = {
     format: FORMAT, fassung: FASSUNG,
     titel: stapel?.title || "",
@@ -181,6 +189,7 @@ export function alsStapeldatei(stapel, karten, fach = null) {
       if (art === "mehrschritt")
         karte.schritte = (k.schritte || []).map((s) => ({ frage: s.frage || "", antwort: s.antwort || "" }));
       if (k.hint) karte.hinweis = k.hint;
+      if (k.abschnitt && abschnittName.get(k.abschnitt)) karte.abschnitt = abschnittName.get(k.abschnitt);
       return karte;
     }),
   };

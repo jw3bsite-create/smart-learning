@@ -24,6 +24,7 @@
 import * as dbStandard from "./db.js";
 import * as model from "./model.js";
 import * as fachordner from "./fachordner.js";
+import * as gliedern from "./abschnitte.js";
 import * as noten from "./noten.js";
 import { bewerte } from "./scheduler.js";
 import { neuerZustand, bewerteKarte, freigeben } from "./fsrs.js";
@@ -361,10 +362,13 @@ export function erzeugeBestand({ db = dbStandard, jetzt = () => Date.now() } = {
 
   const naechste = (setId) => naechsteStelle(zustand.karten, setId);
 
-  async function karteAnlegen(setId, term = "", definition = "") {
-    const k = model.neueKarte(setId, term, definition, naechste(setId));
+  /* `abschnitt`: die neue Karte kommt ans Ende dieses Abschnitts. */
+  async function karteAnlegen(setId, term = "", definition = "", abschnitt = null) {
+    const k = { ...model.neueKarte(setId, term, definition, naechste(setId)),
+      ...(abschnitt ? { abschnitt } : {}) };
     setze({ karten: [...zustand.karten, k] });
     await schreibe({ cards: [k] });
+    if (abschnitt) await nachAnzeigeOrdnen(setId);
     melde();
     return k;
   }
@@ -379,6 +383,7 @@ export function erzeugeBestand({ db = dbStandard, jetzt = () => Date.now() } = {
       ...(Array.isArray(p.schritte) ? { schritte: p.schritte } : {}),
       ...(p.starred ? { starred: true } : {}),
       ...(p.created_by ? { created_by: p.created_by } : {}),
+      ...(p.abschnitt ? { abschnitt: p.abschnitt } : {}),
     }));
     setze({ karten: [...zustand.karten, ...neue] });
     await schreibe({ cards: neue });
@@ -471,6 +476,78 @@ export function erzeugeBestand({ db = dbStandard, jetzt = () => Date.now() } = {
   }
 
   /** Neue Reihenfolge festlegen (Liste von Kartenkennungen). */
+  /* ------------------------------ Abschnitte ----------------------------- */
+
+  /*
+   * Reihenfolge und Abschnitt aus der angezeigten Liste übernehmen (nach dem
+   * Ziehen). `folge` enthält Karten und Abschnitte, siehe core/abschnitte.js.
+   * Alles in einem Schreibvorgang: Eine halb übernommene Umsortierung stünde
+   * sonst nach einem Neuladen anders da als zuvor.
+   */
+  async function kartenGliedern(setId, folge) {
+    const { reihenfolge, abschnittVon } = gliedern.ausFolge(folge);
+    const rang = new Map(reihenfolge.map((k, i) => [k, i]));
+    const zeit = jetzt();
+    const geaendert = zustand.karten
+      .filter((k) => k.setId === setId && rang.has(k.id)
+        && (k.order !== rang.get(k.id) || (k.abschnitt || null) !== abschnittVon.get(k.id)))
+      .map((k) => ({ ...k, order: rang.get(k.id), abschnitt: abschnittVon.get(k.id), updatedAt: zeit }));
+    if (!geaendert.length) return;
+    setze({ karten: ersetzeIn(zustand.karten, geaendert) });
+    await schreibe({ cards: geaendert });
+    melde();
+  }
+
+  /* Die Reihenfolge an die Anzeige angleichen — nach jeder Änderung an den
+     Abschnitten, damit Übungsmodi in derselben Folge abfragen. */
+  async function nachAnzeigeOrdnen(setId) {
+    const s = zustand.stapel.find((x) => x.id === setId);
+    const karten = zustand.karten.filter((k) => k.setId === setId && !k.deleted);
+    await kartenGliedern(setId, gliedern.folgeVon(gliedern.gliederung(karten, s?.abschnitte || [])));
+  }
+
+  async function abschnitteSetzen(setId, abschnitte) {
+    await stapelAendern(setId, { abschnitte });
+    await nachAnzeigeOrdnen(setId);
+  }
+
+  async function abschnittAnlegen(setId, titel = "") {
+    const s = zustand.stapel.find((x) => x.id === setId);
+    if (!s) return null;
+    const a = { id: model.id("a"), titel };
+    await abschnitteSetzen(setId, [...(s.abschnitte || []), a]);
+    return a;
+  }
+
+  async function abschnittUmbenennen(setId, id, titel) {
+    const s = zustand.stapel.find((x) => x.id === setId);
+    if (!s) return;
+    await stapelAendern(setId, {
+      abschnitte: (s.abschnitte || []).map((a) => (a.id === id ? { ...a, titel } : a)),
+    });
+  }
+
+  async function abschnittRuecken(setId, id, richtung) {
+    const s = zustand.stapel.find((x) => x.id === setId);
+    if (!s) return;
+    await abschnitteSetzen(setId, gliedern.abschnittRuecken(s.abschnitte || [], id, richtung));
+  }
+
+  /* Entfernt nur die Überschrift; die Karten gehen in den Abschnitt davor. */
+  async function abschnittEntfernen(setId, id) {
+    const s = zustand.stapel.find((x) => x.id === setId);
+    if (!s) return;
+    const { abschnitte, ziel } = gliedern.abschnittEntfernen(s.abschnitte || [], id);
+    const zeit = jetzt();
+    const umzug = zustand.karten.filter((k) => k.setId === setId && k.abschnitt === id)
+      .map((k) => ({ ...k, abschnitt: ziel, updatedAt: zeit }));
+    if (umzug.length) {
+      setze({ karten: ersetzeIn(zustand.karten, umzug) });
+      await schreibe({ cards: umzug });
+    }
+    await abschnitteSetzen(setId, abschnitte);
+  }
+
   async function kartenOrdnen(reihenfolge) {
     const rang = new Map(reihenfolge.map((k, i) => [k, i]));
     const zeit = jetzt();
@@ -936,6 +1013,7 @@ export function erzeugeBestand({ db = dbStandard, jetzt = () => Date.now() } = {
   const aktionen = {
     laden, neuLaden, setzeEinstellung,
     ordnerAnlegen, ordnerAendern, ordnerLoeschen, ordnerAufloesen,
+    kartenGliedern, abschnittAnlegen, abschnittUmbenennen, abschnittRuecken, abschnittEntfernen,
     stapelAnlegen, stapelAendern, stapelLoeschen, stapelVervielfaeltigen,
     karteAnlegen, kartenAnlegenViele, karteAendern, karteLoeschen, kartenOrdnen,
     kartenKopieren, kartenVerschieben, kartenLoeschenViele, seitenTauschen,
