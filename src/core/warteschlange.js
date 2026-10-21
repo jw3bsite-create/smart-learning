@@ -12,14 +12,13 @@
 
 import { istFaellig, istNeu } from "./fsrs.js";
 import { richtungenFuer, istRelevant } from "./model.js";
-import { mische } from "./util.js";
+import { mische, lerntagBeginn } from "./util.js";
 
 const TAG = 24 * 3600 * 1000;
 
+/* Der Lerntag beginnt um 4 Uhr (siehe util.js). */
 function tagesBeginn(zeit = Date.now()) {
-  const d = new Date(zeit);
-  d.setHours(0, 0, 0, 0);
-  return d.getTime();
+  return lerntagBeginn(zeit);
 }
 
 /**

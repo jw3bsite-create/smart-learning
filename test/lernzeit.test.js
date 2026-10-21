@@ -183,7 +183,8 @@ test("der Verlauf hat die richtige Länge und endet heute", () => {
 test("über die Zeitumstellung hinweg bleiben die Tage Tage", () => {
   const ende = new Date(2026, 9, 27, 12).getTime();       // nach der Umstellung am 25. Oktober
   const tage = verlauf([], "tag", 5, ende);
-  for (const t of tage) assert.equal(new Date(t.beginn).getHours(), 0);
+  // Der Lerntag beginnt um 4 Uhr (util.js) — vor und nach der Umstellung.
+  for (const t of tage) assert.equal(new Date(t.beginn).getHours(), 4);
   assert.deepEqual(tage.map((t) => new Date(t.beginn).getDate()), [23, 24, 25, 26, 27]);
 });
 

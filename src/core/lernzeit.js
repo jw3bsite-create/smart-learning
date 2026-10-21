@@ -22,7 +22,7 @@
  */
 
 import { id as neueKennung } from "./model.js";
-import { tagesSchluessel } from "./util.js";
+import { tagesSchluessel, lerntagBeginn } from "./util.js";
 
 /**
  * Längste Pause zwischen zwei Handlungen, die noch mitzählt.
@@ -149,8 +149,10 @@ function addiere(summe, block) {
 
 const gueltig = (b) => b && !b.deleted && typeof b.beginn === "number";
 
+/* „Heute“ beginnt um 4 Uhr (siehe util.js): Die Runde um halb eins zählt
+   zum Tag davor. Wochen, Monate und Jahre bleiben beim Kalender. */
 export function tagesBeginn(zeit) {
-  const d = new Date(zeit); d.setHours(0, 0, 0, 0); return d.getTime();
+  return lerntagBeginn(zeit);
 }
 
 /** Montag, 0 Uhr — so zählt man in Deutschland Wochen. */

@@ -40,11 +40,44 @@ export function datumKurz(ms) {
   return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "2-digit" });
 }
 
-/** Tagesschlüssel (Ortszeit) für Strähne und Statistik. */
-export function tagesSchluessel(ms = Date.now()) {
+/*
+ * Der Lerntag beginnt um 4 Uhr, nicht um Mitternacht.
+ *
+ * Wer um halb eins noch lernt, lernt für den Tag, der hinter ihm liegt —
+ * nicht für den, der gerade begonnen hat. Mit Mitternacht als Grenze fiel
+ * die späte Runde auf den neuen Tag: Die Strähne des alten Tages riss, das
+ * Tageslimit für neue Karten war am Morgen schon halb verbraucht, die
+ * Erinnerung schwieg. Anki rechnet ebenso.
+ *
+ * Für Lernzahlen gilt darum `tagesSchluessel` und `lerntagBeginn`. Was ein
+ * echtes Datum meint (Termine, Dateinamen, „heute“ in Datumsangaben),
+ * nimmt weiter den Kalendertag.
+ */
+export const TAGESWECHSEL = 4;
+
+function lerntagDatum(ms) {
+  const d = new Date(ms);
+  if (d.getHours() < TAGESWECHSEL) d.setDate(d.getDate() - 1);
+  return d;
+}
+
+/** Kalendertag „JJJJ-MM-TT“ (Ortszeit), ohne Rücksicht auf den Lerntag. */
+export function kalenderSchluessel(ms = Date.now()) {
   const d = new Date(ms);
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") +
     "-" + String(d.getDate()).padStart(2, "0");
+}
+
+/** Schlüssel des Lerntags (siehe oben) für Strähne, Statistik, Limits. */
+export function tagesSchluessel(ms = Date.now()) {
+  return kalenderSchluessel(lerntagDatum(ms).getTime());
+}
+
+/** Beginn des Lerntags: 4 Uhr Ortszeit, notfalls des Vortags. */
+export function lerntagBeginn(ms = Date.now()) {
+  const d = lerntagDatum(ms);
+  d.setHours(TAGESWECHSEL, 0, 0, 0);
+  return d.getTime();
 }
 
 /** Deutsche Mehrzahl in der einfachen Form „1 Karte / 5 Karten“. */

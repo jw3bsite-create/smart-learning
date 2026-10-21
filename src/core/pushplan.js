@@ -25,6 +25,10 @@
 
 const TAG = 24 * 3600 * 1000;
 
+/* Der Lerntag beginnt um 4 Uhr (siehe util.js); die Vorschau rechnet in
+   Lerntagen, der Absender ebenso. */
+const TAGESWECHSEL = 4;
+
 /** Tagesschlüssel „JJJJ-MM-TT" in Ortszeit des Geräts. */
 function tagesSchluessel(ms) {
   const d = new Date(ms);
@@ -34,7 +38,8 @@ function tagesSchluessel(ms) {
 
 function tagesBeginn(ms) {
   const d = new Date(ms);
-  d.setHours(0, 0, 0, 0);
+  if (d.getHours() < TAGESWECHSEL) d.setDate(d.getDate() - 1);
+  d.setHours(TAGESWECHSEL, 0, 0, 0);
   return d.getTime();
 }
 
@@ -81,7 +86,12 @@ export function ortszeit(zeit, zeitzone = "Europe/Berlin") {
     return ortszeit(zeit, "Europe/Berlin");
   }
   const w = Object.fromEntries(teile.map((t) => [t.type, t.value]));
-  return { datum: w.year + "-" + w.month + "-" + w.day, stunde: Number(w.hour) % 24 };
+  const stunde = Number(w.hour) % 24;
+  // Vor 4 Uhr gehört die Stunde noch zum Lerntag davor.
+  if (stunde < TAGESWECHSEL) {
+    return { datum: ortszeit(zeit - (stunde + 1) * 3600000, zeitzone).datum, stunde };
+  }
+  return { datum: w.year + "-" + w.month + "-" + w.day, stunde };
 }
 
 /**

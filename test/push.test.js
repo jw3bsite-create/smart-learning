@@ -45,8 +45,10 @@ test("die Stunde gilt in der Zeitzone des Geräts, nicht in der des Servers", ()
     { datum: "2026-10-15", stunde: 17 });
   // Im Dezember (Winterzeit) ist 15:30 UTC 16:30 in Berlin.
   assert.equal(ortszeit(Date.UTC(2026, 11, 15, 15, 30), "Europe/Berlin").stunde, 16);
-  // Kurz vor Mitternacht UTC ist in Berlin schon der nächste Tag.
-  assert.equal(ortszeit(Date.UTC(2026, 9, 15, 22, 30), "Europe/Berlin").datum, "2026-10-16");
+  // 0:30 Uhr in Berlin gehört noch zum Lerntag davor (der beginnt um 4 Uhr) …
+  assert.equal(ortszeit(Date.UTC(2026, 9, 15, 22, 30), "Europe/Berlin").datum, "2026-10-15");
+  // … 4:30 Uhr schon zum neuen.
+  assert.equal(ortszeit(Date.UTC(2026, 9, 16, 2, 30), "Europe/Berlin").datum, "2026-10-16");
 });
 
 test("eine unbekannte Zeitzone fällt auf Berlin zurück, statt abzubrechen", () => {

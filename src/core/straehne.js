@@ -52,7 +52,7 @@ export function istLerntag(anzahl, pensum = TAGESPENSUM) {
 
 function tagVor(schluessel, tage) {
   const [j, m, t] = schluessel.split("-").map(Number);
-  const d = new Date(j, m - 1, t);
+  const d = new Date(j, m - 1, t, 12);     // mittags: weit weg von jeder Tagesgrenze
   d.setDate(d.getDate() - tage);
   return tagesSchluessel(d.getTime());
 }

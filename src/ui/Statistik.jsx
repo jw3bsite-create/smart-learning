@@ -7,7 +7,7 @@ import React, { useMemo } from "react";
 import { useDaten } from "../core/store.jsx";
 import { anteileNachStufe } from "../core/fsrs.js";
 import { fachZaehlung, stapelStand } from "../core/warteschlange.js";
-import { tagesSchluessel, anzahl, datumKurz, zeitLang } from "../core/util.js";
+import { tagesSchluessel, lerntagBeginn, anzahl, datumKurz, zeitLang } from "../core/util.js";
 import { behaltenskurve } from "../core/kalibrierung.js";
 import { abrufeJeTag } from "../core/straehne.js";
 import { eigenleistung } from "../core/generator.js";
@@ -118,7 +118,7 @@ export default function Statistik() {
   /* Die letzten 91 Tage als Streifen, beginnend am ältesten. */
   const streifen = useMemo(() => {
     const liste = [];
-    const d = new Date();
+    const d = new Date(lerntagBeginn());
     d.setDate(d.getDate() - 90);
     for (let i = 0; i < 91; i++) {
       const schluessel = tagesSchluessel(d.getTime());
