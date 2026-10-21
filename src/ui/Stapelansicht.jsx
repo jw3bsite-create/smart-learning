@@ -19,6 +19,7 @@ import {
 import Formel from "./Formel.jsx";
 import Auswahlleiste from "./Kartenauswahl.jsx";
 import { useZiehen } from "./ziehen.js";
+import { karteMitRueckfrageLoeschen } from "./Rueckfragen.jsx";
 import { gliederung, folgeVon } from "../core/abschnitte.js";
 
 /* „am 12. Oktober 2026“ — das Jahr nur, wenn es nicht das laufende ist. */
@@ -36,7 +37,7 @@ export default function Stapelansicht({ setId }) {
     stapel, ordner, kartenVon, karteAendern, stapelAendern,
     stapelLoeschen, stapelVervielfaeltigen, kartenOrdnen, seitenTauschen, kartenGliedern,
     zustandZuruecksetzen,
-    faecher, zustaende, stapelVon, fachVon,
+    faecher, zustaende, stapelVon, fachVon, karteLoeschen,
   } = useDaten();
   const [sortierung, setSortierung] = useState("eigen");
   const [nurMarkierte, setNurMarkierte] = useState(false);
@@ -73,7 +74,7 @@ export default function Stapelansicht({ setId }) {
      über die Abschnitte hinweg; wer eine Karte unter eine andere
      Überschrift zieht, ordnet sie dort ein. Der Hook steht vor der
      Pruefung unten, weil React Hooks in fester Zahl erwartet. */
-  const { griff, zeile, anfassen } = useZiehen({
+  const { zeile, anfassen } = useZiehen({
     kennungen: gegliedert ? folgeVon(eintraege) : karten.map((k) => k.id),
     aufOrdnen: (folge) => (gegliedert ? kartenGliedern(setId, folge) : kartenOrdnen(folge)),
     abstand: 8,
@@ -280,7 +281,10 @@ export default function Stapelansicht({ setId }) {
             <p className="klein blass" style={{ marginTop: -4, marginBottom: 10 }}>
               {ziehbar
                 ? "Zum Umordnen eine Karte gedrückt halten und ziehen, auch unter eine andere Überschrift."
-                : "Umordnen geht in der eigenen Reihenfolge; ein Druck auf den Griff ⋮⋮ schaltet dorthin."}
+                : <>Umordnen geht in der eigenen Reihenfolge.{" "}
+                  <button type="button" className="pfad-verweis"
+                    onClick={() => { setSortierung("eigen"); setNurMarkierte(false); }}>
+                    Dorthin wechseln</button></>}
             </p>
           )}
 
@@ -353,19 +357,9 @@ export default function Stapelansicht({ setId }) {
                     {k.defImage && <Bild kennung={k.defImage} klasse="" stil={{ maxHeight: 90, borderRadius: 8, marginTop: 8 }} />}
                     {k.hint && <div className="klein blass oben-8">Hinweis: {k.hint}</div>}
                   </div>
+                  {/* Kein Griff mehr: Gezogen wird an jeder freien Stelle der
+                      Karte (gedrückt halten), siehe ui/ziehen.js. */}
                   {!waehlt && <div className="werkzeuge">
-                    {ziehbar ? (
-                      <span className="griff" {...griff(k.id)}><Symbol name="griff" groesse={18} /></span>
-                    ) : (
-                      /* Ohne eigene Reihenfolge ließe sich nichts umordnen. Statt
-                         den Griff wegzunehmen (und niemanden wissen zu lassen,
-                         warum), schaltet er selbst um. */
-                      <button type="button" className="griff blass"
-                        title="Zum Umordnen auf die eigene Reihenfolge umschalten"
-                        onClick={() => { setSortierung("eigen"); setNurMarkierte(false); }}>
-                        <Symbol name="griff" groesse={18} />
-                      </button>
-                    )}
                     <span className="marke klein" title="Beherrschung"
                       style={{ color: ["var(--schrift-blass)", "var(--gelb)", "var(--akzent)", "var(--gruen)"][s] }}>
                       {STUFEN[s]}
@@ -384,6 +378,8 @@ export default function Stapelansicht({ setId }) {
                       onClick={() => karteAendern(k.id, { nichtRelevant: !k.nichtRelevant })} />
                     <SymbolKnopf symbol="stift" titel="Bearbeiten"
                       onClick={() => gehe("/stapel/" + setId + "/bearbeiten")} />
+                    <SymbolKnopf symbol="muell" titel="Karte löschen"
+                      onClick={() => karteMitRueckfrageLoeschen(k, karteLoeschen)} />
                   </div>}
                 </div>
               );

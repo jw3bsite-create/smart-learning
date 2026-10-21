@@ -48,6 +48,24 @@ export function erfragen({ titel, text, vorgabe = "", platzhalter = "", ja = "Ü
   return anstellen({ art: "eingabe", titel, text, vorgabe, platzhalter, ja, leerErlaubt });
 }
 
+/*
+ * Eine Karte löschen, nach Rückfrage — in der Stapelansicht und im Editor
+ * gleich. Sie wandert in den Papierkorb und lässt sich von dort zurückholen;
+ * das steht in der Frage, damit niemand zögert, wo es nicht nötig ist.
+ */
+export async function karteMitRueckfrageLoeschen(karte, karteLoeschen) {
+  const vorn = String(karte.term || "").replace(/\s+/g, " ").trim();
+  const kurz = vorn.length > 60 ? vorn.slice(0, 57) + " …" : vorn;
+  const ok = await bestaetigen({
+    titel: "Karte löschen?",
+    text: (kurz ? "„" + kurz + "“ " : "Die Karte ") + "wandert in den Papierkorb. Von dort "
+      + "lässt sie sich samt Lernstand zurückholen.",
+    ja: "Löschen", gefahr: true,
+  });
+  if (ok) await karteLoeschen(karte.id);
+  return ok;
+}
+
 /** Nur zur Kenntnis. Zurück kommt nichts, sobald er weggeklickt ist. */
 export function hinweisen({ titel, text, ja = "Verstanden" }) {
   return anstellen({ art: "hinweis", titel, text, ja });

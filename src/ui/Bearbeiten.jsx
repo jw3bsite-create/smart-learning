@@ -25,6 +25,7 @@ import KiGenerator from "./KiGenerator.jsx";
 import { useZiehen } from "./ziehen.js";
 import { gliederung, folgeVon } from "../core/abschnitte.js";
 import { schritteAlsText, textAlsSchritte } from "../core/schritte.js";
+import { karteMitRueckfrageLoeschen } from "./Rueckfragen.jsx";
 
 /* ----------------------------- Eine Kartenzeile ------------------------ */
 
@@ -58,7 +59,7 @@ const inLetzterZeile = (feld) => !feld.value.slice(feld.selectionEnd).includes("
 
 function Zeile({
   karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZeile, aufWandern,
-  ziehGriff = null, ziehZeile = {}, anfassen = {},
+  ziehZeile = {}, anfassen = {},
 }) {
   const [term, setTerm] = useState(karte.term);
   const [definition, setDefinition] = useState(karte.definition);
@@ -270,9 +271,6 @@ function Zeile({
           aufFertig={(latex) => formelSetzen(latex)} />
       )}
       <div style={{ gridColumn: "1 / -1" }} className="reihe klein blass">
-        {ziehGriff && (
-          <span className="griff" {...ziehGriff}><Symbol name="griff" groesse={18} /></span>
-        )}
         <span className="mono">{nummer}</span>
         <div className="dehnen" />
         <Stern an={karte.starred} groesse={16}
@@ -287,7 +285,8 @@ function Zeile({
             <option key={k} value={k}>{n}</option>
           ))}
         </select>
-        <SymbolKnopf symbol="muell" titel="Karte löschen" onClick={() => loeschen(karte.id)} />
+        <SymbolKnopf symbol="muell" titel="Karte löschen"
+          onClick={() => karteMitRueckfrageLoeschen(karte, loeschen)} />
       </div>
       {seite("vorn", term, setTerm, "term", "Vorderseite: Begriff, Frage, Vokabel")}
       {istMehrschritt ? (
@@ -386,7 +385,7 @@ export default function Bearbeiten({ setId }) {
   const folge = folgeVon(liste);
   const reihe = liste.filter((e) => e.art === "karte").map((e) => e.karte);
   const abschnitte = derStapel?.abschnitte || [];
-  const { griff, zeile, anfassen } = useZiehen({
+  const { zeile, anfassen } = useZiehen({
     kennungen: folge, aufOrdnen: (f) => kartenGliedern(setId, f), abstand: 10,
   });
 
@@ -518,7 +517,7 @@ export default function Bearbeiten({ setId }) {
           const nr = reihe.indexOf(k);
           return (
             <Zeile key={k.id} karte={k} nummer={nr + 1} aendern={karteAendern}
-              loeschen={karteLoeschen} ziehGriff={griff(k.id)} ziehZeile={zeile(k.id, i)}
+              loeschen={karteLoeschen} ziehZeile={zeile(k.id, i)}
               anfassen={anfassen(k.id)}
               aufHoch={() => verschieben(k.id, -1)} aufRunter={() => verschieben(k.id, 1)}
               aufWandern={wandern}
@@ -584,8 +583,8 @@ export default function Bearbeiten({ setId }) {
               <span className="matt">Ein Bild aus der Zwischenablage landet auf der Karte</span></div>
           </div>
           <p className="klein blass oben-12">
-            Umordnen geht auch mit der Maus: am Griff <span className="mono">⋮⋮</span> links
-            in der Zeile ziehen.
+            Umordnen geht auch mit der Maus oder dem Finger: eine Karte an einer freien
+            Stelle anfassen (am Telefon kurz gedrückt halten) und ziehen.
           </p>
         </Dialog>
       )}
