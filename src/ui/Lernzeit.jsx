@@ -157,8 +157,8 @@ export default function Lernzeit() {
   ];
 
   return (
-    <section style={{ marginBottom: 30 }}>
-      <h3 style={{ marginBottom: 4 }}>Lernzeit</h3>
+    <section className="unten-32">
+      <h3 className="unten-4">Lernzeit</h3>
       <p className="klein blass" style={{ marginTop: 0, maxWidth: "70ch" }}>
         Gezählt wird nur, solange du in einem Lernmodus oder beim Bearbeiten eines
         Stapels wirklich etwas tust und die App im Vordergrund ist. Nach
@@ -192,7 +192,7 @@ export default function Lernzeit() {
           </div>
           <Verlauf saeulen={saeulen} />
 
-          <details style={{ marginTop: 8 }}>
+          <details className="oben-8">
             <summary className="klein matt" style={{ cursor: "pointer" }}>Als Tabelle</summary>
             <div style={{ overflowX: "auto" }}>
               <table className="lz-tabelle">

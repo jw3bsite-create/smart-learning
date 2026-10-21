@@ -89,7 +89,7 @@ function Anfrage({ anfrage }) {
           {ja}
         </Knopf>
       </>}>
-      {text && <p className="matt" style={{ marginTop: 0 }}>{text}</p>}
+      {text && <p className="matt oben-0">{text}</p>}
       {art === "eingabe" && (
         <form onSubmit={(e) => { e.preventDefault(); annehmen(); }}>
           <input ref={feld} className="feld" value={wert} placeholder={anfrage.platzhalter}

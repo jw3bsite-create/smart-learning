@@ -208,7 +208,7 @@ export default function Stapelansicht({ setId }) {
           </div>
 
           {/* --------------------------- Übungsmodi --------------------- */}
-          <div className="klein blass" style={{ marginBottom: 8 }}>
+          <div className="klein blass unten-8">
             Zum Üben, zählt für die Statistik, verschiebt aber keine Termine
           </div>
           {/* Nur Sinnbild und Name. Was ein Modus tut, steht im Modus hinter
@@ -223,7 +223,7 @@ export default function Stapelansicht({ setId }) {
           </div>
 
           {/* ------------------------ Fortschritt ------------------------ */}
-          <div className="zahl-kachel" style={{ marginBottom: 24 }}>
+          <div className="zahl-kachel unten-24">
             <div className="reihe" style={{ marginBottom: 10, flexWrap: "wrap" }}>
               <h3 className="dehnen">Fortschritt</h3>
               <span className="klein matt">
@@ -251,7 +251,7 @@ export default function Stapelansicht({ setId }) {
           </div>
 
           {/* -------------------------- Karten -------------------------- */}
-          <div className="reihe umbruch" style={{ marginBottom: 12 }}>
+          <div className="reihe umbruch unten-12">
             <h3 className="dehnen">{anzahl(karten.length, "Karte", "Karten")}</h3>
             {markierte > 0 && (
               <Knopf art={"klein" + (nurMarkierte ? " voll" : "")} symbol="stern"
@@ -342,7 +342,7 @@ export default function Stapelansicht({ setId }) {
                   <div className="seite">
                     <div className="inhalt matt"><Formel text={k.definition} /></div>
                     {k.defImage && <Bild kennung={k.defImage} klasse="" stil={{ maxHeight: 90, borderRadius: 8, marginTop: 8 }} />}
-                    {k.hint && <div className="klein blass" style={{ marginTop: 6 }}>Hinweis: {k.hint}</div>}
+                    {k.hint && <div className="klein blass oben-8">Hinweis: {k.hint}</div>}
                   </div>
                   {!waehlt && <div className="werkzeuge">
                     {ziehbar ? (
@@ -387,10 +387,10 @@ export default function Stapelansicht({ setId }) {
       {uebtAbschnitt && (
         <Dialog titel={"„" + (uebtAbschnitt.titel || "Abschnitt") + "“ üben"}
           aufSchliessen={() => setUebtAbschnitt(null)}>
-          <p className="klein matt" style={{ marginTop: 0 }}>
+          <p className="klein matt oben-0">
             Zum Üben, wie oben. Das Abrufen bleibt beim ganzen Fach.
           </p>
-          <div className="modus-raster" style={{ marginBottom: 0 }}>
+          <div className="modus-raster unten-0">
             {MODI.map((m) => (
               <Knopf key={m.id} symbol={m.symbol} title={m.text}
                 onClick={() => gehe("/stapel/" + setId + "/" + m.id + "/" + uebtAbschnitt.id)}>
@@ -407,10 +407,10 @@ export default function Stapelansicht({ setId }) {
           <label className="beschriftung">Titel</label>
           <input className="feld" value={derStapel.title}
             onChange={(e) => stapelAendern(setId, { title: e.target.value })} />
-          <label className="beschriftung" style={{ marginTop: 14 }}>Beschreibung</label>
+          <label className="beschriftung oben-16">Beschreibung</label>
           <textarea className="feld" value={derStapel.description || ""} style={{ minHeight: 70 }}
             onChange={(e) => stapelAendern(setId, { description: e.target.value })} />
-          <div className="antwort-gitter" style={{ marginTop: 14 }}>
+          <div className="antwort-gitter oben-16">
             <div>
               <label className="beschriftung">Sprache der Vorderseite</label>
               <select className="feld" value={derStapel.termLang}
@@ -426,7 +426,7 @@ export default function Stapelansicht({ setId }) {
               </select>
             </div>
           </div>
-          <p className="klein matt" style={{ marginTop: 12 }}>
+          <p className="klein matt oben-12">
             Die Sprachen bestimmen, welche Stimme vorliest, wichtig für Vokabeln
             und für den Modus „Buchstabieren“.
           </p>

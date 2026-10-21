@@ -67,7 +67,7 @@ function FachZeile({ notenfach, aufOeffnen }) {
   return (
     <div className="karten-zeile" style={{ display: "block", padding: 14, cursor: "pointer" }}
       onClick={aufOeffnen}>
-      <div className="reihe" style={{ marginBottom: 8 }}>
+      <div className="reihe unten-8">
         <div className="dehnen" style={{ fontFamily: "var(--schrift-karten)", fontSize: 17 }}>
           {notenfach.fach || "Ohne Namen"}
         </div>
@@ -155,7 +155,7 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
       <div className="kopfzeile">
         <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer" onClick={aufSchliessen} />
         <div className="dehnen">
-          <h1 style={{ marginBottom: 2 }}>{notenfach.fach}</h1>
+          <h1 className="unten-4">{notenfach.fach}</h1>
           <div className="klein matt">{halbjahr?.name}</div>
         </div>
         <Punkte wert={stand.punkte} gross />
@@ -163,8 +163,8 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
 
       {/* ------------------------- Der Verlauf --------------------------- */}
       {verlauf.some((v) => v.punkte !== null) && (
-        <div className="zahl-kachel" style={{ marginBottom: 22 }}>
-          <div className="klein matt" style={{ marginBottom: 10 }}>
+        <div className="zahl-kachel unten-24">
+          <div className="klein matt unten-12">
             Dieses Fach über die Halbjahre
           </div>
           <div className="reihe" style={{ gap: 16, flexWrap: "wrap" }}>
@@ -182,8 +182,8 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
       {ART_IDS.map((art) => {
         const eigene = (notenfach.leistungen || []).filter((l) => l.art === art);
         return (
-          <div key={art} style={{ marginBottom: 20 }}>
-            <div className="reihe" style={{ marginBottom: 8 }}>
+          <div className="unten-24" key={art}>
+            <div className="reihe unten-8">
               <h3 className="dehnen">{ARTEN[art].name}</h3>
               {stand.proArt[art] !== null && <Punkte wert={stand.proArt[art]} />}
               <Knopf art="klein" symbol="plus"
@@ -207,14 +207,14 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
       })}
 
       {/* -------------------------- Gewichtung --------------------------- */}
-      <h3 style={{ marginBottom: 4 }}>Wie die Arten zählen</h3>
-      <p className="klein matt" style={{ marginTop: 0 }}>
+      <h3 className="unten-4">Wie die Arten zählen</h3>
+      <p className="klein matt oben-0">
         Erst wird je Art gemittelt, dann werden die Arten nach diesen Zahlen
         zusammengefasst. Was an deiner Schule gilt, weiß die App nicht, darum
         stehen alle drei auf eins, bis du es änderst. Eine Art ohne Leistungen
         zählt nicht mit.
       </p>
-      <div className="reihe umbruch" style={{ marginBottom: 22 }}>
+      <div className="reihe umbruch unten-24">
         {ART_IDS.map((art) => (
           <label key={art} className="beschriftung" style={{ minWidth: 110 }}>
             {ARTEN[art].name}
@@ -231,15 +231,15 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
       </div>
 
       {/* ------------------------- Zeugnispunkte ------------------------- */}
-      <h3 style={{ marginBottom: 4 }}>Punkte auf dem Zeugnis</h3>
-      <p className="klein matt" style={{ marginTop: 0 }}>
+      <h3 className="unten-4">Punkte auf dem Zeugnis</h3>
+      <p className="klein matt oben-0">
         Steht hier eine Zahl, gilt sie statt der Rechnung, am Ende zählt, was
         der Lehrer eingetragen hat, nicht was wir uns ausgerechnet haben.
         {stand.gerechnet !== null && (
           <> Gerechnet wären es <strong>{punkteText(stand.gerechnet)}</strong>.</>
         )}
       </p>
-      <div className="reihe" style={{ marginBottom: 26 }}>
+      <div className="reihe unten-24">
         <input className="feld" type="number" min="0" max="15" step="1"
           style={{ width: 120 }}
           placeholder="—"
@@ -258,8 +258,8 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
       {/* ------------------------- Lernfach dazu ------------------------- */}
       {faecher.length > 0 && (
         <>
-          <h3 style={{ marginBottom: 4 }}>Zugehöriges Lernfach</h3>
-          <p className="klein matt" style={{ marginTop: 0 }}>
+          <h3 className="unten-4">Zugehöriges Lernfach</h3>
+          <p className="klein matt oben-0">
             Verknüpft, erscheinen die Punkte auch beim Fortschritt neben dem
             Lernstand, dort sieht man, ob das Üben ankommt.
           </p>
@@ -365,7 +365,7 @@ export default function Noten() {
       </div>
 
       {gewaehlt && gewaehlt.faecher.length > 0 && (
-        <div className="zahl-kachel" style={{ marginBottom: 18 }}>
+        <div className="zahl-kachel unten-16">
           <div className="reihe">
             <div className="dehnen klein matt">
               Schnitt in {gewaehlt.name} · {anzahl(gewaehlt.anzahl, "Fach", "Fächer")}

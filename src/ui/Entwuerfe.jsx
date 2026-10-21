@@ -83,8 +83,8 @@ function EntwurfKarte({ entwurf, aufFertig }) {
       {/* Der Vorschlag — erst auf Verlangen */}
       {entwurf.vorschlag && (
         gesehen ? (
-          <div className="rueckmeldung fast" style={{ marginTop: 12 }}>
-            <div className="reihe klein matt" style={{ marginBottom: 6 }}>
+          <div className="rueckmeldung fast oben-12">
+            <div className="reihe klein matt unten-8">
               <Symbol name="auge" groesse={15} />
               <span>Vorschlag der KI</span>
             </div>
@@ -99,7 +99,7 @@ function EntwurfKarte({ entwurf, aufFertig }) {
             </div>
           </div>
         ) : (
-          <div className="reihe" style={{ marginTop: 10 }}>
+          <div className="reihe oben-12">
             <Knopf art="leer klein" onClick={vorschlagZeigen}>
               <Symbol name="auge" groesse={15} />
               {hatGeschrieben ? "Vorschlag zum Vergleich zeigen" : "Vorschlag zeigen"}
@@ -113,7 +113,7 @@ function EntwurfKarte({ entwurf, aufFertig }) {
         )
       )}
 
-      <div className="reihe" style={{ marginTop: 14 }}>
+      <div className="reihe oben-16">
         <Knopf art="leer klein gefahr" symbol="muell"
           onClick={() => entwurfVerwerfen(entwurf.id)}>Verwerfen</Knopf>
         <div className="dehnen" />

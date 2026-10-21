@@ -34,7 +34,7 @@ function Kartenvorschau({ karten }) {
               ))}
             </ol>
           ) : k.definition ? (
-            <div className="klein matt" style={{ marginTop: 2 }}>→ <Formel text={k.definition} /></div>
+            <div className="klein matt oben-4">→ <Formel text={k.definition} /></div>
           ) : null}
         </div>
       ))}
@@ -109,7 +109,7 @@ export default function StapeldateiEinfuhr({ fachId = null, ordnerId = null, auf
           {stapel ? "Stapel anlegen (" + anzahl(stapel.karten.length, "Karte", "Karten") + ")" : "Stapel anlegen"}
         </Knopf>
       </>}>
-      <p className="klein blass" style={{ marginTop: 0 }}>
+      <p className="klein blass oben-0">
         Eine Stapeldatei (.json) trägt einen ganzen Stapel: Karten, Lückentexte,
         Rechenwege mit Schritten, Hinweise und Formeln. Wähle die Datei aus oder
         füge ihren Text ein.
@@ -138,7 +138,7 @@ export default function StapeldateiEinfuhr({ fachId = null, ordnerId = null, auf
       )}
 
       {gelesen && !stapel && (
-        <div className="rueckmeldung schlecht klein" style={{ marginTop: 12 }}>
+        <div className="rueckmeldung schlecht klein oben-12">
           <strong>Nichts angelegt.</strong>
           <ul style={{ margin: "6px 0 0", paddingLeft: 18 }}>
             {gelesen.fehler.slice(0, 8).map((f, i) => <li key={i}>{f}</li>)}
@@ -149,7 +149,7 @@ export default function StapeldateiEinfuhr({ fachId = null, ordnerId = null, auf
 
       {stapel && (
         <>
-          <div className="rueckmeldung gut klein" style={{ marginTop: 4 }}>
+          <div className="rueckmeldung gut klein oben-4">
             <Symbol name="haken" groesse={15} />{" "}
             {Object.entries(arten)
               .map(([art, n]) => n + " × " + KARTENARTEN[art]).join(", ")}
@@ -177,7 +177,7 @@ export default function StapeldateiEinfuhr({ fachId = null, ordnerId = null, auf
             </div>
           </div>
 
-          <label className="beschriftung" style={{ marginTop: 14 }}>Durchsicht</label>
+          <label className="beschriftung oben-16">Durchsicht</label>
           <Kartenvorschau karten={stapel.karten} />
         </>
       )}

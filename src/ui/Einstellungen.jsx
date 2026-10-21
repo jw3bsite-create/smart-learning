@@ -30,7 +30,7 @@ import Kalenderausfuhr from "./Kalenderausfuhr.jsx";
 
 function Abschnitt({ titel, hinweis, children }) {
   return (
-    <section style={{ marginBottom: 34 }}>
+    <section className="unten-32">
       <h2 style={{ marginBottom: hinweis ? 4 : 12 }}>{titel}</h2>
       {hinweis && <p className="klein matt" style={{ marginTop: 0, marginBottom: 12 }}>{hinweis}</p>}
       {children}
@@ -256,7 +256,7 @@ function Wolkenteil({ aufAbgleich }) {
             <SymbolKnopf symbol="abmelden" titel="Auf diesem Gerät abmelden"
               onClick={() => abmelden(false)} />
           </div>
-          <div className="reihe umbruch" style={{ marginTop: 10 }}>
+          <div className="reihe umbruch oben-12">
             <Knopf art="klein" onClick={() => oeffnePasswort("aendern")}>Passwort ändern</Knopf>
             {/* Für den Fall, dass ein Gerät nichts mehr holt: Die Marken sagen,
                 bis wohin schon abgeglichen wurde. Zurückgesetzt wird alles
@@ -273,7 +273,7 @@ function Wolkenteil({ aufAbgleich }) {
             Änderungen eines anderen nicht bekommt.
           </p>
           {wolkeStand.zustand === "fehler" && (
-            <div className="rueckmeldung schlecht klein" style={{ marginTop: 10 }}>
+            <div className="rueckmeldung schlecht klein oben-12">
               {wolkeStand.text}
             </div>
           )}
@@ -289,7 +289,7 @@ function Wolkenteil({ aufAbgleich }) {
                   bekommt nur „kein Anschluss" und sucht den Fehler beim
                   Schlüssel. Die App schneidet das ab — hier steht, dass sie
                   es tut. */}
-              <div className="klein blass" style={{ marginTop: 4 }}>
+              <div className="klein blass oben-4">
                 Der Anhang <span className="mono">/rest/v1/</span> darf dranbleiben,
                 er wird beim Speichern abgeschnitten.
               </div>
@@ -298,14 +298,14 @@ function Wolkenteil({ aufAbgleich }) {
               <label className="beschriftung">Öffentlicher Schlüssel</label>
               <input className="feld" placeholder="sb_publishable_… oder eyJ…" value={zugang.key}
                 onChange={(e) => setZugang({ ...zugang, key: e.target.value })} />
-              <div className="klein blass" style={{ marginTop: 4 }}>
+              <div className="klein blass oben-4">
                 Der <span className="mono">publishable</span> beziehungsweise
                 <span className="mono"> anon</span> key. Niemals der
                 <span className="mono"> service_role</span> key, der umgeht jeden Schutz.
               </div>
             </div>
           </div>
-          <div className="reihe umbruch" style={{ marginTop: 10 }}>
+          <div className="reihe umbruch oben-12">
             <Knopf art="klein" onClick={zugangSichern}>Zugangsdaten merken</Knopf>
             {wolke.eingerichtet(zugang) && (
               <Knopf art="klein" onClick={() => { setLink(wolke.zugangAlsLink(zugang)); setKopiert(false); }}>
@@ -322,11 +322,11 @@ function Wolkenteil({ aufAbgleich }) {
               <label className="beschriftung">Kennung (E-Mail)</label>
               <input className="feld" type="email" autoComplete="username" value={kennung}
                 onChange={(e) => setKennung(e.target.value)} />
-              <label className="beschriftung" style={{ marginTop: 10 }}>Passwort</label>
+              <label className="beschriftung oben-12">Passwort</label>
               <input className="feld" type="password"
                 autoComplete={neu ? "new-password" : "current-password"} value={passwort}
                 onChange={(e) => setPasswort(e.target.value)} />
-              <div className="reihe" style={{ marginTop: 12 }}>
+              <div className="reihe oben-12">
                 <Knopf art="voll" type="submit" disabled={laeuft || !kennung || !passwort}>
                   {neu ? "Kennung anlegen" : "Anmelden"}
                 </Knopf>
@@ -345,18 +345,18 @@ function Wolkenteil({ aufAbgleich }) {
       )}
 
       {link && (
-        <div className="zahl-kachel" style={{ marginTop: 12 }}>
+        <div className="zahl-kachel oben-12">
           <div className="reihe umbruch" style={{ gap: 8 }}>
             <strong className="dehnen">Einrichtung für iPad und Handy</strong>
             <Knopf art="klein leer" onClick={() => setLink("")}>Schließen</Knopf>
           </div>
-          <p className="klein matt" style={{ marginTop: 6 }}>
+          <p className="klein matt oben-8">
             Öffne diesen Link auf dem anderen Gerät. Adresse und Schlüssel stehen dann dort,
             und du musst dich nur noch anmelden. Dein Passwort steht nicht darin.
           </p>
           <input className="feld mono klein" readOnly value={link}
             onFocus={(e) => e.target.select()} />
-          <div className="reihe" style={{ marginTop: 8 }}>
+          <div className="reihe oben-8">
             <Knopf art="klein voll" onClick={async () => {
               try {
                 await navigator.clipboard.writeText(link);
@@ -374,8 +374,8 @@ function Wolkenteil({ aufAbgleich }) {
         </div>
       )}
 
-      {fehler && <div className="rueckmeldung schlecht klein" style={{ marginTop: 12 }}>{fehler}</div>}
-      {hinweis && <div className="rueckmeldung gut klein" style={{ marginTop: 12 }}>{hinweis}</div>}
+      {fehler && <div className="rueckmeldung schlecht klein oben-12">{fehler}</div>}
+      {hinweis && <div className="rueckmeldung gut klein oben-12">{hinweis}</div>}
 
       {pwArt && (
         <Dialog titel={pwArt === "aendern" ? "Passwort ändern" : "Neues Passwort festlegen"}
@@ -397,25 +397,25 @@ function Wolkenteil({ aufAbgleich }) {
                 value={pwBisher} onChange={(e) => setPwBisher(e.target.value)} />
             </>
           )}
-          <label className="beschriftung" style={{ marginTop: 10 }}>Neues Passwort</label>
+          <label className="beschriftung oben-12">Neues Passwort</label>
           <input className="feld" type="password" autoComplete="new-password"
             value={pwNeu} onChange={(e) => setPwNeu(e.target.value)} />
-          <label className="beschriftung" style={{ marginTop: 10 }}>Neues Passwort wiederholen</label>
+          <label className="beschriftung oben-12">Neues Passwort wiederholen</label>
           <input className="feld" type="password" autoComplete="new-password"
             value={pwWieder} onChange={(e) => setPwWieder(e.target.value)} />
 
-          <label className="schalter" style={{ marginTop: 16 }}>
+          <label className="schalter oben-16">
             <input type="checkbox" checked={andereAbmelden}
               onChange={(e) => setAndereAbmelden(e.target.checked)} />
             <span>Auf meinen anderen Geräten abmelden</span>
           </label>
-          <p className="klein matt" style={{ marginTop: 4 }}>
+          <p className="klein matt oben-4">
             Ohne Haken bleiben Handy, Tablet und Rechner angemeldet. Supabase meldet
             beim Passwortwechsel von sich aus niemanden ab. Mit Haken müssen sie sich neu
             anmelden, spätestens nach einer Stunde, wenn ihre Anmeldung erneuert würde.
             Setz den Haken, wenn du das Passwort änderst, weil jemand es kennen könnte.
           </p>
-          {pwFehler && <div className="rueckmeldung schlecht klein" style={{ marginTop: 10 }}>{pwFehler}</div>}
+          {pwFehler && <div className="rueckmeldung schlecht klein oben-12">{pwFehler}</div>}
         </Dialog>
       )}
 
@@ -501,7 +501,7 @@ function Sprachmodellteil() {
 
       {zugang.angeschaltet && (
         <>
-          <div className="antwort-gitter" style={{ marginTop: 12 }}>
+          <div className="antwort-gitter oben-12">
             <div>
               <label className="beschriftung">Woher</label>
               <select className="feld" value={zugang.anbieter}
@@ -513,13 +513,13 @@ function Sprachmodellteil() {
                   <option key={k} value={k}>{a.name}</option>
                 ))}
               </select>
-              <p className="klein matt" style={{ marginTop: 6 }}>{anbieter.hinweis}</p>
+              <p className="klein matt oben-8">{anbieter.hinweis}</p>
             </div>
             <div>
               <label className="beschriftung">Adresse</label>
               <input className="feld" value={zugang.adresse}
                 onChange={(e) => aendern({ adresse: e.target.value })} />
-              <label className="beschriftung" style={{ marginTop: 10 }}>
+              <label className="beschriftung oben-12">
                 Modell {stand?.modelle?.length ? "(gefunden)" : "(freiwillig)"}
               </label>
               {stand?.modelle?.length ? (
@@ -537,7 +537,7 @@ function Sprachmodellteil() {
 
           {anbieter.schluesselNoetig && (
             <>
-              <label className="beschriftung" style={{ marginTop: 12 }}>
+              <label className="beschriftung oben-12">
                 Dein Schlüssel, bleibt auf diesem Gerät
               </label>
               <input className="feld" type="password" value={zugang.schluessel}
@@ -570,12 +570,12 @@ function Sprachmodellteil() {
             </label>
           </div>
 
-          <div className="klein blass" style={{ marginTop: 8 }}>
+          <div className="klein blass oben-8">
             Heute verbraucht: {verbraucht} von {zugang.tagesbudget}.
           </div>
 
           {protokoll.length > 0 && (
-            <details style={{ marginTop: 12 }}>
+            <details className="oben-12">
               <summary className="klein matt" style={{ cursor: "pointer" }}>
                 Protokoll der letzten Aufrufe
               </summary>
@@ -597,7 +597,7 @@ function Sprachmodellteil() {
             </details>
           )}
 
-          <p className="klein matt" style={{ marginTop: 12 }}>
+          <p className="klein matt oben-12">
             Die Anweisungen, mit denen das Modell arbeitet, liegen als lesbare
             Dateien im Verzeichnis <code>prompts/</code>. Es gibt kein freies
             Chatfenster: Jeder Aufruf folgt einer dieser Anweisungen.
@@ -697,13 +697,13 @@ function Erinnerungsteil() {
       )}
 
       {erlaubnis === "denied" && (
-        <div className="rueckmeldung schlecht klein" style={{ marginTop: 10 }}>
+        <div className="rueckmeldung schlecht klein oben-12">
           Der Browser hat Benachrichtigungen für diese Seite abgelehnt. Das
           lässt sich nur in seinen eigenen Einstellungen zurücknehmen.
         </div>
       )}
       {erlaubnis === "geht nicht" && (
-        <div className="klein blass" style={{ marginTop: 10 }}>
+        <div className="klein blass oben-12">
           {erinnerung.istApple() && !erinnerung.alsAppGeoeffnet()
             ? "Auf dem iPhone gibt es Benachrichtigungen nur, wenn Anchor vom "
               + "Home-Bildschirm aus geöffnet ist, nicht im Safari-Fenster."
@@ -712,7 +712,7 @@ function Erinnerungsteil() {
       )}
 
       {!e.push && (
-        <p className="klein blass" style={{ marginTop: 10 }}>
+        <p className="klein blass oben-12">
           Ohne Push erscheint die Nachricht nur, solange die App irgendwo geöffnet
           ist. Auf dem Handy also beim Öffnen, nicht davor.
         </p>
@@ -795,7 +795,7 @@ function PushTeil({ stunde, aktivHier, setzeAktivHier }) {
   const hier = lage.stand === "bereit" && Boolean(lage.geraet) && aktivHier;
 
   return (
-    <div className="zahl-kachel" style={{ marginTop: 14 }}>
+    <div className="zahl-kachel oben-16">
       <strong>Auch bei geschlossener App</strong>
       <p className="klein matt" style={{ margin: "6px 0 10px" }}>
         Als echte Push-Nachricht, verschickt über GitHub. Sie kommt ab {stunde} Uhr,
@@ -827,7 +827,7 @@ function PushTeil({ stunde, aktivHier, setzeAktivHier }) {
               <span>Auf diesem Gerät</span>
             </label>
           ) : (
-            <div className="klein blass" style={{ marginBottom: 6 }}>
+            <div className="klein blass unten-8">
               Eingerichtet. {push.laeuftLokal()
                 ? "Hier am Rechner (localhost) gibt es keine Push-Nachrichten — schalte sie auf dem Handy ein."
                 : "Dieses Gerät kann keine Push-Nachrichten empfangen."}
@@ -838,12 +838,12 @@ function PushTeil({ stunde, aktivHier, setzeAktivHier }) {
         </>
       )}
 
-      {fehler && <div className="rueckmeldung schlecht klein" style={{ marginTop: 10 }}>{fehler}</div>}
+      {fehler && <div className="rueckmeldung schlecht klein oben-12">{fehler}</div>}
 
       {geheimnis && (
         <Dialog titel="Noch ein Schritt auf GitHub" aufSchliessen={() => setGeheimnis("")}
           fuss={<Knopf art="voll" onClick={() => setGeheimnis("")}>Erledigt</Knopf>}>
-          <p className="matt" style={{ marginTop: 0 }}>
+          <p className="matt oben-0">
             Damit die Nachrichten verschickt werden, braucht GitHub das Geheimnis
             unten. <strong>Es wird nur jetzt angezeigt</strong> und nirgends
             gespeichert. Danach schaltest du jedes Gerät einzeln unter „Auf diesem
@@ -851,7 +851,7 @@ function PushTeil({ stunde, aktivHier, setzeAktivHier }) {
           </p>
           <textarea className="feld mono" readOnly rows={4} value={geheimnis}
             onFocus={(ev) => ev.target.select()} style={{ fontSize: 12 }} />
-          <div className="reihe umbruch" style={{ marginTop: 8 }}>
+          <div className="reihe umbruch oben-8">
             <Knopf symbol="papier" onClick={async () => {
               try { await navigator.clipboard.writeText(geheimnis); setKopiert(true); }
               catch (f) { setKopiert(false); }
@@ -956,7 +956,7 @@ function Beispielteil() {
       {meldung && (
         <div className={"rueckmeldung klein "
           + (meldung.startsWith("Das ist schief") ? "schlecht" : "gut")}
-        style={{ marginTop: 10 }}>{meldung}</div>
+        style={{ marginTop: 12 }}>{meldung}</div>
       )}
     </Abschnitt>
   );
@@ -992,7 +992,7 @@ function Wolkensicherungen({ ausSicherung, setMeldung, setFehler }) {
   };
 
   return (
-    <details style={{ marginTop: 6 }}>
+    <details className="oben-8">
       <summary className="klein matt" style={{ cursor: "pointer" }}>
         Tägliche Sicherungen in der Cloud ({liste.length})
       </summary>
@@ -1156,7 +1156,7 @@ function Sicherungsteil() {
   return (
     <Abschnitt titel="Sicherung als Datei"
       hinweis="Für den schlimmsten Fall: eine Datei mit allem, die du selbst aufbewahrst.">
-      <div className={"zahl-kachel" + (faellig ? "" : "")} style={{ marginBottom: 14 }}>
+      <div className={"zahl-kachel" + (faellig ? "" : "")} style={{ marginBottom: 16 }}>
         <div className="reihe umbruch">
           <div className="dehnen">
             <div className="klein matt">Letzte Sicherung</div>
@@ -1230,7 +1230,7 @@ function Sicherungsteil() {
       </p>
 
       {kopien.length > 0 && (
-        <details style={{ marginTop: 6 }}>
+        <details className="oben-8">
           <summary className="klein matt" style={{ cursor: "pointer" }}>
             Automatische Kopien im Browser ({kopien.length})
           </summary>
@@ -1256,8 +1256,8 @@ function Sicherungsteil() {
 
       <Wolkensicherungen ausSicherung={ausSicherung} setMeldung={setMeldung} setFehler={setFehler} />
 
-      {meldung && <div className="rueckmeldung gut klein" style={{ marginTop: 10 }}>{meldung}</div>}
-      {fehler && <div className="rueckmeldung schlecht klein" style={{ marginTop: 10 }}>{fehler}</div>}
+      {meldung && <div className="rueckmeldung gut klein oben-12">{meldung}</div>}
+      {fehler && <div className="rueckmeldung schlecht klein oben-12">{fehler}</div>}
 
       {einlesen && (
         <Dialog titel="Sicherung einlesen" aufSchliessen={() => { setEinlesen(null); setPruefung(null); }}
@@ -1337,7 +1337,7 @@ export default function Einstellungen({ aufAbgleich }) {
         {schalter("vorlesenAutomatisch", "Bei Karteikarten von allein vorlesen")}
         {schalter("eigeneStimmeAutomatisch", "Eigene Aufnahme von allein abspielen",
           "wenn du die Loesung selbst eingesprochen hast, sobald sie aufgedeckt ist")}
-        <label className="beschriftung" style={{ marginTop: 10 }}>
+        <label className="beschriftung oben-12">
           Sprechtempo: {Number(einstellungen.sprechTempo).toFixed(1)}
         </label>
         <div className="reihe">

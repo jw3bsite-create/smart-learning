@@ -67,7 +67,7 @@ export default class Auffanglinie extends React.Component {
           </button>
         </div>
 
-        <details style={{ marginTop: 10 }}>
+        <details className="oben-12">
           <summary style={{ cursor: "pointer", color: "var(--schrift-blass)", fontSize: 13 }}>
             Was genau passiert ist
           </summary>
@@ -92,13 +92,13 @@ export default class Auffanglinie extends React.Component {
     return (
       <div className="mitte">
         <div className="zahl-kachel" role="alert" style={{ maxWidth: 620 }}>
-          <h2 style={{ marginBottom: 6 }}>Diese Ansicht ist abgestürzt</h2>
-          <p className="matt" style={{ marginTop: 0 }}>
+          <h2 className="unten-8">Diese Ansicht ist abgestürzt</h2>
+          <p className="matt oben-0">
             <strong style={{ color: "var(--gruen)" }}>Deine Karten und dein Lernstand sind
             unversehrt.</strong> Nur die Anzeige ist hängengeblieben. Über das Menü geht es
             woandershin weiter, oder du versuchst es hier noch einmal.
           </p>
-          <div className="reihe umbruch" style={{ marginTop: 14 }}>
+          <div className="reihe umbruch oben-16">
             <button type="button" className="knopf voll"
               onClick={() => this.setState({ fehler: null, stelle: null })}>
               Noch einmal versuchen
@@ -110,7 +110,7 @@ export default class Auffanglinie extends React.Component {
               Sicherung herunterladen
             </button>
           </div>
-          <details style={{ marginTop: 14 }}>
+          <details className="oben-16">
             <summary className="klein blass" style={{ cursor: "pointer" }}>Was genau passiert ist</summary>
             <pre className="fehler-text">
               {String(this.state.fehler?.stack || this.state.fehler)}

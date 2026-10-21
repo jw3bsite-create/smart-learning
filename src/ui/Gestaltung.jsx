@@ -93,7 +93,7 @@ function SchriftWahl({ beschriftung, wert, setzen }) {
   const waehlen = (schluessel) => { setzen(schluessel); setOffen(false); };
 
   return (
-    <div style={{ marginBottom: 16 }} ref={feld}>
+    <div className="unten-16" ref={feld}>
       <label className="beschriftung">{beschriftung}</label>
       <div className="schriftwahl">
         <button type="button" className="feld schriftwahl-knopf"
@@ -148,22 +148,22 @@ function SchriftWahl({ beschriftung, wert, setzen }) {
 
 function Regler({ beschriftung, wert, min, max, schritt = 1, einheit = "", setzen, hinweis }) {
   return (
-    <div style={{ marginBottom: 16 }}>
-      <div className="reihe klein" style={{ marginBottom: 4 }}>
+    <div className="unten-16">
+      <div className="reihe klein unten-4">
         <span className="dehnen matt">{beschriftung}</span>
         <span className="mono">{wert}{einheit}</span>
       </div>
       <input type="range" min={min} max={max} step={schritt} value={wert}
         style={{ width: "100%" }}
         onChange={(e) => setzen(Number(e.target.value))} />
-      {hinweis && <div className="klein blass" style={{ marginTop: 2 }}>{hinweis}</div>}
+      {hinweis && <div className="klein blass oben-4">{hinweis}</div>}
     </div>
   );
 }
 
 function Wahlreihe({ beschriftung, wert, moeglichkeiten, setzen }) {
   return (
-    <div style={{ marginBottom: 16 }}>
+    <div className="unten-16">
       <label className="beschriftung">{beschriftung}</label>
       <div className="reihe umbruch" style={{ gap: 6 }}>
         {moeglichkeiten.map(([schluessel, name]) => (
@@ -359,12 +359,12 @@ export default function Gestaltung() {
         })}
       </div>
       {ausgeblendet.length > 0 && (
-        <button type="button" className="zurueck-verweis klein" style={{ marginBottom: 14 }}
+        <button type="button" className="zurueck-verweis klein unten-16"
           onClick={() => setzen("ausgeblendeteErscheinungsbilder", [])}>
           Vorgegebene wiederherstellen ({ausgeblendet.length})
         </button>
       )}
-      <div style={{ marginBottom: 14 }} />
+      <div className="unten-16" />
 
       <div className="antwort-gitter" style={{ gap: 26, alignItems: "start" }}>
         {/* ------------------------ Die Stellschrauben ------------------- */}
@@ -457,7 +457,7 @@ export default function Gestaltung() {
             </label>
           </Klappe>
 
-          <Knopf art="klein leer" symbol="zurueckSetzen" style={{ marginTop: 14 }}
+          <Knopf art="klein leer" symbol="zurueckSetzen" style={{ marginTop: 16 }}
             onClick={() => setZuruecksetzen(true)}>
             Auf die Vorgaben zurücksetzen
           </Knopf>

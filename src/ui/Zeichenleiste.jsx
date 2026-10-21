@@ -75,7 +75,7 @@ export default function Zeichenleiste({ aufSchliessen, feld: vorgabe }) {
 
   return (
     <div className="zeichenleiste" ref={wurzel} onMouseDown={halten} onPointerDown={halten}>
-      <div className="reihe umbruch" style={{ marginBottom: 6 }}>
+      <div className="reihe umbruch unten-8">
         <strong className="klein dehnen">Zeichen und Formeln</strong>
         <Tipp kennung="zeichenleiste">
           Tippe zuerst in das Feld der Karte, dann auf ein Zeichen. Es landet an

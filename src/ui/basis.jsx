@@ -318,7 +318,7 @@ export function Leer({ symbol = "stapel", titel, text, kinder, children }) {
   return (
     <div className="leerer-zustand">
       <Symbol name={symbol} groesse={40} />
-      <h2 style={{ marginTop: 12 }}>{titel}</h2>
+      <h2 className="oben-12">{titel}</h2>
       {text && <p style={{ maxWidth: 460, margin: "8px auto 18px" }}>{text}</p>}
       {children || kinder}
     </div>

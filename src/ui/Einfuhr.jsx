@@ -92,7 +92,7 @@ export function QuizletEinfuhr({ setId, aufSchliessen }) {
         <li>Auf die drei Punkte neben dem Stapel tippen und <strong>Exportieren</strong> wählen.</li>
         <li>Den ganzen Text im Kasten markieren, kopieren und hier einsetzen.</li>
       </ol>
-      <p className="klein blass" style={{ marginTop: 0 }}>
+      <p className="klein blass oben-0">
         Die Trennzeichen erkennt die App selbst. Hast du die Liste als Datei,
         kannst du sie auch auswählen. Bilder gibt Quizlet nicht heraus, Text schon.
       </p>
@@ -103,7 +103,7 @@ export function QuizletEinfuhr({ setId, aufSchliessen }) {
         value={text}
         onChange={(e) => { setText(e.target.value); setBearbeitet(null); }} />
 
-      <div className="reihe umbruch" style={{ marginTop: 8 }}>
+      <div className="reihe umbruch oben-8">
         <input ref={datei} type="file" accept=".txt,.csv,.tsv,text/plain,text/csv"
           style={{ display: "none" }}
           onChange={(e) => dateiGewaehlt(e.target.files[0])} />
@@ -146,7 +146,7 @@ export function QuizletEinfuhr({ setId, aufSchliessen }) {
 
       {paare.length > 0 && (
         <>
-          <label className="beschriftung" style={{ marginTop: 14 }}>
+          <label className="beschriftung oben-16">
             Durchsicht: {anzahl(paare.length, "Karte", "Karten")}
           </label>
           <Durchsicht paare={paare} setPaare={setBearbeitet} />
@@ -198,7 +198,7 @@ export function TextEinfuhr({ setId, aufSchliessen }) {
           {anzahl(paare.length, "Karte anlegen", "Karten anlegen")}
         </Knopf>
       </>}>
-      <p className="klein matt" style={{ marginTop: 0 }}>
+      <p className="klein matt oben-0">
         Füge eine Liste ein, je Zeile Vorder- und Rückseite, getrennt durch
         Tabulator, Komma oder Gedankenstrich. So kommen auch Stapel aus Quizlet
         herüber: dort „Exportieren“ wählen und den Text hier einsetzen.
@@ -213,7 +213,7 @@ export function TextEinfuhr({ setId, aufSchliessen }) {
         }} />
 
       {istAnki && (
-        <div className="rueckmeldung gut klein" style={{ marginTop: 12 }}>
+        <div className="rueckmeldung gut klein oben-12">
           <Symbol name="haken" groesse={15} /> Anki-Ausfuhr erkannt, die
           Kopfzeilen und die Auszeichnung werden entfernt, die Trennzeichen
           unten sind hier ohne Belang.
@@ -229,7 +229,7 @@ export function TextEinfuhr({ setId, aufSchliessen }) {
             {SPALTEN_TRENNER.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
           </select>
           {spalte === "eigen" && (
-            <input className="feld" style={{ marginTop: 8 }} value={spalteEigen}
+            <input className="feld oben-8" value={spalteEigen}
               placeholder="z. B. |" onChange={(e) => { setSpalteEigen(e.target.value); setBearbeitet(null); }} />
           )}
         </div>
@@ -240,20 +240,20 @@ export function TextEinfuhr({ setId, aufSchliessen }) {
             {ZEILEN_TRENNER.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
           </select>
           {zeile === "eigen" && (
-            <input className="feld" style={{ marginTop: 8 }} value={zeileEigen}
+            <input className="feld oben-8" value={zeileEigen}
               placeholder="z. B. ;" onChange={(e) => { setZeileEigen(e.target.value); setBearbeitet(null); }} />
           )}
         </div>
       </div>
 
-      <label className="schalter" style={{ marginTop: 8 }}>
+      <label className="schalter oben-8">
         <input type="checkbox" checked={tauschen}
           onChange={(e) => { setTauschen(e.target.checked); setBearbeitet(null); }} />
         <span>Seiten vertauscht übernehmen</span>
       </label>
 
       {ergebnis.uebrig.length > 0 && (
-        <div className="rueckmeldung fast klein" style={{ marginBottom: 12 }}>
+        <div className="rueckmeldung fast klein unten-12">
           {anzahl(ergebnis.uebrig.length,
             "Zeile ohne Rückseite wird übergangen",
             "Zeilen ohne Rückseite werden übergangen")}. Stimmt das Trennzeichen?
@@ -335,7 +335,7 @@ export function BildEinfuhr({ setId, aufSchliessen }) {
           : <Knopf art="voll" onClick={anlegen} disabled={!paare.length}>
               {anzahl(paare.length, "Karte anlegen", "Karten anlegen")}</Knopf>}
       </>}>
-      <p className="klein matt" style={{ marginTop: 0 }}>
+      <p className="klein matt oben-0">
         Fotografiere eine Vokabelliste oder ein Blatt und lass den Text auslesen.
         Gedrucktes gelingt gut, Handschrift nur mäßig, sieh das Ergebnis darum
         durch, bevor du es übernimmst. Die Erkennung läuft auf diesem Gerät;
@@ -370,11 +370,11 @@ export function BildEinfuhr({ setId, aufSchliessen }) {
       )}
 
       {laeuft && (
-        <div style={{ marginTop: 16 }}>
+        <div className="oben-16">
           <div className="balken" style={{ height: 10 }}>
             <span className="vertraut" style={{ width: Math.round(anteil * 100) + "%" }} />
           </div>
-          <div className="klein matt" style={{ marginTop: 6 }}>{meldung}</div>
+          <div className="klein matt oben-8">{meldung}</div>
         </div>
       )}
 
@@ -393,7 +393,7 @@ export function BildEinfuhr({ setId, aufSchliessen }) {
             <SymbolKnopf symbol="zurueckSetzen" titel="Erneut aufteilen"
               onClick={() => setPaare(zuKarten(erkannt, art))} />
           </div>
-          <details style={{ marginBottom: 12 }}>
+          <details className="unten-12">
             <summary className="klein matt" style={{ cursor: "pointer" }}>Erkannten Rohtext ansehen</summary>
             <textarea className="feld" style={{ minHeight: 120, marginTop: 8 }} value={roh}
               onChange={(e) => {
@@ -408,7 +408,7 @@ export function BildEinfuhr({ setId, aufSchliessen }) {
       {!roh && !laeuft && !dateien.length && (
         <div className="leerer-zustand" style={{ padding: 30 }}>
           <Symbol name="bild" groesse={30} />
-          <div className="klein" style={{ marginTop: 8 }}>Noch kein Bild gewählt.</div>
+          <div className="klein oben-8">Noch kein Bild gewählt.</div>
         </div>
       )}
     </Dialog>

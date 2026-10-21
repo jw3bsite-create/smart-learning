@@ -88,7 +88,7 @@ export default function Pretest({ setId, aufSchliessen }) {
       <ModusRahmen titel="Vorab" symbol="auge" aufSchliessen={aufSchliessen} anteil={1}>
         <div style={{ textAlign: "center", paddingTop: 24 }}>
           <Symbol name="auge" groesse={38} />
-          <h1 style={{ marginTop: 12 }}>Vorab erledigt</h1>
+          <h1 className="oben-12">Vorab erledigt</h1>
           <p className="matt" style={{ maxWidth: 480, margin: "10px auto" }}>
             {getroffen === 0
               ? "Nichts getroffen, genau so war es gedacht. Die Fragen haben ihre Arbeit trotzdem getan: Der Stoff kommt dir gleich bekannter vor, als er sollte."
@@ -126,7 +126,7 @@ export default function Pretest({ setId, aufSchliessen }) {
       anteil={stelle / auswahl.length}
       rechts={<span className="klein matt mono">{stelle + 1} / {auswahl.length}</span>}>
 
-      <div className="rueckmeldung fast" style={{ marginBottom: 18 }}>
+      <div className="rueckmeldung fast unten-16">
         <div className="reihe">
           <Symbol name="auge" />
           <strong>Vorab. Fehler sind hier erwünscht.</strong>
@@ -158,7 +158,7 @@ export default function Pretest({ setId, aufSchliessen }) {
             <div className="klein matt">Die Antwort</div>
             <div style={{ fontSize: 18, marginTop: 4 }}><Formel text={loesung} /></div>
             {eingabe.trim() && (
-              <div className="klein blass" style={{ marginTop: 8 }}>
+              <div className="klein blass oben-8">
                 Du hattest geschrieben: „{eingabe}“
               </div>
             )}

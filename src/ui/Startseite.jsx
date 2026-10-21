@@ -29,8 +29,8 @@ function gruss(stunde) {
 
 function Abschnitt({ titel, children, rechts }) {
   return (
-    <section style={{ marginTop: 28 }}>
-      <div className="reihe" style={{ marginBottom: 10 }}>
+    <section className="oben-32">
+      <div className="reihe unten-12">
         <h3 className="dehnen" style={{ margin: 0 }}>{titel}</h3>
         {rechts}
       </div>
@@ -79,7 +79,7 @@ export default function Startseite() {
 
   return (
     <div className="mitte">
-      <div className="kopfzeile" style={{ marginBottom: 6 }}>
+      <div className="kopfzeile unten-8">
         <div style={{ flex: 1 }}>
           <div className="klein matt">
             {jetzt.toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long" })}
@@ -99,7 +99,7 @@ export default function Startseite() {
       ) : (
         <>
           {/* ------------------------------ Heute ----------------------------- */}
-          <div className="zahl-kachel" style={{ marginTop: 16 }}>
+          <div className="zahl-kachel oben-16">
             <div className="reihe umbruch" style={{ gap: 20, alignItems: "flex-end" }}>
               <div style={{ minWidth: 140 }}>
                 <div className="klein matt">Heute offen</div>

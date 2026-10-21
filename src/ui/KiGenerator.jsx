@@ -110,7 +110,7 @@ export default function KiGenerator({ setId, aufSchliessen }) {
       {!bereit ? (
         <div className="rueckmeldung fast">
           <div className="reihe"><Symbol name="zahnrad" /><strong>Noch nicht eingerichtet</strong></div>
-          <p className="klein" style={{ marginTop: 8 }}>
+          <p className="klein oben-8">
             Für diesen Weg braucht es ein Sprachmodell. Am einfachsten läuft es
             mit LM Studio auf diesem Rechner, dann verlässt die Vorlage das
             Gerät nicht und es kostet nichts.
@@ -121,7 +121,7 @@ export default function KiGenerator({ setId, aufSchliessen }) {
         </div>
       ) : (
         <>
-          <p className="klein matt" style={{ marginTop: 0 }}>
+          <p className="klein matt oben-0">
             Füge einen Abschnitt aus dem Buch, dem Heft oder deinen Notizen ein.
             Heraus kommen <strong>Vorderseiten</strong> mit der Stelle, auf die
             sie sich stützen. Die Rückseiten schreibst du selbst, das ist der
@@ -154,7 +154,7 @@ export default function KiGenerator({ setId, aufSchliessen }) {
           </div>
 
           {/* Was verlässt den Rechner */}
-          <div className="klein" style={{ marginTop: 12 }}>
+          <div className="klein oben-12">
             {lokal ? (
               <span className="matt">
                 <Symbol name="haken" groesse={14} /> Läuft auf diesem Rechner,
@@ -174,19 +174,19 @@ export default function KiGenerator({ setId, aufSchliessen }) {
           </div>
 
           {laeuft && (
-            <div style={{ marginTop: 16 }}>
+            <div className="oben-16">
               <div className="balken" style={{ height: 8 }}>
                 <span className="vertraut" style={{ width: "100%", opacity: 0.6 }} />
               </div>
-              <div className="klein matt" style={{ marginTop: 6 }}>{meldung}</div>
+              <div className="klein matt oben-8">{meldung}</div>
             </div>
           )}
 
           {fehler && (
-            <div className="rueckmeldung schlecht klein" style={{ marginTop: 12 }}>
+            <div className="rueckmeldung schlecht klein oben-12">
               {fehler}
               {lokal && (
-                <div style={{ marginTop: 6 }}>
+                <div className="oben-8">
                   Prüfe, ob in LM Studio der Server läuft und ein Modell geladen ist.
                 </div>
               )}
@@ -197,7 +197,7 @@ export default function KiGenerator({ setId, aufSchliessen }) {
           {bericht && (
             <>
               <hr className="trennlinie" />
-              <div className="reihe" style={{ marginBottom: 10 }}>
+              <div className="reihe unten-12">
                 <h3 className="dehnen">
                   {anzahl(bericht.brauchbar.length, "brauchbarer Vorschlag", "brauchbare Vorschläge")}
                 </h3>
@@ -221,7 +221,7 @@ export default function KiGenerator({ setId, aufSchliessen }) {
               </div>
 
               {bericht.verworfen.length > 0 && (
-                <details style={{ marginTop: 12 }}>
+                <details className="oben-12">
                   <summary className="klein matt" style={{ cursor: "pointer" }}>
                     Was ausgesiebt wurde und warum
                   </summary>
@@ -236,7 +236,7 @@ export default function KiGenerator({ setId, aufSchliessen }) {
                 </details>
               )}
 
-              <p className="klein matt" style={{ marginTop: 12 }}>
+              <p className="klein matt oben-12">
                 Die vorgeschlagenen Rückseiten sind mit dabei, bleiben aber
                 verborgen, bis du deine eigene geschrieben hast.
               </p>
@@ -253,7 +253,7 @@ export default function KiGenerator({ setId, aufSchliessen }) {
             padding: 12, borderRadius: 8, maxHeight: 220, overflow: "auto" }}>
             {vorschau.anweisung}
           </pre>
-          <label className="beschriftung" style={{ marginTop: 12 }}>Deine Vorlage</label>
+          <label className="beschriftung oben-12">Deine Vorlage</label>
           <pre className="klein" style={{ whiteSpace: "pre-wrap", background: "var(--grund-3)",
             padding: 12, borderRadius: 8, maxHeight: 220, overflow: "auto" }}>
             {vorschau.nutzerText}

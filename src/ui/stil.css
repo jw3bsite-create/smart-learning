@@ -746,7 +746,6 @@ select.feld { appearance: none; padding-right: 30px;
   select.feld, .feld.klein, input.feld { min-height: 42px; }
   .pfeil { min-width: 28px; min-height: 36px; display: inline-flex;
     align-items: center; justify-content: center; }
-  .lz-saeule { min-width: 22px; }
   .logo-knopf { min-height: 44px; }
 
   /* Der Schalter darf ruhig etwas groesser sein als am Rechner. */
@@ -1150,3 +1149,32 @@ html.zieht { cursor: grabbing; }
   background: var(--grund-3); border: 1px solid var(--rand); border-radius: 999px;
   box-shadow: var(--schatten); font-size: 14px; white-space: nowrap;
 }
+
+/*
+ * Abstände in festen Stufen: 0, 4, 8, 12, 16, 24 und 32 Punkte.
+ *
+ * Vorher stand an rund 270 Stellen ein eigener Wert im Bauteil — neunzehn
+ * verschiedene, 6 neben 8 neben 10 neben 12 neben 14. Nebeneinander sah man
+ * das als leises Durcheinander. Jetzt gibt es diese Stufen und sonst keine.
+ * `!important`, weil die Werte vorher unmittelbar am Element standen und
+ * damit über jeder anderen Regel — so bleibt es dabei.
+ */
+.oben-0 { margin-top: 0px !important; }
+.oben-4 { margin-top: 4px !important; }
+.oben-8 { margin-top: 8px !important; }
+.oben-12 { margin-top: 12px !important; }
+.oben-16 { margin-top: 16px !important; }
+.oben-24 { margin-top: 24px !important; }
+.oben-32 { margin-top: 32px !important; }
+.unten-0 { margin-bottom: 0px !important; }
+.unten-4 { margin-bottom: 4px !important; }
+.unten-8 { margin-bottom: 8px !important; }
+.unten-12 { margin-bottom: 12px !important; }
+.unten-16 { margin-bottom: 16px !important; }
+.unten-24 { margin-bottom: 24px !important; }
+.unten-32 { margin-bottom: 32px !important; }
+
+/* Die Säulen der Lernzeit dürfen am Finger breiter sein — aber nur, wo
+   Platz ist. Auf schmalen Telefonen passten vierzehn Säulen à 22 Punkte
+   nicht hinein, und das Diagramm ragte über den Rand. */
+@media (pointer: coarse) and (min-width: 481px) { .lz-saeule { min-width: 22px; } }

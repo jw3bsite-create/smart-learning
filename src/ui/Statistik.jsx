@@ -45,14 +45,14 @@ function Punktestand({ faecher, notenfaecher }) {
 
   return (
     <>
-      <h3 style={{ marginBottom: 4 }}>Wie es ankommt</h3>
+      <h3 className="unten-4">Wie es ankommt</h3>
       <p className="klein matt" style={{ marginTop: 0, marginBottom: 12 }}>
         Der Lernstand oben sagt, wie gut die Karten sitzen. Diese Zahl sagt,
         ob es ankommt. Sie stammt aus deinen eingetragenen Punkten, nicht aus
         dem Lernen, die App rechnet sie nicht schön.
       </p>
-      <div className="zahl-kachel" style={{ marginBottom: 26 }}>
-        <div className="reihe" style={{ marginBottom: 12 }}>
+      <div className="zahl-kachel unten-24">
+        <div className="reihe unten-12">
           <div className="dehnen">
             <div className="klein matt">Schnitt aller Halbjahresleistungen</div>
             <div className="zahl" style={{ color: farbe[punkteStufe(alles.gesamt.punkte)] }}>
@@ -165,7 +165,7 @@ export default function Statistik() {
     <div className="mitte">
       <div className="kopfzeile"><h1>Fortschritt</h1></div>
 
-      <div style={{ marginBottom: 26 }}><Flamme /></div>
+      <div className="unten-24"><Flamme /></div>
 
       <Lernzeit />
 
@@ -190,30 +190,30 @@ export default function Statistik() {
         </div>
       </div>
 
-      <h3 style={{ marginBottom: 10 }}>Die letzten drei Monate</h3>
-      <div className="streifen" style={{ marginBottom: 8 }}>
+      <h3 className="unten-12">Die letzten drei Monate</h3>
+      <div className="streifen unten-8">
         {streifen.map((t) => (
           <i key={t.schluessel} data-stufe={t.stufe}
             title={t.schluessel + ": " + t.zahl + " Antworten"} />
         ))}
       </div>
-      <div className="klein blass" style={{ marginBottom: 28 }}>
+      <div className="klein blass unten-32">
         Je dunkler, desto mehr beantwortete Karten an diesem Tag.
       </div>
 
       {/* ------------------------- Behaltenskurve ------------------------- */}
       {kurve.some((k) => k.gesamt > 2) && (
         <>
-          <h3 style={{ marginBottom: 4 }}>Wie gut du behältst</h3>
+          <h3 className="unten-4">Wie gut du behältst</h3>
           <p className="klein matt" style={{ marginTop: 0, marginBottom: 12 }}>
             Gemessen, nicht geschätzt: Wie oft du eine Karte nach diesem Abstand
             noch wusstest. Das ist die ehrlichste Zahl dieser App, und die
             einzige, die etwas darüber sagt, ob das Lernen hält.
           </p>
-          <div className="zahl-kachel" style={{ marginBottom: 26 }}>
+          <div className="zahl-kachel unten-24">
             {kurve.filter((k) => k.gesamt > 0).map((k) => (
-              <div key={k.tage} style={{ marginBottom: 12 }}>
-                <div className="reihe klein" style={{ marginBottom: 4 }}>
+              <div className="unten-12" key={k.tage}>
+                <div className="reihe klein unten-4">
                   <span className="dehnen">
                     {k.tage === 1 ? "nach einem Tag"
                       : k.tage < 30 ? "nach " + k.tage + " Tagen"
@@ -233,7 +233,7 @@ export default function Statistik() {
                 </div>
               </div>
             ))}
-            <p className="klein blass" style={{ marginTop: 4 }}>
+            <p className="klein blass oben-4">
               Ein Abfall über die Zeit ist normal und eingeplant, deshalb kommen
               die Karten wieder. Fällt es unter zwei Drittel, ist die
               Ziel-Sicherheit des Fachs zu niedrig eingestellt.
@@ -248,12 +248,12 @@ export default function Statistik() {
       {/* -------------------------- Eigenleistung ------------------------- */}
       {eigen.gesamt > 0 && (eigen.ki_uebernommen > 0 || eigen.ki_vorderseite > 0) && (
         <>
-          <h3 style={{ marginBottom: 4 }}>Woher deine Karten kommen</h3>
+          <h3 className="unten-4">Woher deine Karten kommen</h3>
           <p className="klein matt" style={{ marginTop: 0, marginBottom: 12 }}>
             Ein Deck, das überwiegend aus übernommenen Vorschlägen besteht, ist
             voll und das Gedächtnis leer. Darum steht die Zahl hier.
           </p>
-          <div className="zahl-kachel" style={{ marginBottom: 26 }}>
+          <div className="zahl-kachel unten-24">
             <div className="balken" style={{ height: 14 }}>
               <span className="fest" style={{ width: 100 * eigen.selbst / eigen.gesamt + "%" }} />
               <span className="vertraut" style={{ width: 100 * eigen.ki_vorderseite / eigen.gesamt + "%" }} />
@@ -279,7 +279,7 @@ export default function Statistik() {
         </>
       )}
 
-      <h3 style={{ marginBottom: 10 }}>Nach Stapel</h3>
+      <h3 className="unten-12">Nach Stapel</h3>
       <div style={{ display: "grid", gap: 10, marginBottom: 28 }}>
         {stapel.map((s) => {
           const eigene = kartenNachStapel.get(s.id) || [];
@@ -291,12 +291,12 @@ export default function Statistik() {
           return (
             <div key={s.id} className="zahl-kachel" style={{ cursor: "pointer" }}
               onClick={() => gehe("/stapel/" + s.id)}>
-              <div className="reihe" style={{ marginBottom: 8 }}>
+              <div className="reihe unten-8">
                 <div className="dehnen">{s.title}</div>
                 <span className="klein matt mono">{anteil} %</span>
               </div>
               <Balken anteile={anteile} />
-              <div className="klein blass" style={{ marginTop: 6 }}>
+              <div className="klein blass oben-8">
                 {anzahl(eigene.length, "Karte", "Karten")}
                 {stand.gesamt !== eigene.length && " in " + stand.gesamt + " Abfragen"}
                 {" · " + anteile[3] + " beherrscht"}
@@ -308,7 +308,7 @@ export default function Statistik() {
 
       {letzte.length > 0 && (
         <>
-          <h3 style={{ marginBottom: 10 }}>Zuletzt gelernt</h3>
+          <h3 className="unten-12">Zuletzt gelernt</h3>
           <div style={{ display: "grid", gap: 6 }}>
             {letzte.map((s) => {
               const name = stapel.find((x) => x.id === s.setId)?.title || "Gelöschter Stapel";

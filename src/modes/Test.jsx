@@ -213,7 +213,7 @@ export default function Test({ setId, aufSchliessen }) {
 
           return (
             <div key={frage.id} className="zahl-kachel" style={rahmen}>
-              <div className="reihe klein blass" style={{ marginBottom: 10 }}>
+              <div className="reihe klein blass unten-12">
                 <span className="mono">{nummer + 1}</span>
                 <span>{frage.art === "schreiben" ? "Schreiben"
                   : frage.art === "auswahl" ? "Auswahl"
@@ -258,7 +258,7 @@ export default function Test({ setId, aufSchliessen }) {
                 </div>
               ) : (
                 <>
-                  <div style={{ marginBottom: 14 }}>
+                  <div className="unten-16">
                     <Seite text={frage.seiten.frage} bild={frage.seiten.frageBild}
                       sprache={sprachen.frage} klasse="frage-text lang" vorlesen={false} />
                   </div>

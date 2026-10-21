@@ -171,14 +171,14 @@ function MitnehmenKnopf({ schluessel, stoff, hilfsgrad, art = "klein" }) {
           darauf kommst.
         </p>
         {kiDa === false && (
-          <div className="rueckmeldung fast" style={{ marginTop: 16 }}>
+          <div className="rueckmeldung fast oben-16">
             <div className="reihe"><Symbol name="zahnrad" />
               <strong>Kein Sprachmodell eingerichtet</strong></div>
             <Knopf art="klein" style={{ marginTop: 8 }}
               onClick={() => gehe("/einstellungen")}>Einrichten</Knopf>
           </div>
         )}
-        <div className="gitter" style={{ marginTop: 22 }}>
+        <div className="gitter oben-24">
           {TUTOREN.map((t) => (
             <button type="button" key={t.schluessel} className="kachel"
               onClick={() => gehe("/tutor/" + t.schluessel)}>
@@ -187,7 +187,7 @@ function MitnehmenKnopf({ schluessel, stoff, hilfsgrad, art = "klein" }) {
             </button>
           ))}
         </div>
-        <div className="zahl-kachel" style={{ marginTop: 22 }}>
+        <div className="zahl-kachel oben-24">
           <strong>Ohne eigenes Modell: mit deinem Claude-Abo</strong>
           <p className="klein matt" style={{ marginTop: 6, marginBottom: 10 }}>
             Ein Abo lässt sich nicht an diese App binden, es gibt dafür keine Anmeldung.
@@ -221,7 +221,7 @@ function MitnehmenKnopf({ schluessel, stoff, hilfsgrad, art = "klein" }) {
         <MitnehmenKnopf schluessel={tutorSchluessel} stoff={stoff} hilfsgrad={hilfsgrad} />
       </>}>
 
-      <div className="rueckmeldung fast klein" style={{ marginBottom: 18 }}>
+      <div className="rueckmeldung fast klein unten-16">
         <strong>{tutor.name}:</strong> {tutor.sperre}. Er nennt die Lösung nicht,
         auch nicht auf Bitten.
       </div>
@@ -260,7 +260,7 @@ function MitnehmenKnopf({ schluessel, stoff, hilfsgrad, art = "klein" }) {
                   background: z.wer === "ich" ? "var(--grund-3)" : "var(--grund-2)",
                   borderColor: z.drift ? "var(--gelb)" : "var(--rand)",
                 }}>
-                  <div className="klein blass" style={{ marginBottom: 6 }}>
+                  <div className="klein blass unten-8">
                     {z.wer === "ich" ? "Du" : tutor.name}
                   </div>
                   <div style={{ whiteSpace: "pre-wrap", fontSize: 15.5, lineHeight: 1.6 }}>
@@ -294,7 +294,7 @@ function MitnehmenKnopf({ schluessel, stoff, hilfsgrad, art = "klein" }) {
           </div>
 
           {fehler && (
-            <div className="rueckmeldung schlecht klein" style={{ marginTop: 12 }}>{fehler}</div>
+            <div className="rueckmeldung schlecht klein oben-12">{fehler}</div>
           )}
 
           <div style={{ position: "sticky", bottom: 0, background: "var(--grund)",
@@ -308,7 +308,7 @@ function MitnehmenKnopf({ schluessel, stoff, hilfsgrad, art = "klein" }) {
                   e.preventDefault(); senden(eingabe);
                 }
               }} />
-            <div className="reihe" style={{ marginTop: 8 }}>
+            <div className="reihe oben-8">
               <span className="klein blass nur-breit">
                 <span className="tastenhilfe">Strg</span>
                 <span className="tastenhilfe">↵</span> senden

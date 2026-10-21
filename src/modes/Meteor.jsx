@@ -166,7 +166,7 @@ export default function Meteor({ setId, aufSchliessen }) {
             <span>Nur markierte Karten</span>
           </label>
         </div>
-        <Knopf art="voll gross" symbol="rakete" style={{ marginTop: 22 }} onClick={beginnen}>
+        <Knopf art="voll gross" symbol="rakete" style={{ marginTop: 24 }} onClick={beginnen}>
           Spiel beginnen
         </Knopf>
       </ModusRahmen>
@@ -178,7 +178,7 @@ export default function Meteor({ setId, aufSchliessen }) {
       <ModusRahmen titel="Meteor" symbol="rakete" aufSchliessen={aufSchliessen}>
         <div style={{ textAlign: "center", paddingTop: 24 }}>
           <Symbol name="rakete" groesse={38} />
-          <h1 style={{ marginTop: 10 }}>{punkte} Punkte</h1>
+          <h1 className="oben-12">{punkte} Punkte</h1>
           <p className="matt">
             {treffer} Begriffe abgewehrt, Stufe {stufe} erreicht
             {punkte >= bestwert && punkte > 0 ? " · neuer Bestwert!" : bestwert ? ` · Bestwert ${bestwert}` : ""}

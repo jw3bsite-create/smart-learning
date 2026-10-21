@@ -119,14 +119,14 @@ export default function Fehlerheft({ fachId = null }) {
       </div>
 
       {haengend.length > 0 && (
-        <section className="zahl-kachel" style={{ marginBottom: 24 }}>
-          <div className="reihe" style={{ marginBottom: 6 }}>
+        <section className="zahl-kachel unten-24">
+          <div className="reihe unten-8">
             <Symbol name="stopp" groesse={16} style={{ color: "var(--rot)" }} />
             <h3 className="dehnen" style={{ margin: 0 }}>
               {anzahl(haengend.length, "Karte hängt", "Karten hängen")}
             </h3>
           </div>
-          <p className="klein matt" style={{ marginTop: 0 }}>
+          <p className="klein matt oben-0">
             Diese Karten hast du immer wieder gewusst und wieder vergessen. Die App legt
             sie still, weil dann meist die Karte zu groß ist, nicht dein Gedächtnis zu
             schlecht. Teile sie auf oder formuliere sie um, dann kommen sie von selbst
@@ -185,8 +185,8 @@ export default function Fehlerheft({ fachId = null }) {
           )}
 
           {gruppen.map((g) => (
-            <section key={g.subjectId || "ohne"} style={{ marginBottom: 24 }}>
-              <div className="reihe" style={{ marginBottom: 8 }}>
+            <section className="unten-24" key={g.subjectId || "ohne"}>
+              <div className="reihe unten-8">
                 <FachPunkt farbe={fachVon(g.subjectId)?.farbe || "var(--rand)"} />
                 <h3 className="dehnen" style={{ margin: 0 }}>{fachName(g.subjectId)}</h3>
                 <span className="klein blass">{anzahl(g.fehler, "Fehler", "Fehler")}</span>

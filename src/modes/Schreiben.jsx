@@ -178,7 +178,7 @@ export default function Schreiben({ setId, aufSchliessen }) {
         placeholder="Antwort eingeben" value={eingabe} disabled={Boolean(urteil)}
         onChange={(e) => setEingabe(e.target.value)} />
 
-      <div className="reihe" style={{ marginTop: 12 }}>
+      <div className="reihe oben-12">
         {!urteil && (
           <>
             <Knopf art="leer klein" onClick={() => setHilfe(true)}>
@@ -214,7 +214,7 @@ export default function Schreiben({ setId, aufSchliessen }) {
           </div>
           <div style={{ marginTop: 8, fontSize: 17 }}><Formel text={seiten.antwort} /></div>
           {urteil.status !== "richtig" && (
-            <div className="reihe" style={{ marginTop: 10 }}>
+            <div className="reihe oben-12">
               {eingabe.trim() && <span className="klein matt">Getippt: „{eingabe}“</span>}
               <Knopf art="klein" onClick={dochRichtig}>War doch richtig</Knopf>
             </div>

@@ -123,7 +123,7 @@ function ZeichenSchalter({ an, setzen }) {
 function Antwortvorschau({ eingabe }) {
   if (!hatFormel(eingabe)) return null;
   return (
-    <div className="formel-vorschau" style={{ marginTop: 8 }}>
+    <div className="formel-vorschau oben-8">
       <span className="klein blass">So sieht deine Antwort aus: </span>
       <Formel text={eingabe} />
     </div>
@@ -392,7 +392,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
           </Leer>
         ) : (
           <>
-            <label className="beschriftung" style={{ marginTop: 20 }}>Welche Fächer?</label>
+            <label className="beschriftung oben-24">Welche Fächer?</label>
             <div className="gitter" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
               {faecher.map((f) => {
                 const an = gewaehlteFaecher.includes(f.id);
@@ -408,7 +408,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
               })}
             </div>
 
-            <div className="reihe" style={{ marginTop: 10 }}>
+            <div className="reihe oben-12">
               <Knopf art="klein leer"
                 onClick={() => setGewaehlteFaecher(faecher.map((f) => f.id))}>
                 Alle
@@ -416,7 +416,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
               <Knopf art="klein leer" onClick={() => setGewaehlteFaecher([])}>Keins</Knopf>
             </div>
 
-            <label className="schalter" style={{ marginTop: 16 }}>
+            <label className="schalter oben-16">
               <input type="checkbox" checked={herkunftVerbergen}
                 onChange={(e) => setHerkunftVerbergen(e.target.checked)} />
               <span>Herkunft verbergen
@@ -490,7 +490,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
           <div style={{ fontFamily: "var(--serifen)", fontSize: 52 }}>
             {gewusst}<span style={{ fontSize: 24 }}> / {erste.length}</span>
           </div>
-          <h1 style={{ marginTop: 6 }}>Sitzung beendet</h1>
+          <h1 className="oben-8">Sitzung beendet</h1>
           <p className="matt">{kalibrierungInWorten(k)}</p>
 
           <div className="gitter" style={{ maxWidth: 620, margin: "24px auto",
@@ -623,7 +623,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
             </div>
           )}
 
-          <div className="klein matt" style={{ marginBottom: 6 }}>
+          <div className="klein matt unten-8">
             Schritt {schrittNr + 1} von {teile.schritte.length}
             {derSchritt?.frage ? " — " + derSchritt.frage : ""}
           </div>
@@ -632,7 +632,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
             placeholder="Diesen Schritt schreiben"
             value={eingabe} onChange={(e) => setEingabe(e.target.value)} />
           <Antwortvorschau eingabe={eingabe} />
-          <div className="reihe" style={{ marginTop: 12 }}>
+          <div className="reihe oben-12">
             <ZeichenSchalter an={zeichen} setzen={setZeichen} />
             <span className="klein blass nur-breit">
               Schreibweise ist egal: 2·x, 2*x und 2x gelten gleich.
@@ -653,7 +653,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
             placeholder="Antwort schreiben, dann Enter zum Aufdecken"
             value={eingabe} onChange={(e) => setEingabe(e.target.value)} />
           <Antwortvorschau eingabe={eingabe} />
-          <div className="reihe" style={{ marginTop: 12 }}>
+          <div className="reihe oben-12">
             <ZeichenSchalter an={zeichen} setzen={setZeichen} />
             <span className="klein blass nur-breit">
               Eingeschätzt als <strong>{konfidenz === 1 ? "sicher"
@@ -673,7 +673,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
         <>
           {istMehrschritt ? (
             <div className={"rueckmeldung " + (stimmtGenau ? "gut" : "fast")}>
-              <div className="reihe" style={{ marginBottom: 10 }}>
+              <div className="reihe unten-12">
                 <Symbol name={stimmtGenau ? "haken" : "auge"} />
                 <strong>
                   {stimmtGenau
@@ -726,10 +726,10 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
               </div>
             )}
             {teile.zusatz && teile.art === "cloze" && (
-              <div className="klein matt" style={{ marginTop: 10 }}><Formel text={teile.zusatz} /></div>
+              <div className="klein matt oben-12"><Formel text={teile.zusatz} /></div>
             )}
             {aufgabe.karte.hint && (
-              <div className="klein blass" style={{ marginTop: 6 }}>Hinweis: {aufgabe.karte.hint}</div>
+              <div className="klein blass oben-8">Hinweis: {aufgabe.karte.hint}</div>
             )}
           </div>
           )}

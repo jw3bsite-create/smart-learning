@@ -74,7 +74,7 @@ function Zielwahl({ art, setArt, anzahlKarten, vonSetId, aufWaehlen, aufAbbreche
           </Knopf>
         ))}
       </div>
-      <p className="klein matt" style={{ marginTop: 0 }}>
+      <p className="klein matt oben-0">
         {anzahl(anzahlKarten, "Karte", "Karten")}
         {art === "kopieren"
           ? " werden kopiert. Die Kopien lernst du neu, das Original bleibt."

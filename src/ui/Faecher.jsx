@@ -101,7 +101,7 @@ function NeuesFach({ aufSchliessen }) {
         <label className="beschriftung">Name</label>
         <input className="feld" autoFocus value={name} placeholder="etwa Physik oder Spanisch"
           onChange={(e) => setName(e.target.value)} />
-        <label className="beschriftung" style={{ marginTop: 16 }}>Farbe</label>
+        <label className="beschriftung oben-16">Farbe</label>
         <Farbwahl wert={farbe} setzen={setFarbe} />
         <div className="reihe" style={{ gap: 8, marginTop: 14 }}>
           <FachPunkt farbe={farbe} />
@@ -125,43 +125,43 @@ export function FachEinstellungen({ fach, aufSchliessen }) {
       <input className="feld" value={fach.name}
         onChange={(e) => fachAendern(fach.id, { name: e.target.value })} />
 
-      <label className="beschriftung" style={{ marginTop: 16 }}>Farbe</label>
+      <label className="beschriftung oben-16">Farbe</label>
       <Farbwahl wert={fach.farbe} setzen={(farbe) => fachAendern(fach.id, { farbe })} />
 
-      <label className="beschriftung" style={{ marginTop: 16 }}>
+      <label className="beschriftung oben-16">
         Ziel-Behaltenswahrscheinlichkeit: {Math.round(fach.zielRetention * 100)} %
       </label>
       <input type="range" min="0.80" max="0.97" step="0.01" style={{ width: "100%" }}
         value={fach.zielRetention}
         onChange={(e) => fachAendern(fach.id, { zielRetention: Number(e.target.value) })} />
-      <p className="klein matt" style={{ marginTop: 4 }}>
+      <p className="klein matt oben-4">
         Wie wahrscheinlich du eine Karte im Moment der Wiederholung noch können
         willst. Höher heißt sicherer und deutlich mehr Wiederholungen.
         Nomenklatur verträgt 95 %, Überblickswissen kommt mit 85 % aus.
       </p>
 
-      <label className="beschriftung" style={{ marginTop: 16 }}>
+      <label className="beschriftung oben-16">
         Neue Karten je Tag: {fach.neuProTag}
       </label>
       <input type="range" min="0" max="60" step="1" style={{ width: "100%" }}
         value={fach.neuProTag}
         onChange={(e) => fachAendern(fach.id, { neuProTag: Number(e.target.value) })} />
-      <p className="klein matt" style={{ marginTop: 4 }}>
+      <p className="klein matt oben-4">
         Die Bremse gegen den Rückstau: Jede neue Karte kommt über die Monate
         mehrfach zurück. Null heißt: nur wiederholen, nichts Neues.
       </p>
 
-      <label className="beschriftung" style={{ marginTop: 16 }}>Prüfungstermin</label>
+      <label className="beschriftung oben-16">Prüfungstermin</label>
       <input className="feld" type="date" value={termin}
         onChange={(e) => fachAendern(fach.id, {
           pruefungsdatum: e.target.value ? new Date(e.target.value).getTime() : null,
         })} />
-      <p className="klein matt" style={{ marginTop: 4 }}>
+      <p className="klein matt oben-4">
         Je näher er rückt, desto dichter rücken die Wiederholungen zusammen,
         und desto häufiger kommt das Fach im Fragemodus dran.
       </p>
 
-      <label className="beschriftung" style={{ marginTop: 16 }}>Dringlichkeit</label>
+      <label className="beschriftung oben-16">Dringlichkeit</label>
       <div className="reihe umbruch">
         {[1, 2, 3].map((stufe) => (
           <Knopf key={stufe}
@@ -171,7 +171,7 @@ export function FachEinstellungen({ fach, aufSchliessen }) {
           </Knopf>
         ))}
       </div>
-      <p className="klein matt" style={{ marginTop: 4 }}>
+      <p className="klein matt oben-4">
         Wirkt nur im Fragemodus, nicht auf den Plan: Was wann wiederkommt,
         entscheidet weiter das Abrufen. Hier sagst du bloß, worauf du gerade
         deine freien Minuten verwenden willst.
@@ -181,7 +181,7 @@ export function FachEinstellungen({ fach, aufSchliessen }) {
           aufmacht, um daran zu arbeiten, darf daran erinnert werden. Überall
           sonst wäre es Buchhaltung, die nur Druck macht. */}
       {punkte && (
-        <div className="zahl-kachel" style={{ marginTop: 16 }}>
+        <div className="zahl-kachel oben-16">
           <div className="reihe">
             <div className="dehnen">
               <div className="klein matt">Deine Punkte in diesem Fach</div>
@@ -206,7 +206,7 @@ export function FachEinstellungen({ fach, aufSchliessen }) {
         </div>
       )}
 
-      <label className="schalter" style={{ marginTop: 16 }}>
+      <label className="schalter oben-16">
         <input type="checkbox" checked={(fach.richtungen || ["td"]).includes("dt")}
           onChange={(e) => fachAendern(fach.id, {
             richtungen: e.target.checked ? ["td", "dt"] : ["td"],
@@ -302,7 +302,7 @@ export default function Faecher() {
       </div>
 
       {/* --------------------------- Tageslage --------------------------- */}
-      <div className="zahl-kachel" style={{ marginBottom: 22 }}>
+      <div className="zahl-kachel unten-24">
         <div className="reihe umbruch" style={{ gap: 20 }}>
           <div>
             <div className="klein matt">Heute fällig</div>
@@ -327,7 +327,7 @@ export default function Faecher() {
           <div className="dehnen" />
           <div style={{ minWidth: 180 }}>
             <div className="klein matt">Nächste 30 Tage</div>
-            <div className="streifen" style={{ marginTop: 6 }}>
+            <div className="streifen oben-8">
               {kalender.eimer.map((n, i) => (
                 <i key={i} data-stufe={n === 0 ? 0 : n < 10 ? 1 : n < 30 ? 2 : 3}
                   title={n + " Karten in " + i + " Tagen"} />
@@ -336,7 +336,7 @@ export default function Faecher() {
           </div>
         </div>
         {last.heute > 0 && (
-          <div className="klein blass" style={{ marginTop: 10 }}>
+          <div className="klein blass oben-12">
             Schöpfst du die Tageslimits aus, sind auf Dauer rund {last.heute} Abrufe
             am Tag zu erwarten, etwa {Math.max(1, last.minutenHeute)} Minuten.
             Grobe Größenordnung, keine Vorhersage.
@@ -427,7 +427,7 @@ export default function Faecher() {
       {ohneFach.length > 0 && (
         <>
           <hr className="trennlinie" />
-          <div className="reihe" style={{ marginBottom: 10 }}>
+          <div className="reihe unten-12">
             <h3 className="dehnen">Stapel ohne Fach ({ohneFach.length})</h3>
             <span className="klein matt">Ohne Fach kommen sie im Abrufen nicht vor.</span>
           </div>

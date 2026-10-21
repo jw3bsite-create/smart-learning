@@ -202,7 +202,7 @@ export default function FachSeite({ fachId, ordnerId = null }) {
       {/* ---------------------------- Zum Lernen --------------------------- */}
       {/* Abgerufen wird immer das ganze Fach, auch aus einem Ordner heraus:
           Was drankommt, entscheidet der Plan, nicht die Ablage. */}
-      <div className="reihe umbruch" style={{ marginBottom: 10 }}>
+      <div className="reihe umbruch unten-12">
         <Knopf art="voll" symbol="blitz" disabled={offen === 0}
           onClick={() => gehe("/abrufen/" + fach.id)}>
           {derOrdner ? "Abrufen: " + fach.name : "Abrufen"}
@@ -224,7 +224,7 @@ export default function FachSeite({ fachId, ordnerId = null }) {
         </div>
       </div>
       {punkte && !derOrdner && (
-        <div className="klein matt" style={{ marginBottom: 18 }}>
+        <div className="klein matt unten-16">
           Deine Punkte: <strong>{punkteText(punkte.juengste.punkte)}</strong>
           {" "}(zuletzt {punkte.juengste.halbjahr})
         </div>
@@ -330,7 +330,7 @@ export default function FachSeite({ fachId, ordnerId = null }) {
         <Dialog weit titel={"Stapel zu " + (derOrdner ? derOrdner.name : fach.name) + " hinzufügen"}
           aufSchliessen={() => setHinzufuegen(false)}
           fuss={<Knopf art="voll" onClick={() => setHinzufuegen(false)}>Fertig</Knopf>}>
-          <p className="klein matt" style={{ marginTop: 0 }}>
+          <p className="klein matt oben-0">
             {derOrdner
               ? "Der Stapel wandert in diesen Ordner und gehört danach zu " + fach.name + "."
               : "Gehört ein Stapel schon zu einem anderen Fach, wechselt er hierher."}

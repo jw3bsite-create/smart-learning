@@ -83,7 +83,7 @@ export default function Flamme({ knapp = false }) {
             <span className="fest" style={{
               width: Math.min(100, 100 * stand.heuteAbrufe / TAGESPENSUM) + "%" }} />
           </div>
-          <div className="klein blass" style={{ marginTop: 6 }}>
+          <div className="klein blass oben-8">
             {stand.heuteGeschafft
               ? "Pensum geschafft: " + anzahl(stand.heuteAbrufe, "Abruf", "Abrufe")
               : stand.heuteAbrufe + " von " + TAGESPENSUM + " Abrufen"}
@@ -103,7 +103,7 @@ export default function Flamme({ knapp = false }) {
       </p>
 
       {!stand.heuteGeschafft && faellig > 0 && (
-        <Knopf art="voll" symbol="blitz" style={{ marginTop: 14 }}
+        <Knopf art="voll" symbol="blitz" style={{ marginTop: 16 }}
           onClick={() => gehe("/abrufen")}>
           {anzahl(faellig, "Karte abrufen", "Karten abrufen")}
         </Knopf>

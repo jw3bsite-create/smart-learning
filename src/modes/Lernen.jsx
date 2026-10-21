@@ -195,7 +195,7 @@ export default function Lernen({ setId, aufSchliessen }) {
   if (phase === "start") {
     return (
       <ModusRahmen titel="Lernen" symbol="blitz" aufSchliessen={aufSchliessen}>
-        <h1 style={{ marginBottom: 6 }}>{derStapel.title}</h1>
+        <h1 className="unten-8">{derStapel.title}</h1>
         <p className="matt">
           {zaehlung.faellige > 0 || zaehlung.neu > 0
             ? `${anzahl(zaehlung.neu, "neue Karte", "neue Karten")}, ${zaehlung.faellige} zur Wiederholung.`
@@ -228,7 +228,7 @@ export default function Lernen({ setId, aufSchliessen }) {
           </label>
         </div>
 
-        <Knopf art="voll gross" symbol="blitz" style={{ marginTop: 26 }}
+        <Knopf art="voll gross" symbol="blitz" style={{ marginTop: 24 }}
           onClick={rundeStarten}>Runde beginnen</Knopf>
       </ModusRahmen>
     );
@@ -242,13 +242,13 @@ export default function Lernen({ setId, aufSchliessen }) {
       <ModusRahmen titel="Lernen" symbol="blitz" aufSchliessen={aufSchliessen}>
         <div style={{ textAlign: "center", paddingTop: 16 }}>
           <Symbol name={alles ? "haken" : "blitz"} groesse={38} />
-          <h1 style={{ marginTop: 10 }}>{alles ? "Alles sitzt" : "Runde geschafft"}</h1>
+          <h1 className="oben-12">{alles ? "Alles sitzt" : "Runde geschafft"}</h1>
           <p className="matt">
             {zaehler.richtig} richtig, {zaehler.falsch} daneben.
           </p>
           <div style={{ maxWidth: 460, margin: "20px auto" }}>
             <Balken anteile={uebungsAnteile(brauchbare, staende)} hoehe={12} />
-            <div className="klein matt" style={{ marginTop: 8 }}>
+            <div className="klein matt oben-8">
               {neueZaehlung.beherrscht} von {brauchbare.length} beherrscht
             </div>
           </div>
@@ -338,7 +338,7 @@ export default function Lernen({ setId, aufSchliessen }) {
           <input ref={feld} className="feld" style={{ fontSize: 18, padding: "14px 16px" }}
             placeholder="Antwort eingeben" value={eingabe} disabled={phase === "rueckmeldung"}
             onChange={(e) => setEingabe(e.target.value)} />
-          <div className="reihe" style={{ marginTop: 12 }}>
+          <div className="reihe oben-12">
             <Knopf art="leer klein" onClick={() => { verbuchen(0); setUrteil({ status: "falsch" }); setPhase("rueckmeldung"); }}>
               Weiß ich nicht
             </Knopf>
@@ -363,11 +363,11 @@ export default function Lernen({ setId, aufSchliessen }) {
             <Stern an={aufgabe.karte.starred}
               aufKlick={() => karteAendern(aufgabe.karte.id, { starred: !aufgabe.karte.starred })} />
           </div>
-          <div style={{ marginTop: 8 }}>
+          <div className="oben-8">
             <span className="matt klein">Richtige Antwort: </span><Formel text={seiten.antwort} />
           </div>
           {aufgabe.art === "schreiben" && urteil.status !== "richtig" && eingabe.trim() && (
-            <div className="reihe" style={{ marginTop: 10 }}>
+            <div className="reihe oben-12">
               <span className="klein matt">Deine Antwort: „{eingabe}“</span>
               <Knopf art="klein" onClick={dochRichtig}>War doch richtig</Knopf>
             </div>

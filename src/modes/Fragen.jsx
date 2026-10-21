@@ -107,14 +107,14 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
 
     return (
       <ModusRahmen titel="Fragen" symbol="wuerfel" aufSchliessen={aufSchliessen}>
-        <h1 style={{ marginBottom: 6 }}>Ein paar Fragen</h1>
+        <h1 className="unten-8">Ein paar Fragen</h1>
         <p className="matt" style={{ marginTop: 0, maxWidth: "62ch" }}>
           Quer durch, ohne Rücksicht auf den Plan, und ohne ihn zu verstellen:
           Was hier geschieht, zählt für die Strähne, verschiebt aber keine
           Termine. Zum Zwischendurchfragen, wenn du fünf Minuten hast.
         </p>
 
-        <label className="beschriftung" style={{ marginTop: 20 }}>Woraus?</label>
+        <label className="beschriftung oben-24">Woraus?</label>
         <div className="reihe umbruch">
           {bereiche.map((b) => (
             <Knopf key={b.art + (b.id || "")}
@@ -125,7 +125,7 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
           ))}
         </div>
 
-        <label className="beschriftung" style={{ marginTop: 18 }}>Wie viele?</label>
+        <label className="beschriftung oben-16">Wie viele?</label>
         <div className="reihe umbruch">
           {UMFAENGE.map((n) => (
             <Knopf key={n} art={"klein" + (umfang === n && !eigeneZahl ? " voll" : "")}
@@ -143,7 +143,7 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
             }} />
         </div>
 
-        <label className="schalter" style={{ marginTop: 18 }}>
+        <label className="schalter oben-16">
           <input type="checkbox" checked={gewichten}
             onChange={(e) => setGewichten(e.target.checked)} />
           <span>
@@ -156,8 +156,8 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
 
         {/* Was die Gewichtung gerade bewirkt — sonst ist sie Willkür. */}
         {gewichten && faecher.length > 0 && (
-          <div className="zahl-kachel" style={{ marginTop: 16 }}>
-            <div className="klein matt" style={{ marginBottom: 8 }}>
+          <div className="zahl-kachel oben-16">
+            <div className="klein matt unten-8">
               So stehen deine Fächer gerade zueinander:
             </div>
             <div style={{ display: "grid", gap: 6 }}>
@@ -179,7 +179,7 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
           </div>
         )}
 
-        <div className="reihe" style={{ marginTop: 22 }}>
+        <div className="reihe oben-24">
           <Knopf art="voll gross" symbol="blitz"
             disabled={vorschau.vorrat === 0}
             onClick={losgehen}>
@@ -218,11 +218,11 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
           aufNochmal={() => { setRunde(null); setTimeout(losgehen, 0); }}>
           {runde.beteiligt.length > 0 && (
             <div className="zahl-kachel" style={{ marginTop: 18, textAlign: "left" }}>
-              <div className="klein matt" style={{ marginBottom: 8 }}>
+              <div className="klein matt unten-8">
                 Woher die Fragen kamen und warum:
               </div>
               {runde.beteiligt.map((b) => (
-                <div key={b.fach.id} className="reihe klein" style={{ marginBottom: 4 }}>
+                <div key={b.fach.id} className="reihe klein unten-4">
                   <span className="dehnen">{b.fach.name}</span>
                   <span className="blass">{b.gruende.join(" · ") || "gleichmäßig"}</span>
                   <strong>{b.anzahl}</strong>
@@ -230,7 +230,7 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
               ))}
             </div>
           )}
-          <p className="klein blass" style={{ marginTop: 14 }}>
+          <p className="klein blass oben-16">
             Diese Runde hat keine Termine verschoben. Was wann wiederkommt,
             entscheidet weiter das Abrufen.
           </p>
@@ -303,7 +303,7 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
 
       {auf && (
         <div className={"rueckmeldung " + (stimmt ? "gut" : "schlecht")}
-          style={{ marginTop: 14 }}>
+          style={{ marginTop: 16 }}>
           <div className="reihe">
             <Symbol name={stimmt ? "haken" : "kreuz"} />
             <strong>{urteil === "richtig" ? "Richtig"
@@ -311,7 +311,7 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
           </div>
           <div style={{ marginTop: 6, whiteSpace: "pre-wrap" }}><Formel text={seiten.antwort} /></div>
           {jetzt.karte.hint && (
-            <div className="klein blass" style={{ marginTop: 8 }}>{jetzt.karte.hint}</div>
+            <div className="klein blass oben-8">{jetzt.karte.hint}</div>
           )}
         </div>
       )}
@@ -322,7 +322,7 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
           : <Knopf art="voll" onClick={aufdecken}>Aufdecken</Knopf>}
       </div>
 
-      <p className="klein blass" style={{ marginTop: 20 }}>
+      <p className="klein blass oben-24">
         Kommt eine Karte im Abitur sicher nicht dran, kannst du sie oben rechts
         abhaken. Sie verschwindet dann aus allen Modi und aus den Zahlen, der
         Lernstand bleibt erhalten, und das Abhaken lässt sich zurücknehmen.

@@ -190,7 +190,7 @@ export default function Buchstabieren({ setId, aufSchliessen }) {
               }}>{z}</span>
             ))}
           </div>
-          {eingabe && <div className="klein matt" style={{ marginTop: 6 }}>Geschrieben: „{eingabe}“</div>}
+          {eingabe && <div className="klein matt oben-8">Geschrieben: „{eingabe}“</div>}
           <div className="reihe" style={{ marginTop: 12, justifyContent: "flex-end" }}>
             <Knopf art="voll" onClick={() => { setEingabe(""); setZustand("abschreiben"); }}>
               Einmal richtig schreiben
@@ -207,7 +207,7 @@ export default function Buchstabieren({ setId, aufSchliessen }) {
             placeholder={zustand === "abschreiben" ? "Schreibe das Wort ab" : "Was hast du gehört?"}
             value={eingabe} onChange={(e) => setEingabe(e.target.value)} autoFocus />
           {zustand === "abschreiben" && (
-            <div className="klein matt" style={{ marginTop: 8 }}>
+            <div className="klein matt oben-8">
               Vorlage: <strong>{loesung}</strong>
             </div>
           )}

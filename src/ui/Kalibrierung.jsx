@@ -20,8 +20,8 @@ const STUFEN_FARBE = { 1: "var(--gruen)", 2: "var(--gelb)", 3: "var(--rot)" };
 
 function Streifenbalken({ anteil, farbe, beschriftung }) {
   return (
-    <div style={{ marginBottom: 14 }}>
-      <div className="reihe klein" style={{ marginBottom: 4 }}>
+    <div className="unten-16">
+      <div className="reihe klein unten-4">
         <span className="dehnen">{beschriftung}</span>
         <span className="mono">{anteil === null ? "—" : Math.round(anteil * 100) + " %"}</span>
       </div>
@@ -87,13 +87,13 @@ export default function Kalibrierung() {
         </p>
       </div>
 
-      <h3 style={{ marginBottom: 12 }}>Wie oft du gewusst hast, was du gesagt hast</h3>
-      <div className="zahl-kachel" style={{ marginBottom: 24 }}>
+      <h3 className="unten-12">Wie oft du gewusst hast, was du gesagt hast</h3>
+      <div className="zahl-kachel unten-24">
         {[1, 2, 3].map((s) => (
           <Streifenbalken key={s} anteil={gesamt.stufen[s].quote} farbe={STUFEN_FARBE[s]}
             beschriftung={`„${KONFIDENZ_NAMEN[s]}": ${gesamt.stufen[s].gewusst} von ${gesamt.stufen[s].anzahl} gewusst`} />
         ))}
-        <p className="klein matt" style={{ marginTop: 4 }}>
+        <p className="klein matt oben-4">
           Ideal wäre eine fallende Treppe: oben hoch, unten niedrig. Liegen die
           drei Balken dicht beieinander, sagt deine Einschätzung nichts aus,
           dann rate weniger und horch genauer hin, ehe du aufdeckst.
@@ -102,7 +102,7 @@ export default function Kalibrierung() {
 
       {faecher.length > 0 && (
         <>
-          <h3 style={{ marginBottom: 12 }}>Nach Fach</h3>
+          <h3 className="unten-12">Nach Fach</h3>
           <div style={{ display: "grid", gap: 8, marginBottom: 24 }}>
             {faecher.map((f) => {
               const k = jeFach[f.id];
@@ -134,8 +134,8 @@ export default function Kalibrierung() {
 
       {entwicklung.alt.stufen[1].anzahl > 5 && entwicklung.jung.stufen[1].anzahl > 5 && (
         <>
-          <h3 style={{ marginBottom: 12 }}>Entwicklung</h3>
-          <div className="zahl-kachel" style={{ marginBottom: 24 }}>
+          <h3 className="unten-12">Entwicklung</h3>
+          <div className="zahl-kachel unten-24">
             <Streifenbalken anteil={1 - entwicklung.alt.ueberschaetzung} farbe="var(--rand)"
               beschriftung="früher" />
             <Streifenbalken anteil={1 - entwicklung.jung.ueberschaetzung} farbe="var(--akzent)"
@@ -144,7 +144,7 @@ export default function Kalibrierung() {
         </>
       )}
 
-      <h3 style={{ marginBottom: 12 }}>Sauberkeit der Daten</h3>
+      <h3 className="unten-12">Sauberkeit der Daten</h3>
       <div className="zahl-kachel">
         <div className="reihe umbruch" style={{ gap: 24 }}>
           <div>
@@ -162,7 +162,7 @@ export default function Kalibrierung() {
             <div className="klein blass">zu schnell, um echt zu sein</div>
           </div>
         </div>
-        <p className="klein matt" style={{ marginTop: 12 }}>
+        <p className="klein matt oben-12">
           Zu schnell beantwortete Karten werden festgehalten, zählen aber weder
           für den Plan noch für die Strähne. Sie schaden nicht, sie zeigen nur,
           wann eine Sitzung eigentlich keine war.

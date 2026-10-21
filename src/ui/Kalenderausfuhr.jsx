@@ -46,7 +46,7 @@ export default function Kalenderausfuhr({ aufSchliessen }) {
         <Knopf onClick={aufSchliessen}>Schließen</Knopf>
         <Knopf art="voll" symbol="herunter" onClick={schreiben}>Datei schreiben</Knopf>
       </>}>
-      <p className="klein matt" style={{ marginTop: 0 }}>
+      <p className="klein matt oben-0">
         Geschrieben wird eine gewöhnliche Kalenderdatei (.ics). Auf dem iPhone
         oder iPad öffnest du sie und tippst auf Hinzufügen, am Rechner nimmt sie
         Outlook oder der Google Kalender.
@@ -72,7 +72,7 @@ export default function Kalenderausfuhr({ aufSchliessen }) {
             </div>
           ))}
       </div>
-      <p className="klein blass" style={{ marginTop: 0 }}>
+      <p className="klein blass oben-0">
         Jeder Termin bringt zwei Weckrufe mit: eine Woche und einen Tag vorher.
       </p>
 

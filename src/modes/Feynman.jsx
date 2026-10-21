@@ -118,8 +118,8 @@ export default function Feynman({ erklaerungId, aufSchliessen }) {
         )}
       </>}>
 
-      <h1 style={{ marginBottom: 4 }}>{erklaerung.thema}</h1>
-      <p className="matt" style={{ marginTop: 0 }}>
+      <h1 className="unten-4">{erklaerung.thema}</h1>
+      <p className="matt oben-0">
         Erkläre es so, als säße jemand vor dir, der davon noch nie gehört hat.
         Keine Stichworte, ganze Sätze.
       </p>
@@ -129,7 +129,7 @@ export default function Feynman({ erklaerungId, aufSchliessen }) {
         placeholder="Schreib los …"
         value={text} onChange={(e) => setText(e.target.value)} />
 
-      <div className="reihe umbruch" style={{ marginTop: 12 }}>
+      <div className="reihe umbruch oben-12">
         {woerter < 15 && (
           <span className="klein blass">
             Noch etwas kurz, unter fünfzehn Wörtern lohnt die Prüfung nicht.
@@ -151,12 +151,12 @@ export default function Feynman({ erklaerungId, aufSchliessen }) {
       </div>
 
       {fehler && (
-        <div className="rueckmeldung schlecht klein" style={{ marginTop: 12 }}>{fehler}</div>
+        <div className="rueckmeldung schlecht klein oben-12">{fehler}</div>
       )}
 
       {/* ---------------------------- Rückmeldung --------------------------- */}
       {fertig && (
-        <div className="rueckmeldung gut" style={{ marginTop: 18 }}>
+        <div className="rueckmeldung gut oben-16">
           <div className="reihe">
             <Symbol name="haken" />
             <strong>Nichts mehr offen.</strong>
@@ -171,8 +171,8 @@ export default function Feynman({ erklaerungId, aufSchliessen }) {
       )}
 
       {luecken.length > 0 && (
-        <div style={{ marginTop: 22 }}>
-          <div className="reihe" style={{ marginBottom: 10 }}>
+        <div className="oben-24">
+          <div className="reihe unten-12">
             <h3 className="dehnen">
               {anzahl(luecken.length, "Stelle", "Stellen")}, an denen etwas fehlt
             </h3>
@@ -185,7 +185,7 @@ export default function Feynman({ erklaerungId, aufSchliessen }) {
           <div style={{ display: "grid", gap: 10 }}>
             {luecken.map((l, i) => (
               <div key={i} className="karten-zeile" style={{ display: "block", padding: 14 }}>
-                <div className="reihe klein" style={{ marginBottom: 6 }}>
+                <div className="reihe klein unten-8">
                   <span className="marke" style={{ color: ART_FARBE[l.art] || undefined }}>
                     {ART_NAME[l.art] || "unklar"}
                   </span>
@@ -197,7 +197,7 @@ export default function Feynman({ erklaerungId, aufSchliessen }) {
               </div>
             ))}
           </div>
-          <p className="klein matt" style={{ marginTop: 12 }}>
+          <p className="klein matt oben-12">
             Beantworte die Fragen nicht hier, sondern oben im Text, schreib die
             Erklärung so um, dass sie sich nicht mehr stellen.
           </p>
@@ -208,14 +208,14 @@ export default function Feynman({ erklaerungId, aufSchliessen }) {
       {verlauf && (
         <Dialog weit titel="Frühere Fassungen" aufSchliessen={() => setVerlauf(false)}
           fuss={<Knopf art="voll" onClick={() => setVerlauf(false)}>Schließen</Knopf>}>
-          <p className="klein matt" style={{ marginTop: 0 }}>
+          <p className="klein matt oben-0">
             Wie sich deine Erklärung entwickelt hat. Das ist der ehrlichste
             Fortschrittsmesser, den diese App kennt.
           </p>
           <div style={{ display: "grid", gap: 12 }}>
             {[...erklaerung.fassungen].reverse().map((f, i) => (
               <div key={i} className="zahl-kachel">
-                <div className="reihe klein matt" style={{ marginBottom: 6 }}>
+                <div className="reihe klein matt unten-8">
                   <span>{datumKurz(f.zeit)}</span>
                   <span className="mono">
                     {f.text.trim().split(/\s+/).filter(Boolean).length} Wörter

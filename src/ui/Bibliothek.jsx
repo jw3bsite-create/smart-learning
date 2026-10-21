@@ -87,8 +87,8 @@ function Suchergebnis({ begriff }) {
 
       {treffer.stapelTreffer.length > 0 && (
         <>
-          <h3 className="matt" style={{ marginBottom: 10 }}>Stapel</h3>
-          <div className="gitter" style={{ marginBottom: 26 }}>
+          <h3 className="matt unten-12">Stapel</h3>
+          <div className="gitter unten-24">
             {treffer.stapelTreffer.map((s) => (
               <div {...KLICKBAR} key={s.id} className="kachel" onClick={() => gehe("/stapel/" + s.id)}>
                 <div className="titel">{s.title}</div>
@@ -101,7 +101,7 @@ function Suchergebnis({ begriff }) {
 
       {treffer.kartenTreffer.length > 0 ? (
         <>
-          <h3 className="matt" style={{ marginBottom: 10 }}>
+          <h3 className="matt unten-12">
             Karten ({treffer.kartenTreffer.length})
           </h3>
           <div style={{ display: "grid", gap: 8 }}>
@@ -263,8 +263,8 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
       </div>
 
       {zuLernen.length > 0 && (
-        <div style={{ marginBottom: 28 }}>
-          <h3 className="matt" style={{ marginBottom: 10 }}>Heute dran</h3>
+        <div className="unten-32">
+          <h3 className="matt unten-12">Heute dran</h3>
           <div className="gitter">
             {zuLernen.map((x) => (
               <div {...KLICKBAR} key={x.stapel.id} className="kachel" onClick={() => gehe("/stapel/" + x.stapel.id + "/lernen")}>
@@ -286,7 +286,7 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
       )}
 
       {unterordner.length > 0 && (
-        <div className="gitter" style={{ marginBottom: 22 }}>
+        <div className="gitter unten-24">
           {unterordner.map((o) => {
             /* Auch die Stapel in Unterordnern zählen: Ein Ordner, der nur
                weitere Ordner enthält, meldete sonst „0 Stapel“ und sah aus wie

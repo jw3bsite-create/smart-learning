@@ -151,7 +151,7 @@ export function Ergebnis({ titel, richtig, gesamt, kinder, children, setId, aufN
   return (
     <div style={{ textAlign: "center", paddingTop: 20 }}>
       <div style={{ fontFamily: "var(--serifen)", fontSize: 54 }}>{anteil}<span style={{ fontSize: 26 }}>%</span></div>
-      <h2 style={{ marginTop: 6 }}>{titel}</h2>
+      <h2 className="oben-8">{titel}</h2>
       <p className="matt">{richtig} von {gesamt} richtig. {lob}</p>
       {children || kinder}
       <div className="reihe" style={{ justifyContent: "center", marginTop: 26, flexWrap: "wrap" }}>

@@ -321,7 +321,7 @@ function Zeile({
                 })} />
             </div>
           )}
-          <p className="klein blass" style={{ marginTop: 6 }}>
+          <p className="klein blass oben-8">
             Jede Zeile wird einzeln abgefragt. Ein Doppelpunkt trennt eine
             Anweisung von ihrem Ergebnis: <em>ableiten: f'(x) = 2x</em>
           </p>
@@ -482,7 +482,7 @@ export default function Bearbeiten({ setId }) {
         onChange={(e) => stapelAendern(setId, { description: e.target.value })} />
 
       {wartendeEntwuerfe > 0 && (
-        <div className="rueckmeldung fast" style={{ marginBottom: 16 }}>
+        <div className="rueckmeldung fast unten-16">
           <div className="reihe">
             <Symbol name="papier" />
             <span className="dehnen">
@@ -495,7 +495,7 @@ export default function Bearbeiten({ setId }) {
         </div>
       )}
 
-      <div className="reihe" style={{ marginBottom: 12 }}>
+      <div className="reihe unten-12">
         <h3 className="dehnen">
           {anzahl(karten.length, "Karte", "Karten")}
           {abschnitte.length > 0 && (
@@ -541,7 +541,7 @@ export default function Bearbeiten({ setId }) {
         })}
       </div>
 
-      <div ref={unten} style={{ marginTop: 16 }}>
+      <div className="oben-16" ref={unten}>
         <div className="reihe umbruch">
           <Knopf art="gross" symbol="plus" onClick={() => neueKarte()}
             style={{ flex: "2 1 auto", justifyContent: "center" }}>
@@ -557,7 +557,7 @@ export default function Bearbeiten({ setId }) {
 
       {karten.length === 0 && (
         <div style={{ marginTop: 14, textAlign: "center" }}>
-          <p className="matt klein" style={{ marginBottom: 8 }}>
+          <p className="matt klein unten-8">
             Schneller geht es mit „Text einfügen“, eine Liste aus dem Heft in
             einem Rutsch.
           </p>
@@ -595,7 +595,7 @@ export default function Bearbeiten({ setId }) {
               <span className="tastenhilfe">V</span>
               <span className="matt">Ein Bild aus der Zwischenablage landet auf der Karte</span></div>
           </div>
-          <p className="klein blass" style={{ marginTop: 12 }}>
+          <p className="klein blass oben-12">
             Umordnen geht auch mit der Maus: am Griff <span className="mono">⋮⋮</span> links
             in der Zeile ziehen.
           </p>

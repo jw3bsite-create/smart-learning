@@ -91,16 +91,16 @@ export default function Zuordnen({ setId, aufSchliessen }) {
           Fehlgriff kostet eine Sekunde.
         </p>
         {bestzeit !== null && (
-          <p className="marke gruen" style={{ marginTop: 4 }}>
+          <p className="marke gruen oben-4">
             <Symbol name="uhr" groesse={14} /> Bestzeit {zeitLang(bestzeit)}
           </p>
         )}
-        <label className="schalter" style={{ marginTop: 14 }}>
+        <label className="schalter oben-16">
           <input type="checkbox" checked={nurMarkierte}
             onChange={(e) => setNurMarkierte(e.target.checked)} />
           <span>Nur markierte Karten</span>
         </label>
-        <Knopf art="voll gross" symbol="raster" style={{ marginTop: 20 }} onClick={beginnen}>
+        <Knopf art="voll gross" symbol="raster" style={{ marginTop: 24 }} onClick={beginnen}>
           Los
         </Knopf>
       </ModusRahmen>
@@ -119,7 +119,7 @@ export default function Zuordnen({ setId, aufSchliessen }) {
       {zeit !== null ? (
         <div style={{ textAlign: "center", paddingTop: 24 }}>
           <Symbol name="uhr" groesse={38} />
-          <h1 style={{ marginTop: 10 }}>{zeitLang(zeit)}</h1>
+          <h1 className="oben-12">{zeitLang(zeit)}</h1>
           <p className="matt">
             {bestzeit !== null && zeit <= bestzeit ? "Neue Bestzeit!" : `Bestzeit: ${zeitLang(bestzeit)}`}
             {strafe > 0 && ` · ${Math.round(strafe / 1000)} Sekunden Strafe`}

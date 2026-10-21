@@ -159,7 +159,7 @@ export default function Pruefung({ pruefungId, aufSchliessen }) {
         <h1>{pruefung.titel}</h1>
         <p className="klein matt">{fach ? fach.name : "ohne Fach"}</p>
 
-        <div className="rueckmeldung fast" style={{ marginTop: 18 }}>
+        <div className="rueckmeldung fast oben-16">
           <div className="reihe"><Symbol name="uhr" /><strong>Es gilt wie in der Prüfung.</strong></div>
           <p className="klein" style={{ marginTop: 6, marginBottom: 0 }}>
             Kein Sprachmodell, keine Karten, kein Nachschlagen in dieser App.
@@ -171,19 +171,19 @@ export default function Pruefung({ pruefungId, aufSchliessen }) {
         </div>
 
         {pruefung.aufgabe && (
-          <div className="zahl-kachel" style={{ marginTop: 18 }}>
-            <div className="klein matt" style={{ marginBottom: 6 }}>Aufgabe</div>
+          <div className="zahl-kachel oben-16">
+            <div className="klein matt unten-8">Aufgabe</div>
             <div style={{ whiteSpace: "pre-wrap" }}>{pruefung.aufgabe}</div>
           </div>
         )}
 
-        <div className="klein matt" style={{ marginTop: 18 }}>
+        <div className="klein matt oben-16">
           {anzahl(pruefung.kriterien.length, "Kriterium hinterlegt", "Kriterien hinterlegt")}
           {pruefung.kriterien.length === 0
             && " (ohne Erwartungshorizont gibt es hinterher nichts abzugleichen)."}
         </div>
 
-        <Knopf art="voll gross" symbol="uhr" style={{ marginTop: 22 }}
+        <Knopf art="voll gross" symbol="uhr" style={{ marginTop: 24 }}
           onClick={() => pruefungAendern(pruefung.id, { begonnen: Date.now() })}>
           Prüfung beginnen
         </Knopf>
@@ -202,7 +202,7 @@ export default function Pruefung({ pruefungId, aufSchliessen }) {
         </>}>
 
         {pruefung.aufgabe && (
-          <details open style={{ marginBottom: 14 }}>
+          <details className="unten-16" open>
             <summary className="klein matt" style={{ cursor: "pointer" }}>Aufgabe</summary>
             <div className="zahl-kachel" style={{ marginTop: 8, whiteSpace: "pre-wrap" }}>
               {pruefung.aufgabe}
@@ -215,7 +215,7 @@ export default function Pruefung({ pruefungId, aufSchliessen }) {
           placeholder="Deine Antwort …"
           value={text} onChange={(e) => setText(e.target.value)} />
 
-        <div className="reihe" style={{ marginTop: 12 }}>
+        <div className="reihe oben-12">
           <span className="klein blass">
             Wird laufend gesichert. Die Kriterien siehst du erst nach der Abgabe.
           </span>
@@ -245,7 +245,7 @@ export default function Pruefung({ pruefungId, aufSchliessen }) {
         {" · " + anzahl(woerter, "Wort", "Wörter")}
       </p>
 
-      <div className="rueckmeldung fast" style={{ marginTop: 16 }}>
+      <div className="rueckmeldung fast oben-16">
         <strong>Keine Note.</strong> Diese App weiß nicht, was deine Lehrkraft
         erwartet, sie prüft nur, ob die Kriterien vorkommen, die du selbst
         hinterlegt hast. Die Bewertung bleibt bei dir.
@@ -282,7 +282,7 @@ export default function Pruefung({ pruefungId, aufSchliessen }) {
             return (
               <div key={i} className="karten-zeile" style={{ display: "block", padding: 14,
                 borderLeft: "4px solid " + STAND_FARBE[wert] }}>
-                <div className="reihe" style={{ marginBottom: 6 }}>
+                <div className="reihe unten-8">
                   <span className="dehnen">{k}</span>
                   <span className="marke klein" style={{ color: STAND_FARBE[wert] }}>
                     {STAND_NAME[wert]}
@@ -311,7 +311,7 @@ export default function Pruefung({ pruefungId, aufSchliessen }) {
       )}
 
       {/* ------------------------------ Der Text ---------------------------- */}
-      <details style={{ marginTop: 24 }}>
+      <details className="oben-24">
         <summary className="klein matt" style={{ cursor: "pointer" }}>Dein Text</summary>
         <div className="zahl-kachel" style={{ marginTop: 8, whiteSpace: "pre-wrap",
           lineHeight: 1.7 }}>{pruefung.text || text}</div>
@@ -418,12 +418,12 @@ function Uebersicht({ pruefungen, faecher, aufAnlegen, aufLoeschen, aufSchliesse
             </div>
           </div>
 
-          <label className="beschriftung" style={{ marginTop: 14 }}>Aufgabenstellung</label>
+          <label className="beschriftung oben-16">Aufgabenstellung</label>
           <textarea className="feld" style={{ minHeight: 90 }} value={aufgabe}
             placeholder="Der Wortlaut der Aufgabe …"
             onChange={(e) => setAufgabe(e.target.value)} />
 
-          <label className="beschriftung" style={{ marginTop: 14 }}>
+          <label className="beschriftung oben-16">
             Erwartungshorizont, ein Kriterium je Zeile
           </label>
           <textarea className="feld" style={{ minHeight: 120 }} value={kriterienText}
@@ -434,7 +434,7 @@ function Uebersicht({ pruefungen, faecher, aufAnlegen, aufLoeschen, aufSchliesse
             wurde. Je genauer, desto brauchbarer der Abgleich.
           </p>
 
-          <div className="reihe umbruch" style={{ marginTop: 14 }}>
+          <div className="reihe umbruch oben-16">
             <label className="reihe klein matt" style={{ gap: 6 }}>
               Zeit in Minuten
               <input className="feld" type="number" min="0" max="360" style={{ width: 90 }}
