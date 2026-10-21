@@ -28,7 +28,7 @@ from PIL import Image
 HIER = os.path.dirname(os.path.abspath(__file__))
 WURZEL = os.path.dirname(HIER)
 VORLAGE = next((os.path.join(WURZEL, n) for n in
-                ("A Logo.ai", "Anchor Logo.pdf", "Deep Dive Logo.pdf",
+                (os.path.join("Logo", "A Logo.pdf"), "A Logo.ai", "Anchor Logo.pdf", "Deep Dive Logo.pdf",
                  "Deep Learning Logo.pdf", "Smart Learning Logo.pdf")
                 if os.path.exists(os.path.join(WURZEL, n))),
                os.path.join(WURZEL, "Anchor Logo.pdf"))
@@ -45,6 +45,18 @@ def rastern(kante):
     faktor = kante / max(seite.rect.width, seite.rect.height)
     bild = seite.get_pixmap(matrix=pymupdf.Matrix(faktor, faktor), alpha=False)
     return Image.open(io.BytesIO(bild.tobytes("png"))).convert("RGB")
+
+
+def schriftReichweite(bild):
+    """Wie weit die weiße Schrift vom Mittelpunkt reicht, als Anteil der Breite."""
+    breite, hoehe = bild.size
+    weit = 0.0
+    for y in range(0, hoehe, 2):
+        for x in range(0, breite, 2):
+            r, g, b = bild.getpixel((x, y))
+            if r > 235 and g > 235 and b > 235:
+                weit = max(weit, ((x - breite / 2) ** 2 + (y - hoehe / 2) ** 2) ** 0.5 / breite)
+    return weit
 
 
 def main():
@@ -66,13 +78,19 @@ def main():
     schreibe("symbol-32.png", klein(32))
     schreibe("logo-96.png", klein(96))
 
-    # Maskierbar: Das Logo auf 78 % verkleinert, außen mit der Randfarbe
-    # aufgefüllt. Die Buchstaben bleiben so in dem Kreis, den Android auf
-    # jeden Fall stehen lässt.
-    masken = Image.new("RGB", (512, 512), rand)
-    innen = klein(400)
-    masken.paste(innen, ((512 - 400) // 2, (512 - 400) // 2))
-    schreibe("symbol-maskable-512.png", masken)
+    # Maskierbar: Android schneidet das Symbol zu (Kreis, Tropfen, Quadrat)
+    # und lässt sicher nur einen Kreis mit 40 % des Durchmessers vom
+    # Mittelpunkt stehen. Liegt die weiße Schrift darin, wird das Logo
+    # randlos verwendet — bei einem Verlauf sähe jedes Auffüllen mit einer
+    # Randfarbe wie eine Kante aus. Sonst wird es auf 78 % verkleinert und
+    # mit der Randfarbe aufgefüllt.
+    if schriftReichweite(klein(256)) <= 0.38:
+        schreibe("symbol-maskable-512.png", klein(512))
+    else:
+        masken = Image.new("RGB", (512, 512), rand)
+        innen = klein(400)
+        masken.paste(innen, ((512 - 400) // 2, (512 - 400) // 2))
+        schreibe("symbol-maskable-512.png", masken)
 
     ico = os.path.join(ZIEL, "symbol.ico")
     klein(256).save(ico, sizes=[(16, 16), (24, 24), (32, 32), (48, 48),
