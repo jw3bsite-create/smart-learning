@@ -53,3 +53,29 @@ $v.WindowStyle = 7           # kleingelegt — das Fenster von PowerShell bleibt
 $v.Save()
 
 Write-Host "Verknüpfung angelegt: $Ziel"
+
+# ---------------------------------------------------------------------
+#  Und die eigentliche App: die veröffentlichte Fassung in einem eigenen
+#  Edge-Fenster ohne Adresszeile. Kein Server, offline nutzbar, Push.
+#  Die Daten liegen im selben Speicher wie beim Öffnen der Seite in Edge —
+#  also auch dort, wohin der Umzug aus der alten Fassung sie bringt.
+# ---------------------------------------------------------------------
+$Adresse = "https://jw3bsite-create.github.io/smart-learning/"
+$Edge = @(
+  (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe" -ErrorAction SilentlyContinue).'(default)',
+  "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe",
+  "$env:ProgramFiles\Microsoft\Edge\Application\msedge.exe"
+) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+
+if ($Edge) {
+  $App = Join-Path $Schreibtisch "Anchor.lnk"
+  $a = $schale.CreateShortcut($App)
+  $a.TargetPath = $Edge
+  $a.Arguments = "--app=$Adresse"
+  $a.IconLocation = "$Symbol,0"
+  $a.Description = "Anchor"
+  $a.Save()
+  Write-Host "Verknüpfung angelegt: $App"
+} else {
+  Write-Host "Edge nicht gefunden — die Verknüpfung zur App wurde nicht angelegt."
+}
