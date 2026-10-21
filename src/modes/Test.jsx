@@ -12,7 +12,7 @@ import { mische, ziehe } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import { Knopf, Symbol, Bild, Leer } from "../ui/basis.jsx";
 import {
-  useModus, useBrauchbar, ModusRahmen, Seite, Wahl, RICHTUNGEN, seitenFuer, sprachenFuer,
+  useModus, useBrauchbar, ModusRahmen, Seite, Wahl, RICHTUNGEN, seitenFuer, sprachenFuer, LeerKnoepfe,
 } from "./gemeinsam.jsx";
 import Formel from "../ui/Formel.jsx";
 
@@ -133,7 +133,7 @@ export default function Test({ setId, aufSchliessen }) {
     return (
       <ModusRahmen titel="Test" symbol="papier" aufSchliessen={aufSchliessen}>
         <Leer titel="Zu wenige Karten" text="Für einen Test braucht es mindestens zwei Karten.">
-          <Knopf onClick={() => gehe("/stapel/" + setId + "/bearbeiten")}>Karten anlegen</Knopf>
+          <LeerKnoepfe setId={setId} nurMarkierte={nurMarkierte} aufAlle={() => setNurMarkierte(false)} />
         </Leer>
       </ModusRahmen>
     );

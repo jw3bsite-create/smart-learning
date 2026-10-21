@@ -48,6 +48,27 @@ export function useModus(setId) {
     stapelFehlt: !gefunden, karten };
 }
 
+/*
+ * Was im leeren Zustand eines Modus steht.
+ *
+ * War „Nur Markierte“ gewählt und ist zu wenig markiert, verschwand mit den
+ * Karten auch der Schalter, mit dem man es wieder ausmacht — man saß fest.
+ * Dann steht hier der Weg zurück, sonst wie bisher „Karten anlegen“.
+ */
+export function LeerKnoepfe({ setId, nurMarkierte, aufAlle }) {
+  if (nurMarkierte) {
+    return (
+      <>
+        <p className="klein matt unten-12">
+          Gewählt ist „Nur Markierte“, und dafür ist zu wenig markiert.
+        </p>
+        <Knopf art="voll" symbol="stapel" onClick={aufAlle}>Alle Karten zeigen</Knopf>
+      </>
+    );
+  }
+  return <Knopf onClick={() => gehe("/stapel/" + setId + "/bearbeiten")}>Karten anlegen</Knopf>;
+}
+
 /**
  * Karten, die sich üben lassen — leere Zeilen sollen keine Aufgabe werden.
  *

@@ -141,6 +141,10 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
   } = daten;
 
   const fach = fachId ? fachVon(fachId) : null;
+  /* Der Stern liest die Karte, wie sie jetzt im Bestand steht — nicht die
+     Kopie, die beim Bau der Runde entstand. Sonst blieb er nach dem
+     Antippen leer, obwohl die Markierung längst gespeichert war. */
+  const markiert = (k) => Boolean((karten.find((x) => x.id === k.id) || k).starred);
   const [sitzung, setSitzung] = useState(null);
   const [stelle, setStelle] = useState(0);
   const [phase, setPhase] = useState("konfidenz");   // konfidenz | tippen | aufgedeckt
@@ -357,6 +361,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
       wenn: () => phase === "tippen" && !istMehrschritt && !eingabe.trim(),
       fn: () => aufdecken() },
     e: () => { if (phase === "aufgedeckt") setBearbeitet(true); },
+    s: () => aufgabe && karteAendern(aufgabe.karte.id, { starred: !markiert(aufgabe.karte) }),
     Enter: { auchBeimTippen: true, fn: () => {
       if (phase === "tippen") { if (istMehrschritt) schrittPruefen(); else aufdecken(); }
       else if (phase === "aufgedeckt") bewerten(stimmtGenau ? NOTEN.GUT : NOTEN.NOCHMAL);
@@ -589,8 +594,8 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
           <SymbolKnopf symbol="laut" titel="Vorlesen"
             onClick={() => sprich(teile.frage || teile.loesung, sprache,
               einstellungen.sprechTempo)} />
-          <Stern an={aufgabe.karte.starred}
-            aufKlick={() => karteAendern(aufgabe.karte.id, { starred: !aufgabe.karte.starred })} />
+          <Stern an={markiert(aufgabe.karte)}
+            aufKlick={() => karteAendern(aufgabe.karte.id, { starred: !markiert(aufgabe.karte) })} />
           {/* Erst nach dem Aufdecken: vorher zeigte das Fenster die Antwort. */}
           {phase === "aufgedeckt" && (
             <SymbolKnopf symbol="stift" titel="Karte bearbeiten (E)" onClick={() => setBearbeitet(true)} />

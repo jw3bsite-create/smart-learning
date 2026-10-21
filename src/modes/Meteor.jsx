@@ -11,7 +11,7 @@ import { pruefe } from "../core/text.js";
 import { ziehe } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import { Knopf, Symbol, Leer, useMerker } from "../ui/basis.jsx";
-import { useModus, useBrauchbar, ModusRahmen, Wahl, RICHTUNGEN, seitenFuer } from "./gemeinsam.jsx";
+import { useModus, useBrauchbar, ModusRahmen, Wahl, RICHTUNGEN, seitenFuer, LeerKnoepfe } from "./gemeinsam.jsx";
 import Formel from "../ui/Formel.jsx";
 
 const LEBEN = 3;
@@ -142,7 +142,7 @@ export default function Meteor({ setId, aufSchliessen }) {
     return (
       <ModusRahmen titel="Meteor" symbol="rakete" aufSchliessen={aufSchliessen}>
         <Leer titel="Zu wenige Karten" text="Für dieses Spiel braucht es mindestens vier Karten.">
-          <Knopf onClick={() => gehe("/stapel/" + setId + "/bearbeiten")}>Karten anlegen</Knopf>
+          <LeerKnoepfe setId={setId} nurMarkierte={nurMarkierte} aufAlle={() => setNurMarkierte(false)} />
         </Leer>
       </ModusRahmen>
     );

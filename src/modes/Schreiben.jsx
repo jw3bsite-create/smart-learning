@@ -10,11 +10,10 @@ import React, { useEffect, useRef, useState } from "react";
 import { pruefe, schablone } from "../core/text.js";
 import { mische } from "../core/util.js";
 import { sprich } from "../core/speech.js";
-import { gehe } from "../App.jsx";
+
 import { Knopf, SymbolKnopf, Symbol, Stern, Leer, useTastatur } from "../ui/basis.jsx";
 import {
-  useModus, useBrauchbar, ModusRahmen, Seite, Ergebnis, Wahl,
-  RICHTUNGEN, seitenFuer, sprachenFuer, Hinweis,
+  useModus, useBrauchbar, ModusRahmen, Seite, Ergebnis, Wahl, RICHTUNGEN, seitenFuer, sprachenFuer, Hinweis, LeerKnoepfe,
 } from "./gemeinsam.jsx";
 import Formel from "../ui/Formel.jsx";
 
@@ -22,6 +21,10 @@ export default function Schreiben({ setId, aufSchliessen }) {
   const {
     derStapel, karten, einstellungen, antwortVerbuchen, karteAendern, sitzungMerken,
   } = useModus(setId);
+  /* Der Stern liest die Karte, wie sie jetzt im Bestand steht — nicht die
+     Kopie, die beim Bau der Runde entstand. Sonst blieb er nach dem
+     Antippen leer, obwohl die Markierung längst gespeichert war. */
+  const markiert = (k) => Boolean((karten.find((x) => x.id === k.id) || k).starred);
 
   const [richtung, setRichtung] = useState("td");
   const [nurMarkierte, setNurMarkierte] = useState(false);
@@ -107,7 +110,7 @@ export default function Schreiben({ setId, aufSchliessen }) {
     return (
       <ModusRahmen titel="Schreiben" symbol="schreiben" aufSchliessen={aufSchliessen}>
         <Leer titel="Keine Karten" text="Für diesen Modus braucht es Karten mit beiden Seiten.">
-          <Knopf onClick={() => gehe("/stapel/" + setId + "/bearbeiten")}>Karten anlegen</Knopf>
+          <LeerKnoepfe setId={setId} nurMarkierte={nurMarkierte} aufAlle={() => setNurMarkierte(false)} />
         </Leer>
       </ModusRahmen>
     );
@@ -209,8 +212,8 @@ export default function Schreiben({ setId, aufSchliessen }) {
             <div className="dehnen" />
             <SymbolKnopf symbol="laut" titel="Vorlesen"
               onClick={() => sprich(seiten.antwort, sprachen.antwort, einstellungen.sprechTempo)} />
-            <Stern an={aufgabe.karte.starred}
-              aufKlick={() => karteAendern(aufgabe.karte.id, { starred: !aufgabe.karte.starred })} />
+            <Stern an={markiert(aufgabe.karte)}
+              aufKlick={() => karteAendern(aufgabe.karte.id, { starred: !markiert(aufgabe.karte) })} />
           </div>
           <div style={{ marginTop: 8, fontSize: 17 }}><Formel text={seiten.antwort} /></div>
           {urteil.status !== "richtig" && (

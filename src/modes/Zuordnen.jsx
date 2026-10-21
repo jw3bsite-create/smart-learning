@@ -9,7 +9,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { mische, ziehe, zeitLang } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import { Knopf, Symbol, Bild, Leer, useMerker } from "../ui/basis.jsx";
-import { useModus, useBrauchbar, ModusRahmen } from "./gemeinsam.jsx";
+import { useModus, useBrauchbar, ModusRahmen, LeerKnoepfe } from "./gemeinsam.jsx";
 import Formel from "../ui/Formel.jsx";
 
 const PAARE = 6;
@@ -76,7 +76,7 @@ export default function Zuordnen({ setId, aufSchliessen }) {
     return (
       <ModusRahmen titel="Zuordnen" symbol="raster" aufSchliessen={aufSchliessen}>
         <Leer titel="Zu wenige Karten" text="Für dieses Spiel braucht es mindestens vier Karten.">
-          <Knopf onClick={() => gehe("/stapel/" + setId + "/bearbeiten")}>Karten anlegen</Knopf>
+          <LeerKnoepfe setId={setId} nurMarkierte={nurMarkierte} aufAlle={() => setNurMarkierte(false)} />
         </Leer>
       </ModusRahmen>
     );

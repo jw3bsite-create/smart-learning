@@ -15,8 +15,7 @@ import { gehe } from "../App.jsx";
 import { Knopf, SymbolKnopf, Symbol, Stern, Leer, useTastatur } from "../ui/basis.jsx";
 import KarteBearbeiten from "../ui/KarteBearbeiten.jsx";
 import {
-  useModus, useBrauchbar, ModusRahmen, Seite, Ergebnis, ModusLeiste, Wahl, Hinweis,
-  RICHTUNGEN, seitenFuer, sprachenFuer,
+  useModus, useBrauchbar, ModusRahmen, Seite, Ergebnis, ModusLeiste, Wahl, Hinweis, RICHTUNGEN, seitenFuer, sprachenFuer, LeerKnoepfe,
 } from "./gemeinsam.jsx";
 
 export default function Karteikarten({ setId, aufSchliessen }) {
@@ -103,9 +102,9 @@ export default function Karteikarten({ setId, aufSchliessen }) {
     return (
       <ModusRahmen titel="Karteikarten" symbol="stapel" aufSchliessen={aufSchliessen}>
         <Leer titel="Keine Karten zum Durchblättern"
-          text={nurMarkierte ? "In diesem Stapel ist nichts markiert."
+          text={nurMarkierte ? ""
             : "Der Stapel braucht Karten mit Vorder- und Rückseite."}>
-          <Knopf onClick={() => gehe("/stapel/" + setId + "/bearbeiten")}>Karten anlegen</Knopf>
+          <LeerKnoepfe setId={setId} nurMarkierte={nurMarkierte} aufAlle={() => setNurMarkierte(false)} />
         </Leer>
       </ModusRahmen>
     );
@@ -178,6 +177,11 @@ export default function Karteikarten({ setId, aufSchliessen }) {
               ? (derStapel.termLabel || "Vorderseite") : (derStapel.defLabel || "Rückseite")}</div>
             <Seite text={seiten.antwort} bild={seiten.antwortBild} sprache={sprachen.antwort}
               klasse="karte-text" />
+            {/* Der Stern auch hier: Ob eine Karte markiert gehört, merkt man
+                oft erst beim Blick auf die Antwort. */}
+            <div style={{ position: "absolute", top: 8, right: 10 }}>
+              <Stern an={karte.starred} aufKlick={() => karteAendern(karte.id, { starred: !karte.starred })} />
+            </div>
             {/* Die Rueckseite ist aufgedeckt — hier darf gesprochen werden. */}
             <Tonaufnahme knapp
               cardId={karte.id}

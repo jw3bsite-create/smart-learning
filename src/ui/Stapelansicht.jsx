@@ -253,7 +253,9 @@ export default function Stapelansicht({ setId }) {
           {/* -------------------------- Karten -------------------------- */}
           <div className="reihe umbruch unten-12">
             <h3 className="dehnen">{anzahl(karten.length, "Karte", "Karten")}</h3>
-            {markierte > 0 && (
+            {/* Sichtbar, solange etwas markiert ist — oder der Filter an ist:
+                Sonst verschwand der Weg zurück mit der letzten Markierung. */}
+            {(markierte > 0 || nurMarkierte) && (
               <Knopf art={"klein" + (nurMarkierte ? " voll" : "")} symbol="stern"
                 onClick={() => setNurMarkierte((x) => !x)}>
                 {markierte} markiert
@@ -287,6 +289,13 @@ export default function Stapelansicht({ setId }) {
               alleKennungen={sortiert.map((k) => k.id)}
               setAusgewaehlt={setAusgewaehlt}
               aufBeenden={() => { setWaehlt(false); setAusgewaehlt(new Set()); }} />
+          )}
+
+          {nurMarkierte && !sortiert.length && (
+            <div className="leerer-zustand" style={{ padding: "24px 16px" }}>
+              <p className="unten-12">Keine Karte ist markiert.</p>
+              <Knopf art="voll" symbol="stapel" onClick={() => setNurMarkierte(false)}>Alle Karten zeigen</Knopf>
+            </div>
           )}
 
           <div style={{ display: "grid", gap: 8 }}>

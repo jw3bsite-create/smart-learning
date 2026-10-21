@@ -10,11 +10,9 @@ import React, { useEffect, useRef, useState } from "react";
 import { normalisiere, unterschied } from "../core/text.js";
 import { mische } from "../core/util.js";
 import { sprich, sprachAusgabeDa } from "../core/speech.js";
-import { gehe } from "../App.jsx";
+
 import { Knopf, Symbol, SymbolKnopf, Leer, useTastatur } from "../ui/basis.jsx";
-import {
-  useModus, useBrauchbar, ModusRahmen, Ergebnis, Wahl,
-} from "./gemeinsam.jsx";
+import { useModus, useBrauchbar, ModusRahmen, Ergebnis, Wahl, LeerKnoepfe } from "./gemeinsam.jsx";
 
 export default function Buchstabieren({ setId, aufSchliessen }) {
   const { derStapel, karten, antwortVerbuchen, sitzungMerken } = useModus(setId);
@@ -99,7 +97,7 @@ export default function Buchstabieren({ setId, aufSchliessen }) {
     return (
       <ModusRahmen titel="Buchstabieren" symbol="buchstaben" aufSchliessen={aufSchliessen}>
         <Leer titel="Keine Karten" text="Für diesen Modus braucht es Karten mit Text.">
-          <Knopf onClick={() => gehe("/stapel/" + setId + "/bearbeiten")}>Karten anlegen</Knopf>
+          <LeerKnoepfe setId={setId} nurMarkierte={nurMarkierte} aufAlle={() => setNurMarkierte(false)} />
         </Leer>
       </ModusRahmen>
     );
