@@ -24,6 +24,7 @@ import FormelEditor from "./FormelEditor.jsx";
 import KiGenerator from "./KiGenerator.jsx";
 import { useZiehen } from "./ziehen.js";
 import { gliederung, folgeVon } from "../core/abschnitte.js";
+import { schritteAlsText, textAlsSchritte } from "../core/schritte.js";
 
 /* ----------------------------- Eine Kartenzeile ------------------------ */
 
@@ -54,10 +55,6 @@ const amEnde = (feld) => feld.selectionStart === feld.value.length
 const inErsterZeile = (feld) => !feld.value.slice(0, feld.selectionStart).includes("\n");
 const inLetzterZeile = (feld) => !feld.value.slice(feld.selectionEnd).includes("\n");
 
-/** Die Schritte eines Rechenwegs als Text, eine Zeile je Schritt. */
-function schritteAlsText(schritte) {
-  return (schritte || []).map((s) => (s.frage ? s.frage + ": " + s.antwort : s.antwort)).join("\n");
-}
 
 function Zeile({
   karte, nummer, aendern, loeschen, aufHoch, aufRunter, aufNeueZeile, aufWandern,
@@ -135,17 +132,8 @@ function Zeile({
     vonAussen("schritte", setSchritteText, schritteAlsText(karte.schritte));
   }, [JSON.stringify(karte.schritte || [])]);
 
-  /** Zeilen zu Schritten: „ableiten: f'(x) = 2x" wird Frage und Antwort. */
-  const alsSchritte = (text) => String(text || "").split("\n")
-    .map((z) => z.trim()).filter(Boolean)
-    .map((z) => {
-      const stelle = z.indexOf(":");
-      // Nur trennen, wenn vorn wirklich eine Anweisung steht und nicht etwa
-      // ein Verhältnis wie „3:4".
-      if (stelle > 2 && /[a-zäöüß]\s*$/i.test(z.slice(0, stelle)))
-        return { frage: z.slice(0, stelle).trim(), antwort: z.slice(stelle + 1).trim() };
-      return { frage: "", antwort: z };
-    });
+  /** Zeilen zu Schritten (core/schritte.js). */
+  const alsSchritte = textAlsSchritte;
 
   const merkenSchritte = (text) => merken({ schritte: alsSchritte(text) });
   const sofortSchritte = (text) => sofort({ schritte: alsSchritte(text) });

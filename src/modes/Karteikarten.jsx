@@ -13,6 +13,7 @@ import { seitenFuerRichtung } from "../core/ton.js";
 import Tonaufnahme from "../ui/Tonaufnahme.jsx";
 import { gehe } from "../App.jsx";
 import { Knopf, SymbolKnopf, Symbol, Stern, Leer, useTastatur } from "../ui/basis.jsx";
+import KarteBearbeiten from "../ui/KarteBearbeiten.jsx";
 import {
   useModus, useBrauchbar, ModusRahmen, Seite, Ergebnis, ModusLeiste, Wahl, Hinweis,
   RICHTUNGEN, seitenFuer, sprachenFuer,
@@ -28,6 +29,7 @@ export default function Karteikarten({ setId, aufSchliessen }) {
   const [selbstlauf, setSelbstlauf] = useState(false);
   const [urteile, setUrteile] = useState({});
   const [fertig, setFertig] = useState(false);
+  const [bearbeitet, setBearbeitet] = useState(false);
   const uhr = useRef(null);
 
   const brauchbare = useBrauchbar(karten, nurMarkierte);
@@ -84,6 +86,7 @@ export default function Karteikarten({ setId, aufSchliessen }) {
     ArrowUp: () => urteilen(true),
     ArrowDown: () => urteilen(false),
     s: () => karte && karteAendern(karte.id, { starred: !karte.starred }),
+    e: () => { if (karte) { setSelbstlauf(false); setBearbeitet(true); } },
     a: () => karte && sprich(gedreht ? seiten.antwort : seiten.frage,
       gedreht ? sprachen.antwort : sprachen.frage, einstellungen.sprechTempo),
   }, Boolean(karte) && !fertig);
@@ -133,8 +136,13 @@ export default function Karteikarten({ setId, aufSchliessen }) {
           onClick={() => setSelbstlauf((x) => !x)} />
         <SymbolKnopf symbol="mischen" art={gemischt ? "klein voll" : "leer klein"}
           titel="Mischen" onClick={() => { setGemischt((x) => !x); setStelle(0); setGedreht(false); }} />
+        <SymbolKnopf symbol="stift" titel="Karte bearbeiten (E)"
+          onClick={() => { setSelbstlauf(false); setBearbeitet(true); }} />
         <span className="klein matt mono">{stelle + 1} / {reihe.length}</span>
       </>}>
+      {bearbeitet && karte && (
+        <KarteBearbeiten karte={karte} aufSchliessen={() => setBearbeitet(false)} />
+      )}
 
       <ModusLeiste>
         <Wahl beschriftung="Abfrage" wert={richtung} setzen={(w) => { setRichtung(w); setGedreht(false); }}

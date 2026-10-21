@@ -39,6 +39,7 @@ import {
   Knopf, SymbolKnopf, Symbol, Bild, Stern, Leer, useTastatur, useMerker,
 } from "../ui/basis.jsx";
 import { ModusRahmen } from "./gemeinsam.jsx";
+import KarteBearbeiten from "../ui/KarteBearbeiten.jsx";
 import Formel from "../ui/Formel.jsx";
 import Zeichenleiste from "../ui/Zeichenleiste.jsx";
 import { hatFormel } from "../core/formel.js";
@@ -212,9 +213,18 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
 
   const aufgabe = sitzung?.aufgaben?.[stelle] || null;
 
+  /* Auch neu, wenn die Karte während der Sitzung bearbeitet wurde. */
   const teile = useMemo(
     () => (aufgabe ? aufgabeTeile(aufgabe.karte, aufgabe.richtung) : null),
-    [aufgabe?.schluessel]);
+    [aufgabe?.schluessel, aufgabe?.karte]);
+  const [bearbeitet, setBearbeitet] = useState(false);
+
+  /* Nach dem Bearbeiten: die geänderte Karte in die Sitzung übernehmen —
+     auch in nachgereihte Kopien derselben Karte. */
+  const karteErneuert = (neu) => setSitzung((alt) => ({
+    ...alt,
+    aufgaben: alt.aufgaben.map((a) => (a.karte.id === neu.id ? { ...a, karte: { ...a.karte, ...neu } } : a)),
+  }));
 
   const zustand = aufgabe
     ? (zustaende[aufgabe.schluessel] ||
@@ -346,6 +356,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
     " ": { auchBeimTippen: true,
       wenn: () => phase === "tippen" && !istMehrschritt && !eingabe.trim(),
       fn: () => aufdecken() },
+    e: () => { if (phase === "aufgedeckt") setBearbeitet(true); },
     Enter: { auchBeimTippen: true, fn: () => {
       if (phase === "tippen") { if (istMehrschritt) schrittPruefen(); else aufdecken(); }
       else if (phase === "aufgedeckt") bewerten(stimmtGenau ? NOTEN.GUT : NOTEN.NOCHMAL);
@@ -580,7 +591,15 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
               einstellungen.sprechTempo)} />
           <Stern an={aufgabe.karte.starred}
             aufKlick={() => karteAendern(aufgabe.karte.id, { starred: !aufgabe.karte.starred })} />
+          {/* Erst nach dem Aufdecken: vorher zeigte das Fenster die Antwort. */}
+          {phase === "aufgedeckt" && (
+            <SymbolKnopf symbol="stift" titel="Karte bearbeiten (E)" onClick={() => setBearbeitet(true)} />
+          )}
         </div>
+        {bearbeitet && (
+          <KarteBearbeiten karte={aufgabe.karte} aufSchliessen={() => setBearbeitet(false)}
+            aufGespeichert={karteErneuert} />
+        )}
       </div>
 
       {/* --------------------------- Konfidenz ---------------------------- */}
