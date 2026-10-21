@@ -45,6 +45,7 @@ export default function Stapelansicht({ setId }) {
   const [angaben, setAngaben] = useState(false);
   const [waehlt, setWaehlt] = useState(false);
   const [ausgewaehlt, setAusgewaehlt] = useState(() => new Set());
+  const [uebtAbschnitt, setUebtAbschnitt] = useState(null);
 
   const derStapel = stapel.find((s) => s.id === setId);
   const karten = kartenVon(setId);
@@ -299,6 +300,9 @@ export default function Stapelansicht({ setId }) {
                     style={zugA.style}>
                     <span className="abschnitt-titel">{a.titel || "Ohne Titel"}</span>
                     <span className="klein blass">{anzahl(drin, "Karte", "Karten")}</span>
+                    {drin > 0 && !waehlt && (
+                      <Knopf art="klein" symbol="blitz" onClick={() => setUebtAbschnitt(a)}>Üben</Knopf>
+                    )}
                   </div>
                 );
               }
@@ -377,6 +381,24 @@ export default function Stapelansicht({ setId }) {
             })}
           </div>
         </>
+      )}
+
+      {/* Nur einen Abschnitt üben: der Modus sieht dann nur dessen Karten. */}
+      {uebtAbschnitt && (
+        <Dialog titel={"„" + (uebtAbschnitt.titel || "Abschnitt") + "“ üben"}
+          aufSchliessen={() => setUebtAbschnitt(null)}>
+          <p className="klein matt" style={{ marginTop: 0 }}>
+            Zum Üben, wie oben. Das Abrufen bleibt beim ganzen Fach.
+          </p>
+          <div className="modus-raster" style={{ marginBottom: 0 }}>
+            {MODI.map((m) => (
+              <Knopf key={m.id} symbol={m.symbol} title={m.text}
+                onClick={() => gehe("/stapel/" + setId + "/" + m.id + "/" + uebtAbschnitt.id)}>
+                {m.name}
+              </Knopf>
+            ))}
+          </div>
+        </Dialog>
       )}
 
       {angaben && (

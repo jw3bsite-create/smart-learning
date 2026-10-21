@@ -46,6 +46,7 @@ import Buchstabieren from "./modes/Buchstabieren.jsx";
 import Test from "./modes/Test.jsx";
 import Zuordnen from "./modes/Zuordnen.jsx";
 import Meteor from "./modes/Meteor.jsx";
+import { UebungsBereich } from "./modes/gemeinsam.jsx";
 
 export { MODI } from "./modes/modi.js";
 
@@ -270,6 +271,7 @@ export default function App() {
 /* Die Wege. Eigenes Bauteil, damit der Zeitmesser oben bei jedem Weg dabei ist. */
 function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
   const teile = weg.split("/").filter(Boolean);
+  const { stapel } = useDaten();
 
   /* Jede Seite in ihrer eigenen Auffanglinie. Der Schlüssel ist der Weg:
      Wer nach einem Absturz woandershin geht, bekommt eine frische Hülle. */
@@ -306,13 +308,19 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
     const setId = teile[1];
     const modus = teile[2];
     const gemeinsam = { setId, aufSchliessen: () => zurueckZu("/stapel/" + setId) };
-    if (modus === "karten") return gefangen(<Karteikarten {...gemeinsam} />);
-    if (modus === "lernen") return gefangen(<Lernen {...gemeinsam} />);
-    if (modus === "schreiben") return gefangen(<Schreiben {...gemeinsam} />);
-    if (modus === "buchstabieren") return gefangen(<Buchstabieren {...gemeinsam} />);
-    if (modus === "test") return gefangen(<Test {...gemeinsam} />);
-    if (modus === "zuordnen") return gefangen(<Zuordnen {...gemeinsam} />);
-    if (modus === "meteor") return gefangen(<Meteor {...gemeinsam} />);
+    // Nur ein Abschnitt? (siehe UebungsBereich in modes/gemeinsam.jsx)
+    const bereich = teile[3]
+      ? (stapel.find((s) => s.id === setId)?.abschnitte || []).find((a) => a.id === teile[3]) || null
+      : null;
+    const mitBereich = (seite) => gefangen(
+      <UebungsBereich.Provider value={bereich}>{seite}</UebungsBereich.Provider>);
+    if (modus === "karten") return mitBereich(<Karteikarten {...gemeinsam} />);
+    if (modus === "lernen") return mitBereich(<Lernen {...gemeinsam} />);
+    if (modus === "schreiben") return mitBereich(<Schreiben {...gemeinsam} />);
+    if (modus === "buchstabieren") return mitBereich(<Buchstabieren {...gemeinsam} />);
+    if (modus === "test") return mitBereich(<Test {...gemeinsam} />);
+    if (modus === "zuordnen") return mitBereich(<Zuordnen {...gemeinsam} />);
+    if (modus === "meteor") return mitBereich(<Meteor {...gemeinsam} />);
   }
 
   let inhalt = <Bibliothek ordnerId={null} />;

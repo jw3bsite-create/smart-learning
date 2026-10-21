@@ -3,7 +3,7 @@
  * Kartenseite, Ergebnisbild am Ende und ein paar Beschaffungshelfer.
  */
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { sprich, schweig } from "../core/speech.js";
 import { istUebbar } from "../core/kartenseiten.js";
@@ -27,10 +27,22 @@ const LEERER_STAPEL = {
  * Zugriff auf einen Namen ab und hinterlässt eine weiße Seite; die Modi
  * fangen den leeren Fall über ihre Abbruchbedingung ohnehin ab.
  */
+/*
+ * Üben nach Überschriften: Ist ein Abschnitt gewählt (Weg
+ * `/stapel/<id>/<modus>/<abschnitt>`), sehen alle Übungsmodi nur dessen
+ * Karten. Über einen Rahmen statt über jeden Modus einzeln — die Modi
+ * merken davon nichts. Das Abrufen bleibt davon unberührt: Was dort
+ * drankommt, entscheidet der Plan.
+ */
+export const UebungsBereich = createContext(null);   // { id, titel } oder null
+
 export function useModus(setId) {
   const daten = useDaten();
+  const bereich = useContext(UebungsBereich);
   const gefunden = daten.stapel.find((s) => s.id === setId);
-  const karten = daten.kartenVon(setId);
+  const alle = daten.kartenVon(setId);
+  const karten = useMemo(() => (bereich ? alle.filter((k) => k.abschnitt === bereich.id) : alle),
+    [alle, bereich]);
   useEffect(() => () => schweig(), []);
   return { ...daten, derStapel: gefunden || LEERER_STAPEL,
     stapelFehlt: !gefunden, karten };
@@ -54,6 +66,7 @@ export function ModusRahmen({ titel, symbol, aufSchliessen, anteil = null, recht
      hinter dem „?“ — wer ihn kennt, braucht den Satz nicht. */
   const erklaerung = modusNachName(titel)?.text || null;
   const [erklaert, setErklaert] = useState(false);
+  const bereich = useContext(UebungsBereich);
   return (
     <div>
       <div className="modus-kopf">
@@ -66,9 +79,11 @@ export function ModusRahmen({ titel, symbol, aufSchliessen, anteil = null, recht
             art={"leer klein" + (erklaert ? " aktiv" : "")} aria-pressed={erklaert}
             onClick={() => setErklaert((x) => !x)} />
         )}
+        {bereich && <span className="marke nur-breit">{bereich.titel || "Abschnitt"}</span>}
         <div className="dehnen" />
         {rechts}
       </div>
+      {bereich && <div className="modus-erklaerung nur-schmal">Nur „{bereich.titel || "Abschnitt"}“</div>}
       {erklaert && <div className="modus-erklaerung">{erklaerung}</div>}
       {anteil !== null && (
         <div className="balken" style={{ height: 4, borderRadius: 0 }}>
