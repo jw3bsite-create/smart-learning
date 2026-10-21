@@ -10,6 +10,9 @@
 
 import { verbinde } from "./cloud.js";
 import { geheimnisZusammensetzen } from "./pushplan.js";
+import { laeuftLokal } from "./umzug.js";
+
+export { laeuftLokal };
 
 /* ------------------------------- Werkzeug ------------------------------- */
 
@@ -109,10 +112,6 @@ export async function einrichten() {
  * localhost läuft. Das ist kein Fehler: Dort braucht man keine
  * Handy-Erinnerung, und einrichten lässt sie sich trotzdem.
  */
-export function laeuftLokal() {
-  return typeof location !== "undefined"
-    && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(location.hostname);
-}
 
 /** Kann sich dieses Gerät anmelden? */
 export async function geraetMoeglich() {

@@ -10,6 +10,7 @@ import * as ki from "../core/ki.js";
 import * as erinnerung from "../core/erinnerung.js";
 import * as push from "../core/push.js";
 import * as tagessicherung from "../core/tagessicherung.js";
+import { UmzugAlt, UmzugNeu } from "./Umzug.jsx";
 import { stimmen, beiStimmen, sprich } from "../core/speech.js";
 import { verwaisteBilderAufraeumen } from "../core/media.js";
 import {
@@ -1309,6 +1310,9 @@ export default function Einstellungen({ aufAbgleich }) {
   return (
     <div className="mitte" style={{ maxWidth: 780 }}>
       <div className="kopfzeile"><h1>Einstellungen</h1></div>
+
+      <UmzugAlt aufAbgleich={aufAbgleich} />
+      <UmzugNeu />
 
       <Abschnitt titel="Erscheinungsbild"
         hinweis="Jede Änderung greift sofort. Die Vorschau daneben zeigt, was du beim Verstellen sonst nicht vor Augen hast.">

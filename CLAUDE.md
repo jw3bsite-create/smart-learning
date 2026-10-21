@@ -27,7 +27,7 @@ Sprache, soweit sie die Sache benennen (`karten`, `zustaende`, `abrufVerbuchen`)
 ```
 npm install
 npm run dev      # http://localhost:5180
-npm test         # 495 Prüfungen (Kern, Speicher, Abgleich, Dialoge, Push, Abschnitte)
+npm test         # 500 Prüfungen (Kern, Speicher, Abgleich, Dialoge, Push, Abschnitte)
 npm run test:oberflaeche   # die gebaute App in Edge, am Handymaß (playwright-core)
 npm run lint
 npm run symbole  # Symbole aus "Anchor Logo.pdf" (braucht: pip install pymupdf pillow)
@@ -92,7 +92,7 @@ prompts/      Die Systemanweisungen als eigene Dateien, versioniert
 src/modes/    Abrufen, Fragen, Feynman, Pretest, Tutor, Pruefung + die sieben
               Übungsmodi
 src/ui/       Bildschirme und Bausteine
-test/         495 Prüfungen (npm test), darunter der ganze Weg der Daten
+test/         500 Prüfungen (npm test), darunter der ganze Weg der Daten
               gegen einen Testspeicher (fake-indexeddb)
 werkzeug/     Erzeugt die Symbole aus dem Logo (Python: pymupdf, pillow)
 ```
@@ -400,6 +400,10 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     12, 16, 24, 32. Keine neuen Einzelwerte in `style`.
 59. **Vor größeren Umbauten `npm run test:oberflaeche`.** Er klickt die
     Hauptwege durch und misst, ob am Handy etwas über den Rand ragt.
+60. **Am PC ist die veröffentlichte Seite die App** (in Edge installiert).
+    `localhost` aus „Anchor (alte Fassung)“ dient dem Umzug und dem
+    Entwickeln (`core/umzug.js`, `ui/Umzug.jsx`). Daten liegen je Adresse
+    getrennt im Browser; nur Abgleich oder Sicherungsdatei verbinden sie.
 
 ## Stapel aus Lernmaterial (im Chat)
 

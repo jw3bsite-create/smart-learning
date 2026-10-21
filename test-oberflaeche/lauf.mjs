@@ -72,10 +72,19 @@ try {
   });
 
   await schritt("Abrufen: bewerten und die Bewertung zurücknehmen", async () => {
+    // Die Beispieldaten entstehen zufällig: das erste Fach nehmen, in dem
+    // wirklich etwas ansteht.
     const faecher = await ausDb("subjects");
-    await gehe("/abrufen/" + faecher[0].id);
+    let gefunden = false;
+    for (const f of faecher) {
+      await gehe("/abrufen/" + f.id);
+      if (await seite.locator(".konfidenz-gitter").waitFor({ timeout: 2500 }).then(() => true, () => false)) {
+        gefunden = true;
+        break;
+      }
+    }
+    soll(gefunden, "in keinem Fach stand etwas zum Abrufen an");
     const zaehler = seite.locator(".modus-kopf .mono");
-    await seite.locator(".konfidenz-gitter").waitFor({ timeout: 5000 });
     const vorher = await zaehler.textContent();
     await seite.keyboard.press("1");
     await warte(1200);                       // keine Antwort unter einer Sekunde zählt

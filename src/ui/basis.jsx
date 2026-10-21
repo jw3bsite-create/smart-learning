@@ -87,18 +87,21 @@ export function Symbol({ name, groesse = 18, fuell = false, ...rest }) {
  * ab — der Kreuz-Knopf „Abbrechen" neben einem Namensfeld speicherte so den
  * Namen, statt die Eingabe zu verwerfen.
  */
-export function Knopf({ art = "", symbol, kinder, children, type = "button", ...rest }) {
+export function Knopf({ art = "", symbol, kinder, children, type = "button", className = "", ...rest }) {
+  // Eine mitgegebene Klasse kommt dazu, statt „knopf“ zu ersetzen.
   return (
-    <button type={type} className={"knopf " + art} {...rest}>
+    <button type={type} className={"knopf " + art + (className ? " " + className : "")} {...rest}>
       {symbol && <Symbol name={symbol} />}
       {children || kinder}
     </button>
   );
 }
 
-export function SymbolKnopf({ symbol, titel, art = "leer klein", groesse = 18, type = "button", ...rest }) {
+export function SymbolKnopf({ symbol, titel, art = "leer klein", groesse = 18, type = "button",
+  className = "", ...rest }) {
   return (
-    <button type={type} className={"knopf " + art} title={titel} aria-label={titel} {...rest}>
+    <button type={type} className={"knopf " + art + (className ? " " + className : "")}
+      title={titel} aria-label={titel} {...rest}>
       <Symbol name={symbol} groesse={groesse} />
     </button>
   );

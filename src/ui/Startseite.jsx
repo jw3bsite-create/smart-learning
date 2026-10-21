@@ -19,6 +19,7 @@ import { gehe } from "../App.jsx";
 import { Symbol, Knopf, Leer, KLICKBAR, FachPunkt } from "./basis.jsx";
 import { useLernzeiten } from "./Lernzeit.jsx";
 import { summe, tagesBeginn, dauerText } from "../core/lernzeit.js";
+import { UmzugNeu, UmzugHinweis } from "./Umzug.jsx";
 
 function gruss(stunde) {
   if (stunde < 5) return "Gute Nacht";
@@ -88,6 +89,8 @@ export default function Startseite() {
         </div>
       </div>
 
+      <UmzugNeu knapp />
+
       {leer ? (
         <Leer symbol="stapel" titel="Willkommen bei Anchor"
           text="Leg deinen ersten Stapel an, oder lade in den Einstellungen die Beispieldaten, um alles auszuprobieren.">
@@ -95,6 +98,7 @@ export default function Startseite() {
             <Knopf art="voll gross" symbol="plus" onClick={() => gehe("/faecher")}>Fächer anlegen</Knopf>
             <Knopf art="gross" symbol="zahnrad" onClick={() => gehe("/einstellungen")}>Beispieldaten</Knopf>
           </div>
+          <UmzugHinweis />
         </Leer>
       ) : (
         <>

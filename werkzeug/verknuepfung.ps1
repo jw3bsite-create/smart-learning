@@ -1,5 +1,11 @@
 ﻿# =====================================================================
-#  Legt die Verknüpfung Anchor auf dem Schreibtisch an.
+#  Legt die Verknüpfung „Anchor (alte Fassung)“ auf dem Schreibtisch an.
+#
+#  Sie startet die Fassung über den eigenen Rechner (localhost). Die
+#  eigentliche App am PC ist seit Oktober 2026 die veröffentlichte Seite, in
+#  Edge als App installiert — Edge legt dafür selbst eine Verknüpfung
+#  „Anchor“ an. Diese hier bleibt für den Umzug (siehe src/core/umzug.js)
+#  und zum Entwickeln.
 #
 #  Aufruf (Rechtsklick auf die Datei, Mit PowerShell ausfuehren) oder:
 #    powershell -ExecutionPolicy Bypass -File werkzeug\verknuepfung.ps1
@@ -22,13 +28,18 @@ foreach ($datei in @($Starter, $Symbol)) {
 # Der Schreibtisch liegt bei eingerichtetem OneDrive nicht dort, wo man ihn
 # vermutet — Windows selbst fragen statt raten.
 $Schreibtisch = [Environment]::GetFolderPath("Desktop")
-$Ziel = Join-Path $Schreibtisch "Anchor.lnk"
+$Ziel = Join-Path $Schreibtisch "Anchor (alte Fassung).lnk"
 
 # Die Verknüpfung unter dem alten Namen wegräumen, sonst liegen zwei da.
+# „Anchor.lnk“ nur, wenn sie auf diesen Starter zeigt — die von Edge
+# angelegte App-Verknüpfung heißt ebenso und bleibt unangetastet.
+$schale0 = New-Object -ComObject WScript.Shell
 foreach ($alt in @("Karteikasten.lnk", "Smart Learning.lnk", "Deep Learning.lnk",
-                   "Deep Dive.lnk")) {
+                   "Deep Dive.lnk", "Anchor.lnk")) {
   $frueher = Join-Path $Schreibtisch $alt
-  if (Test-Path $frueher) { Remove-Item $frueher -Force -ErrorAction SilentlyContinue }
+  if (-not (Test-Path $frueher)) { continue }
+  if ($alt -eq "Anchor.lnk" -and $schale0.CreateShortcut($frueher).Arguments -notlike "*starten.ps1*") { continue }
+  Remove-Item $frueher -Force -ErrorAction SilentlyContinue
 }
 
 $schale = New-Object -ComObject WScript.Shell
@@ -37,7 +48,7 @@ $v.TargetPath = Join-Path $env:SystemRoot "System32\WindowsPowerShell\v1.0\power
 $v.Arguments = "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$Starter`""
 $v.WorkingDirectory = $Ordner
 $v.IconLocation = "$Symbol,0"
-$v.Description = "Anchor starten"
+$v.Description = "Anchor (alte Fassung über den eigenen Rechner) starten"
 $v.WindowStyle = 7           # kleingelegt — das Fenster von PowerShell bleibt unsichtbar
 $v.Save()
 
