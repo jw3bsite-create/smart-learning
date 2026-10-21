@@ -8,6 +8,7 @@ import { useDaten } from "./core/store.jsx";
 import * as wolke from "./core/cloud.js";
 import * as erinnerung from "./core/erinnerung.js";
 import { lageSchreiben } from "./core/push.js";
+import * as tagessicherung from "./core/tagessicherung.js";
 import { tagesplan } from "./core/pushplan.js";
 import { zustaendeImPlan } from "./core/warteschlange.js";
 import { tagesLage } from "./core/straehne.js";
@@ -168,6 +169,9 @@ export default function App() {
       const ergebnis = await wolke.abgleichen((text) =>
         setWolkeStand({ zustand: "arbeitet", zeit: Date.now(), text }));
       await neuLaden();
+      // Einmal am Tag eine Sicherung in die Wolke (core/tagessicherung.js).
+      // Scheitert sie, leidet der Abgleich nicht darunter.
+      tagessicherung.wolkeSichern(aktuell.current.alsSicherung).catch(() => {});
       setWolkeStand({
         zustand: ergebnis.medienFehler ? "fehler" : "gut", zeit: ergebnis.zeit,
         text: ergebnis.geholt + " geholt, " + ergebnis.geschickt + " geschickt"
@@ -230,6 +234,13 @@ export default function App() {
     }, 30000);
     return () => clearTimeout(t);
   }, [bereit, karten, zustaende, stapelVon, wolkeStand.zeit]);
+
+  /* Einmal am Tag eine Kopie im Browser, kurz nach dem Start und still. */
+  useEffect(() => {
+    if (!bereit) return undefined;
+    const t = setTimeout(() => { tagessicherung.lokalSichern().catch(() => {}); }, 8000);
+    return () => clearTimeout(t);
+  }, [bereit]);
 
   /* Beim Wechsel des Weges die Leiste auf schmalen Geräten schließen. */
   useEffect(() => { setLeisteOffen(false); }, [weg]);

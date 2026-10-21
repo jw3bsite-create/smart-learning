@@ -27,6 +27,7 @@ const VERSION = 7;
 
 /** So viele automatische Sicherungen bleiben liegen; ältere werden weggeräumt. */
 const SICHERUNGEN_HOECHSTENS = 8;
+const TAEGLICH_HOECHSTENS = 7;     // tägliche Kopien (core/tagessicherung.js)
 
 /**
  * Alle Ablagen und ihre Verzeichnisse.
@@ -180,15 +181,23 @@ async function kopieAblegen(verbindung, grund, vonFassung = VERSION) {
       const ablage = t.objectStore("stand");
       const zeit = Date.now();
       ablage.put({
-        id: "v" + vonFassung + "-" + new Date(zeit).toISOString().slice(0, 19) + "-" + grund,
+        // Auf die Tausendstel genau und mit Zufallsteil: Zwei Kopien in
+        // derselben Sekunde überschrieben sich sonst.
+        id: "v" + vonFassung + "-" + new Date(zeit).toISOString().slice(0, 23) + "-" + grund
+          + "-" + Math.random().toString(36).slice(2, 6),
         vonFassung, nachFassung: VERSION, grund, zeit, daten,
       });
       // Nur die jüngsten behalten, sonst wächst die zweite Datenbank mit
-      // jeder Umstellung um den ganzen Bestand.
+      // jeder Umstellung um den ganzen Bestand. Die täglichen Kopien zählen
+      // für sich: Sieben Tage davon sollen keine Kopie vor einem Umbau
+      // verdrängen.
       const alle = ablage.getAll();
       alle.onsuccess = () => {
         const liste = (alle.result || []).sort((a, b) => (b.zeit || 0) - (a.zeit || 0));
-        for (const alt of liste.slice(SICHERUNGEN_HOECHSTENS)) ablage.delete(alt.id);
+        const taeglich = liste.filter((k) => k.grund === "taeglich");
+        const sonst = liste.filter((k) => k.grund !== "taeglich");
+        for (const alt of [...taeglich.slice(TAEGLICH_HOECHSTENS), ...sonst.slice(SICHERUNGEN_HOECHSTENS)])
+          ablage.delete(alt.id);
       };
       t.oncomplete = () => fertig();
       t.onerror = () => schief(t.error);

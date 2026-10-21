@@ -9,6 +9,7 @@ import * as wolke from "../core/cloud.js";
 import * as ki from "../core/ki.js";
 import * as erinnerung from "../core/erinnerung.js";
 import * as push from "../core/push.js";
+import * as tagessicherung from "../core/tagessicherung.js";
 import { stimmen, beiStimmen, sprich } from "../core/speech.js";
 import { verwaisteBilderAufraeumen } from "../core/media.js";
 import {
@@ -963,6 +964,58 @@ function Beispielteil() {
 
 /* ---------------------------- Sicherungsteil ---------------------------- */
 
+/*
+ * Die täglichen Sicherungen in der Wolke (core/tagessicherung.js). Nur
+ * sichtbar, wenn man angemeldet ist und es welche gibt.
+ */
+function Wolkensicherungen({ ausSicherung, setMeldung, setFehler }) {
+  const [liste, setListe] = useState([]);
+  useEffect(() => { tagessicherung.wolkenSicherungen().then(setListe).catch(() => {}); }, []);
+  if (!liste.length) return null;
+
+  const zurueckholen = async (s) => {
+    const datum = new Date(s.tag + "T12:00").toLocaleDateString("de-DE",
+      { weekday: "long", day: "numeric", month: "long" });
+    if (!(await bestaetigen({
+      titel: "Stand von " + datum + " zurückholen?",
+      text: "Der jetzige Stand wandert in den Papierkorb, Bilder und Aufnahmen bleiben. "
+        + "Vorher legt die App selbst eine Kopie ab.",
+      ja: "Zurückholen",
+    }))) return;
+    setFehler(""); setMeldung("");
+    try {
+      await ausSicherung(await tagessicherung.wolkenSicherungLaden(s.name), true);
+      setMeldung("Zurückgeholt: der Stand von " + datum + ".");
+    } catch (e) {
+      setFehler("Das Zurückholen ist gescheitert, dein Bestand ist unverändert: " + (e?.message || e));
+    }
+  };
+
+  return (
+    <details style={{ marginTop: 6 }}>
+      <summary className="klein matt" style={{ cursor: "pointer" }}>
+        Tägliche Sicherungen in der Cloud ({liste.length})
+      </summary>
+      <p className="klein blass" style={{ margin: "8px 0" }}>
+        Nach dem ersten Abgleich eines Tages legt die App eine Sicherung ohne Bilder in
+        deinem Supabase-Speicher ab und behält die letzten {tagessicherung.WOLKE_TAGE} Tage.
+        Sie bleibt, auch wenn der Browser seinen Speicher räumt.
+      </p>
+      <div style={{ display: "grid", gap: 6 }}>
+        {liste.map((s) => (
+          <div key={s.name} className="reihe klein" style={{ gap: 8 }}>
+            <span className="dehnen">
+              {new Date(s.tag + "T12:00").toLocaleDateString("de-DE",
+                { weekday: "short", day: "2-digit", month: "2-digit", year: "numeric" })}
+            </span>
+            <Knopf art="klein" onClick={() => zurueckholen(s)}>Zurückholen</Knopf>
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
 /** Wofür eine automatische Kopie angelegt wurde, in Worten. */
 function kopieGrund(grund) {
   const g = String(grund || "");
@@ -970,6 +1023,7 @@ function kopieGrund(grund) {
   if (g === "vor-ersetzen") return "vor dem Ersetzen";
   if (g === "vor-dazulegen") return "vor dem Dazulegen";
   if (g.startsWith("vor-umstellung")) return "vor einer Umstellung";
+  if (g === "taeglich") return "tägliche Sicherung";
   return "Kopie";
 }
 
@@ -1181,9 +1235,9 @@ function Sicherungsteil() {
             Automatische Kopien im Browser ({kopien.length})
           </summary>
           <p className="klein blass" style={{ margin: "8px 0" }}>
-            Vor jeder Umstellung der Daten und vor jedem Einlesen legt die App selbst
-            eine Kopie ab, ohne Bilder und Aufnahmen. Sie liegt im selben Browser, ersetzt
-            also keine Datei, hilft aber, wenn eine Umstellung schiefgeht.
+            Einmal am Tag, vor jeder Umstellung der Daten und vor jedem Einlesen legt die
+            App selbst eine Kopie ab, ohne Bilder und Aufnahmen. Sie liegt im selben
+            Browser, ersetzt also keine Datei, hilft aber, wenn etwas schiefgeht.
           </p>
           <div style={{ display: "grid", gap: 6 }}>
             {kopien.map((k) => (
@@ -1199,6 +1253,8 @@ function Sicherungsteil() {
           </div>
         </details>
       )}
+
+      <Wolkensicherungen ausSicherung={ausSicherung} setMeldung={setMeldung} setFehler={setFehler} />
 
       {meldung && <div className="rueckmeldung gut klein" style={{ marginTop: 10 }}>{meldung}</div>}
       {fehler && <div className="rueckmeldung schlecht klein" style={{ marginTop: 10 }}>{fehler}</div>}
