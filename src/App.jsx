@@ -9,6 +9,7 @@ import * as wolke from "./core/cloud.js";
 import * as erinnerung from "./core/erinnerung.js";
 import { lageSchreiben } from "./core/push.js";
 import * as tagessicherung from "./core/tagessicherung.js";
+import { maustastenEinrichten } from "./core/maustasten.js";
 import { tagesplan } from "./core/pushplan.js";
 import { zustaendeImPlan } from "./core/warteschlange.js";
 import { tagesLage } from "./core/straehne.js";
@@ -251,6 +252,9 @@ export default function App() {
     const t = setTimeout(() => { tagessicherung.lokalSichern().catch(() => {}); }, 8000);
     return () => clearTimeout(t);
   }, [bereit]);
+
+  /* Die Seitentasten der Maus: zurück und vor (core/maustasten.js). */
+  useEffect(() => maustastenEinrichten(), []);
 
   /* Beim Wechsel des Weges die Leiste auf schmalen Geräten schließen. */
   useEffect(() => { setLeisteOffen(false); }, [weg]);
