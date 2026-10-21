@@ -6,6 +6,13 @@
  */
 
 /*
+ * Lesbarkeit: Matte und blasse Schrift erreichen auf jedem Grund (Seite,
+ * Kachel, abgesetzte Fläche) mindestens 4,5 : 1 — die Schwelle der
+ * Richtlinien für kleine Schrift. Die blasse lag vorher bei 3,4 bis 4,0,
+ * im hellen Erscheinungsbild bei 2,7.
+ */
+
+/*
  * Die Werte hier sind Vorgaben. Fast alle lassen sich in den Einstellungen
  * ändern — die App schreibt sie dann als eigene Veränderliche an das
  * Wurzelelement und überschreibt damit, was hier steht.
@@ -19,7 +26,7 @@
   --rand: #2b313d;
   --schrift: #e8ebf2;
   --schrift-matt: #9aa3b4;
-  --schrift-blass: #6b7486;
+  --schrift-blass: #80899b;    /* 4,5 : 1 auch auf den Kacheln */
   --gruen: #3fbf7f;
   --rot: #ef5b6b;
   --gelb: #e8b84b;
@@ -68,8 +75,8 @@
   --grund-3: #eef1f6;
   --rand: #dde2ec;
   --schrift: #171a21;
-  --schrift-matt: #5c6577;
-  --schrift-blass: #8b94a6;
+  --schrift-matt: #4b5466;
+  --schrift-blass: #656e80;    /* vorher 2,7 bis 3,0 : 1 — zu schwach */
   --schatten: 0 8px 30px rgba(20, 30, 60, 0.10);
   --lz-lernen: #2f6ae0;       /* geprueft auf Weiss */
   --lz-erstellen: #c46f12;
