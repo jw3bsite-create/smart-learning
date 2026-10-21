@@ -44,7 +44,30 @@ def rastern(kante):
     seite = pymupdf.open(VORLAGE)[0]
     faktor = kante / max(seite.rect.width, seite.rect.height)
     bild = seite.get_pixmap(matrix=pymupdf.Matrix(faktor, faktor), alpha=False)
-    return Image.open(io.BytesIO(bild.tobytes("png"))).convert("RGB")
+    return konturWeg(Image.open(io.BytesIO(bild.tobytes("png"))).convert("RGB"))
+
+
+def konturWeg(bild):
+    """Schneidet eine dünne Kontur am Rand ab.
+
+    Illustrator legt um die Zeichenfläche gern eine Linie in seinem Schwarz;
+    im fertigen Symbol stand das als schmutziger Rand da. Gemessen wird in
+    der Mitte jeder Seite: Solange die Randpixel deutlich anders aussehen als
+    die Fläche dahinter, wird weiter abgeschnitten — höchstens ein Prozent.
+    """
+    breite, hoehe = bild.size
+    grenze = max(1, breite // 100)
+
+    def anders(a, b):
+        return sum(abs(x - y) for x, y in zip(a, b)) > 30
+
+    innen = bild.getpixel((grenze * 2, hoehe // 2))
+    weg = 0
+    while weg < grenze and anders(bild.getpixel((weg, hoehe // 2)), innen):
+        weg += 1
+    if not weg:
+        return bild
+    return bild.crop((weg, weg, breite - weg, hoehe - weg)).resize((breite, hoehe), Image.LANCZOS)
 
 
 def schriftReichweite(bild):
