@@ -3,7 +3,7 @@
  * und der Abgleich mit der Wolke im Hintergrund.
  */
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useEffect, useState, useCallback, useRef, lazy, Suspense } from "react";
 import { useDaten } from "./core/store.jsx";
 import * as wolke from "./core/cloud.js";
 import * as erinnerung from "./core/erinnerung.js";
@@ -18,35 +18,44 @@ import { SymbolKnopf } from "./ui/basis.jsx";
 import Seitenleiste from "./ui/Seitenleiste.jsx";
 import Bibliothek from "./ui/Bibliothek.jsx";
 import Stapelansicht from "./ui/Stapelansicht.jsx";
-import Bearbeiten from "./ui/Bearbeiten.jsx";
-import Einstellungen from "./ui/Einstellungen.jsx";
-import Statistik from "./ui/Statistik.jsx";
-import Papierkorb from "./ui/Papierkorb.jsx";
 import Faecher from "./ui/Faecher.jsx";
 import FachSeite from "./ui/FachSeite.jsx";
 import Startseite from "./ui/Startseite.jsx";
-import Fehlerheft from "./ui/Fehlerheft.jsx";
 import Zeitmesser from "./ui/Zeitmesser.jsx";
 import { Ladefehler, Hinweisleiste } from "./ui/Meldungen.jsx";
 import Auffanglinie from "./ui/Auffanglinie.jsx";
 import RueckfragenWurzel, { hinweisen } from "./ui/Rueckfragen.jsx";
-import Kalibrierung from "./ui/Kalibrierung.jsx";
-import Noten from "./ui/Noten.jsx";
-import Fragen from "./modes/Fragen.jsx";
-import EntwuerfeAnsicht from "./ui/Entwuerfe.jsx";
 import Abrufen from "./modes/Abrufen.jsx";
-import Feynman from "./modes/Feynman.jsx";
-import Pretest from "./modes/Pretest.jsx";
-import Tutor from "./modes/Tutor.jsx";
-import Pruefung from "./modes/Pruefung.jsx";
-import Karteikarten from "./modes/Karteikarten.jsx";
-import Lernen from "./modes/Lernen.jsx";
-import Schreiben from "./modes/Schreiben.jsx";
-import Buchstabieren from "./modes/Buchstabieren.jsx";
-import Test from "./modes/Test.jsx";
-import Zuordnen from "./modes/Zuordnen.jsx";
-import Meteor from "./modes/Meteor.jsx";
 import { UebungsBereich } from "./modes/gemeinsam.jsx";
+
+/*
+ * Seiten, die man beim Start nicht braucht, kommen erst, wenn man sie
+ * öffnet. Vorher lag die ganze App in einem Block von fast einem Megabyte,
+ * den das Telefon bei jedem Öffnen lesen musste. Was beim Start zu sehen ist
+ * — Startseite, Fächer, Stapel, Abrufen —, bleibt sofort da; der Rest liegt
+ * nach dem ersten Besuch im Vorrat des Dienst-Arbeiters und ist offline
+ * genauso schnell.
+ */
+const Bearbeiten = lazy(() => import("./ui/Bearbeiten.jsx"));
+const Einstellungen = lazy(() => import("./ui/Einstellungen.jsx"));
+const Statistik = lazy(() => import("./ui/Statistik.jsx"));
+const Papierkorb = lazy(() => import("./ui/Papierkorb.jsx"));
+const Fehlerheft = lazy(() => import("./ui/Fehlerheft.jsx"));
+const Kalibrierung = lazy(() => import("./ui/Kalibrierung.jsx"));
+const Noten = lazy(() => import("./ui/Noten.jsx"));
+const Fragen = lazy(() => import("./modes/Fragen.jsx"));
+const EntwuerfeAnsicht = lazy(() => import("./ui/Entwuerfe.jsx"));
+const Feynman = lazy(() => import("./modes/Feynman.jsx"));
+const Pretest = lazy(() => import("./modes/Pretest.jsx"));
+const Tutor = lazy(() => import("./modes/Tutor.jsx"));
+const Pruefung = lazy(() => import("./modes/Pruefung.jsx"));
+const Karteikarten = lazy(() => import("./modes/Karteikarten.jsx"));
+const Lernen = lazy(() => import("./modes/Lernen.jsx"));
+const Schreiben = lazy(() => import("./modes/Schreiben.jsx"));
+const Buchstabieren = lazy(() => import("./modes/Buchstabieren.jsx"));
+const Test = lazy(() => import("./modes/Test.jsx"));
+const Zuordnen = lazy(() => import("./modes/Zuordnen.jsx"));
+const Meteor = lazy(() => import("./modes/Meteor.jsx"));
 
 export { MODI } from "./modes/modi.js";
 
@@ -275,7 +284,13 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
 
   /* Jede Seite in ihrer eigenen Auffanglinie. Der Schlüssel ist der Weg:
      Wer nach einem Absturz woandershin geht, bekommt eine frische Hülle. */
-  const gefangen = (seite) => <Auffanglinie bereich key={weg}>{seite}</Auffanglinie>;
+  const gefangen = (seite) => (
+    <Auffanglinie bereich key={weg}>
+      <Suspense fallback={<div className="mitte"><div className="leerer-zustand">Einen Augenblick …</div></div>}>
+        {seite}
+      </Suspense>
+    </Auffanglinie>
+  );
 
   /* Das Abrufen ist der verbindliche Lernweg und bekommt die ganze Fläche. */
   if (teile[0] === "abrufen") {

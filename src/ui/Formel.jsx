@@ -10,10 +10,25 @@
  * HTML hier unbedenklich, auch bei Karten, die aus fremden Quellen kommen.
  */
 
-import React, { useMemo } from "react";
-import katex from "katex";
-import "katex/dist/katex.min.css";
+import React, { useEffect, useMemo, useState } from "react";
 import { teile } from "../core/formel.js";
+
+/*
+ * KaTeX kommt erst, wenn eine Formel zu sehen ist. Es ist mit Schrift und
+ * Stilen der größte Einzelteil der App, und die meisten Seiten — Start,
+ * Fächer, Vokabelstapel — zeigen nie eine Formel. Bis es da ist, steht die
+ * Formel als schlichter Text da; das dauert einen Augenblick, einmal.
+ */
+let katex = null;
+let laden = null;
+function katexLaden() {
+  if (!laden) {
+    laden = Promise.all([import("katex"), import("katex/dist/katex.min.css")])
+      .then(([m]) => { katex = m.default; })
+      .catch((e) => { laden = null; throw e; });
+  }
+  return laden;
+}
 
 const gesetzt = new Map();
 
@@ -38,7 +53,13 @@ function setze(formel) {
  */
 export default function Formel({ text, aufFormel = null }) {
   const stuecke = useMemo(() => teile(text), [text]);
-  if (!stuecke.some((s) => s.formel)) return text ?? null;
+  const mitFormel = stuecke.some((s) => s.formel);
+  const [, setGeladen] = useState(Boolean(katex));
+  useEffect(() => {
+    if (mitFormel && !katex) katexLaden().then(() => setGeladen(true)).catch(() => {});
+  }, [mitFormel]);
+  if (!mitFormel) return text ?? null;
+  if (!katex) return <span className="formel-wartet">{text}</span>;
   let nummer = -1;
   return (
     <>
