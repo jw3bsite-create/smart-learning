@@ -113,6 +113,22 @@ export function sollSenden({ abo, plan, zeit = Date.now() }) {
   return { datum, anzahl };
 }
 
+/**
+ * Warum gerade nichts gesendet wird — für die Zusammenfassung des
+ * Absenders. Zurück kommt einer von: "zeit" (Stunde noch nicht erreicht),
+ * "heute" (heute schon gesendet), "nichts" (keine Karte fällig),
+ * "vorschau" (für heute keine Vorschau — das Gerät hat länger nicht
+ * abgeglichen), oder null, wenn gesendet werden soll.
+ */
+export function grundOhneSenden({ abo, plan, zeit = Date.now() }) {
+  const { datum, stunde } = ortszeit(zeit, abo.zeitzone);
+  if (stunde < Number(abo.stunde ?? 17)) return "zeit";
+  if (abo.letzte === datum) return "heute";
+  if (!plan || plan[datum] === undefined) return "vorschau";
+  if (!Number(plan[datum])) return "nichts";
+  return null;
+}
+
 /** Der Text der Nachricht. Ruhig, eine Zahl, keine Drohung. */
 export function nachricht(anzahl) {
   return {

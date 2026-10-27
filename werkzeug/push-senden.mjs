@@ -13,7 +13,7 @@
  */
 
 import webpush from "web-push";
-import { geheimnisZerlegen, sollSenden, nachricht } from "../src/core/pushplan.js";
+import { geheimnisZerlegen, sollSenden, nachricht, grundOhneSenden } from "../src/core/pushplan.js";
 
 const ABSENDER = "https://jw3bsite-create.github.io/smart-learning/";
 
@@ -40,11 +40,16 @@ export async function senden({ url, schluessel, geheimnis, zeit = Date.now(),
   };
 
   const auftraege = (await rpc("anchor_push_auftraege", { geheimnis: g.token })) || [];
-  const stand = { abos: auftraege.length, gesendet: 0, entfernt: 0, fehler: 0 };
+  const stand = { abos: auftraege.length, gesendet: 0, entfernt: 0, fehler: 0,
+    gruende: { zeit: 0, heute: 0, nichts: 0, vorschau: 0 } };
 
   for (const a of auftraege) {
     const faellig = sollSenden({ abo: a, plan: a.plan, zeit });
-    if (!faellig) continue;
+    if (!faellig) {
+      const grund = grundOhneSenden({ abo: a, plan: a.plan, zeit });
+      if (grund) stand.gruende[grund] += 1;
+      continue;
+    }
     const inhalt = JSON.stringify({ ...nachricht(faellig.anzahl), weg: "./#/abrufen" });
     try {
       // Sechs Stunden Gültigkeit: Ist das Handy bis dahin aus, verfällt die
@@ -71,14 +76,30 @@ export async function senden({ url, schluessel, geheimnis, zeit = Date.now(),
 /* Aufruf als Skript. */
 if (process.argv[1]?.endsWith("push-senden.mjs")) {
   const { WOLKE_URL, WOLKE_SCHLUESSEL, ANCHOR_PUSH } = process.env;
-  if (!WOLKE_URL || !WOLKE_SCHLUESSEL || !ANCHOR_PUSH) {
-    console.log("Nicht alle Geheimnisse hinterlegt (WOLKE_URL, WOLKE_SCHLUESSEL, ANCHOR_PUSH) — nichts zu tun.");
+  /*
+   * Die Zusammenfassung steht als Hinweis (::notice::) am Lauf. Den kann
+   * man auf GitHub ohne Anmeldung lesen — darum stehen darin nur Zahlen:
+   * wie viele Geräte, wie viele Nachrichten, und warum keine.
+   */
+  const fehlt = ["WOLKE_URL", "WOLKE_SCHLUESSEL", "ANCHOR_PUSH"].filter((n) => !process.env[n]);
+  if (fehlt.length) {
+    console.log("::notice::Anchor-Absender: Es fehlt auf GitHub: " + fehlt.join(", ") + " — nichts zu tun.");
     process.exit(0);
   }
   try {
     const s = await senden({ url: WOLKE_URL, schluessel: WOLKE_SCHLUESSEL, geheimnis: ANCHOR_PUSH });
-    console.log(`Geräte: ${s.abos}, gesendet: ${s.gesendet}, abgemeldete entfernt: ${s.entfernt}, `
-      + `fehlgeschlagen: ${s.fehler}.`);
+    const g = s.gruende;
+    console.log("::notice::Anchor-Absender: "
+      + (s.abos ? s.abos + " Gerät(e), " + s.gesendet + " gesendet"
+        + (g.zeit ? ", Uhrzeit noch nicht erreicht: " + g.zeit : "")
+        + (g.heute ? ", heute schon gesendet: " + g.heute : "")
+        + (g.nichts ? ", nichts fällig: " + g.nichts : "")
+        + (g.vorschau ? ", keine Vorschau für heute: " + g.vorschau : "")
+        + (s.entfernt ? ", abgemeldete entfernt: " + s.entfernt : "")
+        + (s.fehler ? ", fehlgeschlagen: " + s.fehler : "")
+        : "kein Gerät gefunden — entweder ist auf keinem Gerät „Auf diesem Gerät“ an, "
+          + "oder ANCHOR_PUSH gehört zu einer älteren Einrichtung")
+      + ".");
   } catch (f) {
     console.log("::error::" + (f?.message || f));
     process.exit(1);

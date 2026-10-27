@@ -19,7 +19,10 @@ name: Push-Erinnerung
 
 on:
   schedule:
-    - cron: "11,41 * * * *"
+    # Alle zehn Minuten angefragt. GitHub drosselt Zeitpläne kostenloser
+    # Projekte stark (mit „11,41“ kam ein Lauf nur alle vier bis sechs
+    # Stunden); häufiger angefragt, kommen mehr Läufe tatsächlich an.
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 permissions:

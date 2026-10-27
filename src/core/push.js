@@ -236,3 +236,28 @@ export async function lageSchreiben(plan) {
   }
   zuletztGeschrieben = text;
 }
+
+/*
+ * Was der Absender über dieses Gerät weiß — für die Anzeige in den
+ * Einstellungen. Ohne das sah man nur „an“ und wusste nicht, warum nichts
+ * kommt: Ist das Gerät eingetragen? Kam heute schon etwas? Ist die
+ * Vorschau der fälligen Karten aktuell?
+ */
+export async function geraetEinblick() {
+  const abo = await geraetStand();
+  const { k } = await klient();
+  const [eintrag, lage] = await Promise.all([
+    abo ? k.from("anchor_push_abo").select("stunde, letzte, zeitzone").eq("endpoint", abo.endpoint)
+      .maybeSingle() : Promise.resolve({ data: null }),
+    k.from("anchor_lage").select("plan, geaendert").maybeSingle(),
+  ]);
+  if (eintrag.error) throw fehler(eintrag.error);
+  return {
+    abonniert: Boolean(abo),
+    eingetragen: Boolean(eintrag.data),
+    stunde: eintrag.data?.stunde ?? null,
+    letzte: eintrag.data?.letzte || null,
+    vorschauZeit: lage.data?.geaendert ? new Date(lage.data.geaendert).getTime() : null,
+    plan: lage.data?.plan || null,
+  };
+}

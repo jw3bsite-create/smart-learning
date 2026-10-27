@@ -21,7 +21,7 @@ import { alsCsvMitPlan } from "../core/importer.js";
 import { herunterladen } from "../core/datei.js";
 import { sicherungen as kopienLesen, kopieAlsSicherung } from "../core/db.js";
 import * as beispiel from "../core/beispiel.js";
-import { datumKurz } from "../core/util.js";
+import { datumKurz, tagesSchluessel } from "../core/util.js";
 import { Symbol, Knopf, SymbolKnopf, Dialog } from "./basis.jsx";
 import { bestaetigen } from "./Rueckfragen.jsx";
 import Gestaltung from "./Gestaltung.jsx";
@@ -723,6 +723,44 @@ function Erinnerungsteil() {
 }
 
 /*
+ * Was der Absender über dieses Gerät weiß. Drei Zeilen, die zusammen
+ * sagen, ob und warum eine Nachricht kommt.
+ */
+function PushEinblick() {
+  const [e, setE] = useState(null);
+  const [fehlerText, setFehlerText] = useState("");
+  useEffect(() => { push.geraetEinblick().then(setE).catch((f) => setFehlerText(f.message)); }, []);
+  if (fehlerText) return <div className="klein blass oben-4">{fehlerText}</div>;
+  if (!e) return null;
+  const heute = tagesSchluessel();
+  const heuteZahl = e.plan?.[heute];
+  const alter = e.vorschauZeit ? Math.round((Date.now() - e.vorschauZeit) / 60000) : null;
+  const zeile = (gut, text) => (
+    <div className="reihe klein" style={{ gap: 6 }}>
+      <Symbol name={gut ? "haken" : "kreuz"} groesse={14}
+        style={{ color: gut ? "var(--gruen)" : "var(--gelb)" }} />
+      <span className="matt">{text}</span>
+    </div>
+  );
+  return (
+    <div className="oben-8 unten-8" style={{ display: "grid", gap: 4 }}>
+      {zeile(e.eingetragen, e.eingetragen
+        ? "Beim Absender eingetragen, Nachricht ab " + e.stunde + " Uhr."
+        : "Beim Absender nicht eingetragen. Schalter einmal aus- und wieder einschalten.")}
+      {zeile(heuteZahl !== undefined, heuteZahl === undefined
+        ? "Für heute liegt keine Vorschau vor. Einmal unter Cloud abgleichen."
+        : "Vorschau: heute " + heuteZahl + (heuteZahl === 1 ? " Karte" : " Karten") + " fällig"
+          + (alter !== null ? ", aktualisiert vor " + (alter < 60 ? alter + " Min." : Math.round(alter / 60) + " Std.") : "")
+          + (heuteZahl === 0 ? " — ohne fällige Karten kommt keine Nachricht." : "."))}
+      {zeile(Boolean(e.letzte), e.letzte
+        ? "Letzte Nachricht am " + new Date(e.letzte + "T12:00").toLocaleDateString("de-DE",
+          { weekday: "long", day: "numeric", month: "long" }) + "."
+        : "Bisher keine Nachricht gesendet.")}
+    </div>
+  );
+}
+
+/*
  * Push: die Erinnerung auch bei geschlossener App (core/push.js).
  *
  * Einmal einrichten erzeugt ein Schlüsselpaar und ein Geheimnis; das
@@ -822,11 +860,14 @@ function PushTeil({ stunde, aktivHier, setzeAktivHier }) {
       {lage.stand === "bereit" && lage.zugang && (
         <>
           {lage.moeglich ? (
-            <label className="schalter">
-              <input type="checkbox" checked={hier} disabled={laeuft}
-                onChange={(ev) => umschalten(ev.target.checked)} />
-              <span>Auf diesem Gerät</span>
-            </label>
+            <>
+              <label className="schalter">
+                <input type="checkbox" checked={hier} disabled={laeuft}
+                  onChange={(ev) => umschalten(ev.target.checked)} />
+                <span>Auf diesem Gerät</span>
+              </label>
+              {hier && <PushEinblick />}
+            </>
           ) : (
             <div className="klein blass unten-8">
               Eingerichtet. {push.laeuftLokal()

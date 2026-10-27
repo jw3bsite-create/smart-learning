@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 import webpush from "web-push";
 import {
   tagesplan, ortszeit, sollSenden, nachricht, geheimnisZusammensetzen, geheimnisZerlegen,
+  grundOhneSenden,
 } from "../src/core/pushplan.js";
 import { senden } from "../werkzeug/push-senden.mjs";
 
@@ -150,7 +151,7 @@ test("der Absender verschlüsselt mit Browserschlüsseln und vermerkt den Tag", 
     // Schlüssel, Unterschrift (VAPID) und Verschlüsselung wirklich.
     schicken: async (x, inhalt, opt) => { geschickt.push(webpush.generateRequestDetails(x, inhalt, opt)); },
   });
-  assert.deepEqual(stand, { abos: 1, gesendet: 1, entfernt: 0, fehler: 0 });
+  assert.deepEqual({ ...stand, gruende: undefined }, { abos: 1, gesendet: 1, entfernt: 0, fehler: 0, gruende: undefined });
   assert.equal(geschickt[0].endpoint, a.endpoint);
   assert.match(geschickt[0].headers.Authorization, /^vapid t=.+, k=/);
   assert.equal(geschickt[0].headers["Content-Encoding"], "aes128gcm");
@@ -172,7 +173,7 @@ test("ein aufgegebenes Abonnement wird entfernt, ein Fehler bricht nicht ab", as
       throw Object.assign(new Error("x"), { statusCode: x.endpoint.endsWith("weg") ? 410 : 500 });
     },
   });
-  assert.deepEqual(stand, { abos: 2, gesendet: 0, entfernt: 1, fehler: 1 });
+  assert.deepEqual({ ...stand, gruende: undefined }, { abos: 2, gesendet: 0, entfernt: 1, fehler: 1, gruende: undefined });
   assert.deepEqual(aufrufe.filter((x) => x.koerper.entfernen).map((x) => x.koerper.endpunkt),
     [weg.endpoint]);
 });
@@ -202,4 +203,23 @@ test("der Absender kommt nur mit dem Geheimnis an Daten", () => {
   assert.match(sql, /anchor_push_vermerken[\s\S]*?if kennung is null then return/);
   const ohneKommentare = sql.split(/\r?\n/).filter((z) => !z.trim().startsWith("--")).join("\n");
   assert.doesNotMatch(ohneKommentare, /service_role/i, "kein service_role im SQL selbst");
+});
+
+/* Die Zusammenfassung des Absenders sagt, warum nichts kam. */
+test("der Grund, wenn nichts gesendet wird", () => {
+  assert.equal(grundOhneSenden({ abo, plan, zeit: um(16) }), "zeit");
+  assert.equal(grundOhneSenden({ abo: { ...abo, letzte: "2026-10-15" }, plan, zeit: um(18) }), "heute");
+  assert.equal(grundOhneSenden({ abo, plan: { "2026-10-15": 0 }, zeit: um(18) }), "nichts");
+  assert.equal(grundOhneSenden({ abo, plan: { "2026-10-01": 3 }, zeit: um(18) }), "vorschau");
+  assert.equal(grundOhneSenden({ abo, plan, zeit: um(18) }), null);
+});
+
+test("die Zählung der Gründe kommt im Ergebnis an", async () => {
+  const s = await schluesselWieImBrowser();
+  const geheimnis = geheimnisZusammensetzen({ token: TOKEN, ...s });
+  const a = await abonnement("https://push.beispiel/frueh2");
+  const { holen } = wolkeAttrappe([zeile(a)]);
+  const stand = await senden({ url: "https://p.supabase.co", schluessel: "anon", geheimnis,
+    zeit: um(15), holen, schicken: async () => {} });
+  assert.deepEqual(stand.gruende, { zeit: 1, heute: 0, nichts: 0, vorschau: 0 });
 });
