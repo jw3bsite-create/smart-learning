@@ -29,6 +29,8 @@ export default function Karteikarten({ setId, aufSchliessen }) {
   const [urteile, setUrteile] = useState({});
   const [fertig, setFertig] = useState(false);
   const [bearbeitet, setBearbeitet] = useState(false);
+  /* Der Klick darf die Karte nicht umdrehen — er gilt dem Stift. */
+  const bearbeitenOeffnen = (e) => { e?.stopPropagation?.(); setSelbstlauf(false); setBearbeitet(true); };
   const uhr = useRef(null);
 
   const brauchbare = useBrauchbar(karten, nurMarkierte);
@@ -85,7 +87,7 @@ export default function Karteikarten({ setId, aufSchliessen }) {
     ArrowUp: () => urteilen(true),
     ArrowDown: () => urteilen(false),
     s: () => karte && karteAendern(karte.id, { starred: !karte.starred }),
-    e: () => { if (karte) { setSelbstlauf(false); setBearbeitet(true); } },
+    e: () => { if (karte) bearbeitenOeffnen(); },
     a: () => karte && sprich(gedreht ? seiten.antwort : seiten.frage,
       gedreht ? sprachen.antwort : sprachen.frage, einstellungen.sprechTempo),
   }, Boolean(karte) && !fertig);
@@ -135,8 +137,6 @@ export default function Karteikarten({ setId, aufSchliessen }) {
           onClick={() => setSelbstlauf((x) => !x)} />
         <SymbolKnopf symbol="mischen" art={gemischt ? "klein voll" : "leer klein"}
           titel="Mischen" onClick={() => { setGemischt((x) => !x); setStelle(0); setGedreht(false); }} />
-        <SymbolKnopf symbol="stift" titel="Karte bearbeiten (E)"
-          onClick={() => { setSelbstlauf(false); setBearbeitet(true); }} />
         <span className="klein matt mono">{stelle + 1} / {reihe.length}</span>
       </>}>
       {bearbeitet && karte && (
@@ -168,7 +168,8 @@ export default function Karteikarten({ setId, aufSchliessen }) {
             <Seite text={seiten.frage} bild={seiten.frageBild} sprache={sprachen.frage}
               klasse="karte-text" />
             {gedreht === false && <Hinweis text={karte.hint} />}
-            <div style={{ position: "absolute", top: 8, right: 10 }}>
+            <div className="karte-werkzeuge">
+              <SymbolKnopf symbol="stift" titel="Karte bearbeiten (E)" onClick={bearbeitenOeffnen} />
               <Stern an={karte.starred} aufKlick={() => karteAendern(karte.id, { starred: !karte.starred })} />
             </div>
           </div>
@@ -179,7 +180,8 @@ export default function Karteikarten({ setId, aufSchliessen }) {
               klasse="karte-text" />
             {/* Der Stern auch hier: Ob eine Karte markiert gehört, merkt man
                 oft erst beim Blick auf die Antwort. */}
-            <div style={{ position: "absolute", top: 8, right: 10 }}>
+            <div className="karte-werkzeuge">
+              <SymbolKnopf symbol="stift" titel="Karte bearbeiten (E)" onClick={bearbeitenOeffnen} />
               <Stern an={karte.starred} aufKlick={() => karteAendern(karte.id, { starred: !karte.starred })} />
             </div>
             {/* Die Rueckseite ist aufgedeckt — hier darf gesprochen werden. */}

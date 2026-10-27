@@ -1185,3 +1185,22 @@ html.zieht { cursor: grabbing; }
    Platz ist. Auf schmalen Telefonen passten vierzehn Säulen à 22 Punkte
    nicht hinein, und das Diagramm ragte über den Rand. */
 @media (pointer: coarse) and (min-width: 481px) { .lz-saeule { min-width: 22px; } }
+
+/* Werkzeuge oben rechts auf der Karteikarte: bearbeiten und markieren. */
+.karte-werkzeuge { position: absolute; top: 8px; right: 10px; display: flex; align-items: center; gap: 2px; }
+
+/*
+ * Die Kopfleiste der Lernmodi am Telefon.
+ *
+ * Mit Beenden, Name, „?“, Selbstlauf, Mischen, Zähler war sie breiter als
+ * das Bild, und was rechts stand, lag unsichtbar daneben — so auch der
+ * Stift zum Bearbeiten. Jetzt rückt sie enger, das Sinnbild vor dem Namen
+ * fällt weg, der Name kürzt sich, und reicht es trotzdem nicht, bricht sie
+ * um, statt etwas aus dem Bild zu schieben.
+ */
+.modus-kopf { flex-wrap: wrap; }
+@media (max-width: 480px) {
+  .modus-kopf { gap: 4px; padding-left: max(8px, env(safe-area-inset-left)); padding-right: max(8px, env(safe-area-inset-right)); }
+  .modus-kopf > svg { display: none; }
+  .modus-kopf > strong { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
