@@ -34,6 +34,7 @@ import { seitenFuerRichtung } from "../core/ton.js";
 import Tonaufnahme from "../ui/Tonaufnahme.jsx";
 import { anzahl } from "../core/util.js";
 import { wiederEinreihen, einreihungZuruecknehmen, ersterVersuch } from "../core/nachlernen.js";
+import { abrufStapel, OBEN } from "../core/fachordner.js";
 import { gehe } from "../App.jsx";
 import {
   Knopf, SymbolKnopf, Symbol, Bild, Stern, Leer, useTastatur, useMerker,
@@ -133,12 +134,25 @@ function Antwortvorschau({ eingabe }) {
 
 /* --------------------------------- Modus -------------------------------- */
 
-export default function Abrufen({ fachId = null, aufSchliessen }) {
+export default function Abrufen({ fachId = null, ordnerAuswahl = null, aufSchliessen }) {
   const daten = useDaten();
   const {
-    karten, zustaende, stapelVon, faecher, fachVon, einstellungen,
-    abrufVerbuchen, abrufZuruecknehmen, karteAendern, sitzungMerken,
+    karten, zustaende, stapelVon: alleStapelVon, faecher, fachVon, einstellungen,
+    abrufVerbuchen, abrufZuruecknehmen, karteAendern, sitzungMerken, stapel, ordner,
   } = daten;
+
+  /* Nur bestimmte Ordner des Fachs (core/fachordner.js): Der Sitzungsbau
+     sieht dann nur deren Stapel. Die übrigen fälligen Karten bleiben fällig. */
+  const auswahlSchluessel = ordnerAuswahl ? ordnerAuswahl.join(",") : "";
+  const erlaubt = useMemo(() => (ordnerAuswahl && fachId
+    ? abrufStapel(stapel, ordner, fachId, ordnerAuswahl) : null),
+  [stapel, ordner, fachId, auswahlSchluessel]);
+  const stapelVon = useCallback((id) => (!erlaubt || erlaubt.has(id) ? alleStapelVon(id) : null),
+    [erlaubt, alleStapelVon]);
+  const auswahlName = ordnerAuswahl
+    ? ordnerAuswahl.map((id) => (id === OBEN ? "ohne Ordner" : ordner.find((o) => o.id === id)?.name))
+      .filter(Boolean).join(", ")
+    : "";
 
   const fach = fachId ? fachVon(fachId) : null;
   /* Der Stern liest die Karte, wie sie jetzt im Bestand steht — nicht die
@@ -213,7 +227,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
     setStelle(0); setPhase("konfidenz"); setKonfidenz(null); setEingabe("");
     setErgebnisse([]); setFertig(false);
     beginn.current = Date.now();
-  }, [fachId, gestartet]);
+  }, [fachId, gestartet, auswahlSchluessel]);
 
   const aufgabe = sitzung?.aufgaben?.[stelle] || null;
 
@@ -382,7 +396,7 @@ export default function Abrufen({ fachId = null, aufSchliessen }) {
 
   /* ------------------------------- Anzeigen ----------------------------- */
 
-  const titel = fach ? "Abrufen — " + fach.name : "Abrufen";
+  const titel = fach ? "Abrufen — " + fach.name + (auswahlName ? " · " + auswahlName : "") : "Abrufen";
 
   /* Ohne Fachwahl: erst fragen, worüber. Das ist die einzige Wahl, die der
      Nutzer hat — welche Karten drankommen, entscheidet er nie. */

@@ -298,7 +298,9 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
 
   /* Das Abrufen ist der verbindliche Lernweg und bekommt die ganze Fläche. */
   if (teile[0] === "abrufen") {
+    // /abrufen/<fach>/ordner/<id,id>: nur diese Ordner (core/fachordner.js)
     return gefangen(<Abrufen fachId={teile[1] || null}
+      ordnerAuswahl={teile[2] === "ordner" && teile[3] ? teile[3].split(",") : null}
       aufSchliessen={() => zurueck("/faecher")} />);
   }
 

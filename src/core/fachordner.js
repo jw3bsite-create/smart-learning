@@ -20,8 +20,8 @@
  *   und er zu diesem Fach gehört. Alle anderen Stapel des Fachs stehen auf
  *   der obersten Ebene des Fachs — auch die, die in einem allgemeinen Ordner
  *   liegen.
- * - Das Abrufen bleibt beim ganzen Fach. Ordner ordnen Material; was
- *   drankommt, entscheidet weiter der Plan.
+ * - „Abrufen“ nimmt das ganze Fach. Auf Wunsch nur ausgewählte Ordner
+ *   (`abrufStapel` unten); die übrigen fälligen Karten bleiben fällig.
  */
 
 /** Die Kennungen der Fächer, die es gibt. */
@@ -126,4 +126,32 @@ export function fachordnerPfad(ordner, kennung) {
     lauf = eltern && eltern.subjectId === lauf.subjectId ? eltern : null;
   }
   return pfad;
+}
+
+/*
+ * Abrufen nach Ordnern (vom Nutzer so entschieden, Oktober 2026).
+ *
+ * Grundsätzlich ruft Anchor das ganze Fach ab: Was fällig ist, ist fällig,
+ * egal in welchem Ordner es steht. Wer aber gerade nur „Romantik“ braucht,
+ * kann Ordner auswählen. Die übrigen fälligen Karten des Fachs bleiben dann
+ * fällig und kommen beim nächsten Abrufen des ganzen Fachs dran.
+ *
+ * `auswahl` enthält Ordnerkennungen und optional OBEN für die Stapel, die
+ * in keinem Fachordner liegen. Ein Ordner bringt seine Unterordner mit.
+ * Zurück kommt die Menge der Stapelkennungen, die abgerufen werden.
+ */
+export const OBEN = "oben";
+
+export function abrufStapel(stapel, ordner, fachId, auswahl) {
+  const eigeneOrdner = ordner.filter((o) => o.subjectId === fachId && !o.deleted);
+  const ids = new Set(eigeneOrdner.map((o) => o.id));
+  const erlaubt = new Set();
+  for (const wahl of auswahl || []) {
+    if (wahl !== OBEN && ids.has(wahl)) for (const id of fachordnerZweig(eigeneOrdner, wahl)) erlaubt.add(id);
+  }
+  const oben = (auswahl || []).includes(OBEN);
+  return new Set(stapel
+    .filter((s) => !s.deleted && s.subjectId === fachId
+      && (erlaubt.has(s.folderId) || (oben && !ids.has(s.folderId))))
+    .map((s) => s.id));
 }

@@ -363,8 +363,8 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     `core/fachordner.js`). Kein zweites Ordnersystem anlegen. Sie stehen nur
     beim Fach, nicht im allgemeinen Ordnerbaum; ist das Fach weg, werden sie
     wieder gewöhnliche Ordner. Auflösen statt Löschen: Stapel rücken hinauf,
-    nichts wandert in den Papierkorb außer dem Ordner. Abgerufen wird immer
-    das ganze Fach, nie ein Ordner.
+    nichts wandert in den Papierkorb außer dem Ordner. Abgerufen wird das ganze
+    Fach — oder, auf Wunsch, ausgewählte Ordner (siehe Ausnahme unten).
 52. **Push-Erinnerung ohne eigenen Server** (`core/pushplan.js`, `core/push.js`,
     `werkzeug/push-senden.mjs`, Auftrag `push-erinnerung.yml`). Die App schreibt
     nur Zahlen (fällige Karten je Tag) in `anchor_lage`; der Absender auf
@@ -426,6 +426,13 @@ Kein offenes Chatfenster · kein „Lösung anzeigen" im Tutormodus · kein Mult
 Choice im Abrufweg · kein „Alle KI-Karten übernehmen" · kein Wiederlese- oder
 Zusammenfassungsmodus · keine Notenvorhersage · keine Strähne für das Öffnen ·
 keine Selbstauswahl der Wiederholung · keine Erklärvideos.
+
+**Ausnahme, vom Nutzer entschieden (28. Oktober 2026):** Innerhalb eines Fachs
+lassen sich Ordner zum Abrufen auswählen (`abrufStapel` in
+`core/fachordner.js`, Weg `/abrufen/<fach>/ordner/<id,id>`). Nachgefragt und
+ausdrücklich gewollt. Die übrigen fälligen Karten bleiben fällig; „Abrufen“
+ohne Auswahl nimmt weiter das ganze Fach. Keine weitere Auswahl (einzelne
+Stapel, einzelne Karten) ohne erneute Rückfrage.
 
 Erscheint eines davon unterwegs sinnvoll, ist das das Zeichen, dass die
 Spezifikation gerade erodiert — dann Rückfrage, kein Alleingang.

@@ -145,3 +145,20 @@ test("wird das Fach gelöscht, bleiben seine Ordner als gewöhnliche Ordner", as
   assert.ok(derOrdner, "der Ordner existiert noch");
   assert.equal(derOrdner.subjectId, null);
 });
+
+/* ======================= Abrufen nach Ordnern ========================== */
+
+import { abrufStapel, OBEN } from "../src/core/fachordner.js";
+
+test("ein Ordner bringt seine Unterordner mit, sonst nichts", () => {
+  assert.deepEqual([...abrufStapel(stapel, ordner, "mathe", ["ana"])].sort(), ["s2", "s3"]);
+});
+
+test("„ohne Ordner“ sind die Stapel oben im Fach, auch die in allgemeinen Ordnern", () => {
+  assert.deepEqual([...abrufStapel(stapel, ordner, "mathe", [OBEN])].sort(), ["s1", "s4"]);
+});
+
+test("fremde Ordner und andere Fächer zählen nicht", () => {
+  assert.deepEqual([...abrufStapel(stapel, ordner, "mathe", ["zell"])], []);
+  assert.deepEqual([...abrufStapel(stapel, ordner, "mathe", [])], []);
+});

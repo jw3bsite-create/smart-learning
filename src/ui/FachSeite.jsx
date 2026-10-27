@@ -26,7 +26,9 @@
 import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { fachZaehlung, stapelStand } from "../core/warteschlange.js";
-import { ordnerImFach, stapelImFach, fachordnerZweig, fachordnerPfad } from "../core/fachordner.js";
+import {
+  ordnerImFach, stapelImFach, fachordnerZweig, fachordnerPfad, abrufStapel, OBEN,
+} from "../core/fachordner.js";
 import { anzahl } from "../core/util.js";
 import { punkteText } from "../core/noten.js";
 import { gehe } from "../App.jsx";
@@ -36,7 +38,7 @@ import { punkteZuLernfach } from "./Noten.jsx";
 import StapeldateiEinfuhr from "./Stapeldatei.jsx";
 import { erfragen, bestaetigen } from "./Rueckfragen.jsx";
 import {
-  Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Leer, Dialog, FachPunkt, KLICKBAR,
+  Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Leer, Dialog, FachPunkt, KLICKBAR, useMerker,
 } from "./basis.jsx";
 
 const nachTitel = (a, b) => (a.title || "").localeCompare(b.title || "", "de");
@@ -51,6 +53,8 @@ export default function FachSeite({ fachId, ordnerId = null }) {
   const [einstellungen, setEinstellungen] = useState(false);
   const [liestEin, setLiestEin] = useState(false);
   const [verschiebt, setVerschiebt] = useState(null);
+  const [waehltAbruf, setWaehltAbruf] = useState(false);
+  const [abrufWahl, setAbrufWahl] = useMerker("abrufOrdner:" + fachId, []);
 
   const fach = faecher.find((f) => f.id === fachId) || null;
   const derOrdner = ordnerId
@@ -88,6 +92,10 @@ export default function FachSeite({ fachId, ordnerId = null }) {
   }
 
   const z = fachZaehlung(karten, zustaende, stapelVon, fach.id);
+  /* Was in diesem Ordner (samt Unterordnern) ansteht. */
+  const imOrdner = derOrdner ? abrufStapel(stapel, ordner, fach.id, [derOrdner.id]) : null;
+  const zOrdner = derOrdner
+    ? fachZaehlung(karten, zustaende, (id) => (imOrdner.has(id) ? stapelVon(id) : null), fach.id) : z;
   const offen = z.faellig + z.neu;
   const punkte = punkteZuLernfach(notenfaecher, fach.id);
   const fachName = (id) => faecher.find((f) => f.id === id)?.name;
@@ -200,20 +208,24 @@ export default function FachSeite({ fachId, ordnerId = null }) {
       </div>
 
       {/* ---------------------------- Zum Lernen --------------------------- */}
-      {/* Abgerufen wird immer das ganze Fach, auch aus einem Ordner heraus:
-          Was drankommt, entscheidet der Plan, nicht die Ablage. */}
+      {/* Im Ordner ruft „Abrufen“ nur diesen Ordner ab (samt Unterordnern);
+          oben im Fach das ganze Fach, oder über „Auswahl“ bestimmte Ordner. */}
       <div className="reihe umbruch unten-12">
-        <Knopf art="voll" symbol="blitz" disabled={offen === 0}
-          onClick={() => gehe("/abrufen/" + fach.id)}>
-          {derOrdner ? "Abrufen: " + fach.name : "Abrufen"}
+        <Knopf art="voll" symbol="blitz" disabled={(derOrdner ? zOrdner.faellig + zOrdner.neu : offen) === 0}
+          onClick={() => gehe("/abrufen/" + fach.id + (derOrdner ? "/ordner/" + derOrdner.id : ""))}>
+          {derOrdner ? "Abrufen: " + derOrdner.name : "Abrufen"}
         </Knopf>
+        {!derOrdner && ordnerDesFachs.length > 0 && (
+          <Knopf symbol="ordner" onClick={() => setWaehltAbruf(true)}>Ordner wählen …</Knopf>
+        )}
         <Knopf symbol="wuerfel" disabled={alleImFach.length === 0}
           onClick={() => gehe("/fragen/" + fach.id)}>
           Fragen aus {fach.name}
         </Knopf>
         <div className="reihe klein" style={{ gap: 6, flexWrap: "wrap" }}>
-          {z.faellig > 0 && <span className="marke gelb">{z.faellig} fällig</span>}
-          {z.neu > 0 && <span className="marke">{z.neu} neu</span>}
+          {(derOrdner ? zOrdner : z).faellig > 0
+            && <span className="marke gelb">{(derOrdner ? zOrdner : z).faellig} fällig</span>}
+          {(derOrdner ? zOrdner : z).neu > 0 && <span className="marke">{(derOrdner ? zOrdner : z).neu} neu</span>}
           {z.gesperrt > 0 && (
             <button type="button" className="marke rot marke-knopf" title="Im Fehlerheft ansehen"
               onClick={(e) => { e.stopPropagation(); gehe("/fehler/" + fach.id); }}>
@@ -297,10 +309,50 @@ export default function FachSeite({ fachId, ordnerId = null }) {
 
       {!derOrdner && (
         <p className="klein blass" style={{ marginTop: 22, maxWidth: "62ch" }}>
-          Ordner im Fach ordnen nur dein Material. Abgerufen wird immer das ganze Fach;
-          was drankommt, entscheidet der Plan.
+          „Abrufen“ nimmt das ganze Fach; was drankommt, entscheidet der Plan. Über
+          „Ordner wählen“ oder in einem Ordner rufst du nur einen Teil ab — der Rest bleibt
+          fällig.
         </p>
       )}
+
+      {/* ------------------------- Ordner zum Abrufen ------------------------ */}
+      {waehltAbruf && (() => {
+        const gewaehlt = abrufWahl.filter((w) => w === OBEN || ordnerDesFachs.some((o) => o.id === w));
+        const umschalten = (id) => setAbrufWahl((alt) =>
+          alt.includes(id) ? alt.filter((x) => x !== id) : [...alt, id]);
+        const bereich = abrufStapel(stapel, ordner, fach.id, gewaehlt);
+        const zw = fachZaehlung(karten, zustaende, (id) => (bereich.has(id) ? stapelVon(id) : null), fach.id);
+        const obenGibt = stapelImFach(stapel, ordner, fach.id).length > 0;
+        return (
+          <Dialog titel={"Abrufen aus " + fach.name} aufSchliessen={() => setWaehltAbruf(false)}
+            fuss={<>
+              <Knopf onClick={() => setWaehltAbruf(false)}>Abbrechen</Knopf>
+              <Knopf art="voll" symbol="blitz" disabled={!gewaehlt.length || zw.faellig + zw.neu === 0}
+                onClick={() => gehe("/abrufen/" + fach.id + "/ordner/" + gewaehlt.join(","))}>
+                Abrufen{gewaehlt.length ? " (" + zw.faellig + " fällig, " + zw.neu + " neu)" : ""}
+              </Knopf>
+            </>}>
+            <p className="klein matt" style={{ marginTop: 0 }}>
+              Nur diese Ordner abrufen. Was in den übrigen fällig ist, bleibt fällig und kommt beim
+              nächsten Abrufen des ganzen Fachs dran.
+            </p>
+            <div className="liste">
+              {ordnerDesFachs.map((o) => (
+                <label key={o.id} className="schalter listenzeile" style={{ cursor: "pointer" }}>
+                  <input type="checkbox" checked={gewaehlt.includes(o.id)} onChange={() => umschalten(o.id)} />
+                  <span className="dehnen">{pfadText(ordner, o.id)}</span>
+                </label>
+              ))}
+              {obenGibt && (
+                <label className="schalter listenzeile" style={{ cursor: "pointer" }}>
+                  <input type="checkbox" checked={gewaehlt.includes(OBEN)} onChange={() => umschalten(OBEN)} />
+                  <span className="dehnen">Stapel ohne Ordner</span>
+                </label>
+              )}
+            </div>
+          </Dialog>
+        );
+      })()}
 
       {/* -------------------------- In Ordner verschieben --------------------- */}
       {verschiebt && (
