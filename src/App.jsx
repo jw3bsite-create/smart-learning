@@ -216,8 +216,9 @@ export default function App() {
     };
   }, [bereit, abgleichen, setAenderungsMelder]);
 
-  /* Die Tageserinnerung: einmal beim Start prüfen, danach stündlich. Mehr
-     kann eine App ohne eigenen Server nicht tun. */
+  /* Die Erinnerung bei offener App: einmal beim Start prüfen, danach alle
+     fünf Minuten — die Uhrzeiten sind minutengenau einstellbar. Bei
+     geschlossener App schickt sie der Absender (core/pushplan.js). */
   useEffect(() => {
     if (!bereit) return;
     const pruefen = () => {
@@ -226,7 +227,7 @@ export default function App() {
       if (!lage.heuteGeschafft) erinnerung.vielleichtErinnern({ faellig, text: lage.text });
     };
     pruefen();
-    const takt = setInterval(pruefen, 3600000);
+    const takt = setInterval(pruefen, 5 * 60000);
     return () => clearInterval(takt);
   }, [bereit]);
 

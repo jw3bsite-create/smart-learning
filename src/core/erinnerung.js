@@ -1,7 +1,7 @@
 /*
- * Die Tagesbenachrichtigung.
+ * Die Erinnerung.
  *
- * Eine Nachricht am Tag, mit einer Zahl darin. Keine Drohung, keine
+ * Eine Nachricht zu jeder eingestellten Uhrzeit, mit einer Zahl darin. Keine Drohung, keine
  * Flammensymbole, kein „Deine Strähne ist in Gefahr!" — genau diese Art von
  * Nachricht erzeugt die Minimalsitzung um 23:50 Uhr, die niemandem nützt.
  *
@@ -12,14 +12,15 @@
  */
 
 import * as db from "./db.js";
-import { tagesSchluessel } from "./util.js";
+import { letzterTermin, schonGesendet } from "./pushplan.js";
 
 const SCHLUESSEL = "erinnerung";
 
 export const STANDARD = {
   an: false,
-  stunde: 17,          // Tageszeit, zu der erinnert wird
-  zuletzt: "",         // Tagesschlüssel der letzten Nachricht
+  stunde: 17,          // die eine Stunde von früher; gilt, solange kein Zeitplan da ist
+  zeitplan: null,      // Uhrzeiten je Wochentag, siehe pushplan.js
+  zuletzt: "",         // Tag und Uhrzeit der letzten Nachricht („JJJJ-MM-TT HH:MM“)
   push: false,         // dieses Gerät bekommt sie als Push (siehe push.js)
 };
 
@@ -29,6 +30,11 @@ export async function einstellungLesen() {
 
 export async function einstellungSchreiben(neu) {
   await db.setSetting(SCHLUESSEL, { ...STANDARD, ...neu });
+}
+
+function ortsZeitzone() {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Berlin"; }
+  catch (f) { return "Europe/Berlin"; }
 }
 
 export function erlaubnisStand() {
@@ -88,17 +94,18 @@ export async function erlaubnisHolen() {
 }
 
 /**
- * Prüft, ob heute schon erinnert wurde, und benachrichtigt gegebenenfalls.
- * Wird beim Start und danach stündlich aufgerufen.
+ * Prüft, ob die letzte eingestellte Uhrzeit schon erinnert hat, und
+ * benachrichtigt gegebenenfalls. Wird beim Start und danach alle paar
+ * Minuten aufgerufen. Dieselbe Rechnung wie beim Absender (pushplan.js).
  */
 export async function vielleichtErinnern({ faellig, text }) {
   const e = await einstellungLesen();
   if (!e.an || erlaubnisStand() !== "granted") return false;
   if (e.push) return false;                            // kommt schon als Push
 
-  const heute = tagesSchluessel();
-  if (e.zuletzt === heute) return false;              // heute schon geschehen
-  if (new Date().getHours() < Number(e.stunde)) return false;
+  const t = letzterTermin({ zeitplan: e.zeitplan, stunde: e.stunde, zeitzone: ortsZeitzone() });
+  if (!t.termin) return false;                         // heute noch keine Uhrzeit erreicht
+  if (schonGesendet(e.zuletzt, t)) return false;      // für diese schon geschehen
   if (!faellig) return false;                          // nichts zu melden
 
   try {
@@ -109,7 +116,7 @@ export async function vielleichtErinnern({ faellig, text }) {
       icon: "./symbol-192.png",
       badge: "./symbol-192.png",
     });
-    await einstellungSchreiben({ ...e, zuletzt: heute });
+    await einstellungSchreiben({ ...e, zuletzt: t.termin });
     return true;
   } catch (fehler) {
     return false;

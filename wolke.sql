@@ -4,7 +4,7 @@
 -- Danach in den Einstellungen der App Adresse und öffentlichen Schlüssel
 -- (Project URL und anon key) eintragen und anmelden.
 --
--- Fassung 4 (Oktober 2026). Wer eine frühere Fassung schon ausgeführt
+-- Fassung 5 (Oktober 2026). Wer eine frühere Fassung schon ausgeführt
 -- hat, führt diese einfach noch einmal aus; jeder Schritt verträgt das.
 -- Daten gehen dabei nicht verloren.
 --
@@ -184,6 +184,11 @@ create table if not exists public.anchor_push_abo (
   primary key (user_id, endpoint)
 );
 
+-- Mehrere Uhrzeiten je Wochentag (Fassung 5): { "1": ["07:00", "17:00"], … }.
+-- Ohne Zeitplan gilt weiter die eine Stunde für jeden Tag; `letzte` hält
+-- seitdem Tag und Uhrzeit der zuletzt gesendeten Nachricht.
+alter table public.anchor_push_abo add column if not exists zeitplan jsonb;
+
 create table if not exists public.anchor_lage (
   user_id    uuid primary key default auth.uid() references auth.users (id) on delete cascade,
   plan       jsonb not null default '{}'::jsonb,
@@ -208,10 +213,14 @@ create policy "eigene lage" on public.anchor_lage
 
 -- Was der Auftrag sehen darf: Abonnements und Zahlen der Kennung, zu der
 -- das Geheimnis gehört. Ohne passendes Geheimnis: nichts.
-create or replace function public.anchor_push_auftraege(geheimnis text)
-  returns table (endpoint text, abo jsonb, stunde integer, zeitzone text, letzte text, plan jsonb)
+-- Die Spalten der Antwort haben sich mit Fassung 5 geändert; das lässt
+-- Postgres nur zu, wenn die alte Funktion vorher weicht.
+drop function if exists public.anchor_push_auftraege(text);
+create function public.anchor_push_auftraege(geheimnis text)
+  returns table (endpoint text, abo jsonb, stunde integer, zeitzone text, letzte text, plan jsonb,
+                 zeitplan jsonb)
   language sql security definer set search_path = public, extensions as $$
-  select a.endpoint, a.abo, a.stunde, a.zeitzone, a.letzte, coalesce(l.plan, '{}'::jsonb)
+  select a.endpoint, a.abo, a.stunde, a.zeitzone, a.letzte, coalesce(l.plan, '{}'::jsonb), a.zeitplan
     from public.anchor_push_zugang z
     join public.anchor_push_abo a on a.user_id = z.user_id
     left join public.anchor_lage l on l.user_id = z.user_id

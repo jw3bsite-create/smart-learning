@@ -1204,3 +1204,17 @@ html.zieht { cursor: grabbing; }
   .modus-kopf > svg { display: none; }
   .modus-kopf > strong { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
+
+/* ---------------- Erinnerung: Uhrzeiten je Wochentag ------------------- */
+.zeitplan { display: grid; gap: 6px; }
+.zeitplan-zeile { display: flex; align-items: flex-start; gap: 10px; }
+.zeitplan-tag { flex: none; width: 26px; padding-top: 8px; line-height: 20px; font-size: 13px; font-weight: 600;
+  color: var(--schrift-matt); }
+.zeitplan-zeiten { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; min-height: 36px; }
+.zeitplan-zeiten > .blass { padding: 0 4px; }
+.zeitplan-zeit { display: inline-flex; align-items: center; border: 1px solid var(--rand);
+  border-radius: calc(var(--rund) * 0.7); background: var(--grund-2); }
+.zeitplan-zeit .feld { width: auto; border: 0; background: transparent; padding: 6px 2px 6px 10px;
+  font-variant-numeric: tabular-nums; }
+.zeitplan-zeit .feld:focus { box-shadow: none; }
+.zeitplan-zeit:focus-within { border-color: var(--akzent); }

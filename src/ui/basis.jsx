@@ -108,6 +108,25 @@ export function SymbolKnopf({ symbol, titel, art = "leer klein", groesse = 18, t
 }
 
 /*
+ * Die eigene Farbe. Das Farbfeld des Browsers liegt unsichtbar über der
+ * ganzen Fläche und wird selbst angetippt. Vorher lag es mit der Größe
+ * null daneben und wurde per Programm angeklickt — das iPhone öffnet dafür
+ * keinen Farbwähler, am Handy ging die eigene Farbe darum nicht.
+ */
+export function EigeneFarbe({ wert, setzen, className = "", style, titel = "Eigene Farbe", children }) {
+  return (
+    <label className={className} title={titel}
+      style={{ position: "relative", overflow: "hidden", display: "inline-grid", placeItems: "center", ...style }}>
+      {children}
+      <input type="color" value={wert} aria-label={titel}
+        onChange={(e) => setzen(e.target.value)}
+        style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0,
+          cursor: "pointer", border: 0, padding: 0, margin: 0 }} />
+    </label>
+  );
+}
+
+/*
  * Klickbare Flächen, die keine Knöpfe sein können.
  *
  * Eine Stapelkachel enthält ihr eigenes Menü, eine Ordnerzeile ihren

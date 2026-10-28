@@ -17,7 +17,9 @@ import {
   SCHRIFTEN, SCHRIFT_GRUPPEN, DICHTEN, BREITEN, STANDARD_GESTALTUNG,
   anwenden, schriftenZurWahl, stapelVorhanden, sichtbareBilder, istAktiv, neuesBild,
 } from "../core/gestaltung.js";
-import { Symbol, SymbolKnopf, Knopf, Rueckfrage, useMerker } from "./basis.jsx";
+import { Symbol, SymbolKnopf, Knopf, Rueckfrage, useMerker, EigeneFarbe } from "./basis.jsx";
+import * as wolke from "../core/cloud.js";
+import { bestaetigen } from "./Rueckfragen.jsx";
 
 const AKZENTE = [
   ["#5b8bff", "Blau"], ["#a97bf0", "Violett"], ["#3fbf7f", "Grün"],
@@ -261,6 +263,83 @@ function Vorschau({ werte }) {
   );
 }
 
+/* --------------------------- Zwischen Geräten --------------------------- */
+
+/*
+ * Die Gestaltung vom einen Gerät aufs andere. Sie gleicht sich mit Absicht
+ * nicht von selbst ab — am Handy will man oft eine andere Schriftgröße als
+ * am Rechner. Darum zwei ausdrückliche Schritte: auf dem einen Gerät
+ * ablegen, auf dem anderen übernehmen (core/cloud.js).
+ */
+function ZwischenGeraeten({ einstellungen, paletteAnlegen }) {
+  const [lage, setLage] = useState({ stand: "laedt" });
+  const [meldung, setMeldung] = useState("");
+
+  const pruefen = async () => {
+    try {
+      if (!(await wolke.sitzung())) { setLage({ stand: "ohne" }); return; }
+      setLage({ stand: "bereit", abgelegt: await wolke.gestaltungHolen() });
+    } catch (f) {
+      setLage({ stand: "fehler" });
+      setMeldung(f.message);
+    }
+  };
+  useEffect(() => { pruefen(); }, []);
+
+  const ablegen = async () => {
+    setMeldung("");
+    try {
+      await wolke.gestaltungAblegen(einstellungen);
+      setMeldung("Abgelegt. Auf dem anderen Gerät jetzt „Übernehmen“ wählen.");
+      await pruefen();
+    } catch (f) { setMeldung(f.message); }
+  };
+
+  const uebernehmen = async () => {
+    setMeldung("");
+    try {
+      const a = await wolke.gestaltungHolen();
+      if (!a) { setMeldung("In der Cloud liegt noch keine Gestaltung."); return; }
+      if (!(await bestaetigen({
+        titel: "Gestaltung übernehmen?", ja: "Übernehmen",
+        text: "Farben, Schriften, Abstände und eigene Erscheinungsbilder von „" + a.geraet
+          + "“ ersetzen die Gestaltung auf diesem Gerät. Karten und Lernstand bleiben unberührt.",
+      }))) return;
+      paletteAnlegen(a.werte);
+      setMeldung("Übernommen.");
+    } catch (f) { setMeldung(f.message); }
+  };
+
+  if (lage.stand === "laedt") return null;
+  const a = lage.abgelegt;
+  return (
+    <div className="zahl-kachel oben-24">
+      <strong>Auf ein anderes Gerät übertragen</strong>
+      {lage.stand === "ohne" ? (
+        <p className="klein matt" style={{ margin: "6px 0 0" }}>
+          Dafür muss die Cloud eingerichtet und angemeldet sein (weiter unten in den Einstellungen).
+        </p>
+      ) : (
+        <>
+          <p className="klein matt" style={{ margin: "6px 0 10px" }}>
+            Auf dem einen Gerät ablegen, auf dem anderen übernehmen. Von selbst gleicht sich die
+            Gestaltung nicht ab — am Handy darf die Schrift ruhig anders sein als am Rechner.
+            {a && <> Zuletzt abgelegt: {a.geraet}, {new Date(a.zeit).toLocaleString("de-DE",
+              { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}.</>}
+          </p>
+          <div className="reihe umbruch" style={{ gap: 8 }}>
+            <Knopf art="klein" symbol="hoch" onClick={ablegen}>Diese Gestaltung ablegen</Knopf>
+            <Knopf art="klein" symbol="runter" disabled={!a} onClick={uebernehmen}>
+              {a ? "Von „" + a.geraet + "“ übernehmen" : "Übernehmen"}
+            </Knopf>
+          </div>
+        </>
+      )}
+      {meldung && <div className="klein matt oben-8">{meldung}</div>}
+    </div>
+  );
+}
+
 /* ------------------------------ Der Bereich ----------------------------- */
 
 export default function Gestaltung() {
@@ -270,7 +349,6 @@ export default function Gestaltung() {
   const [bildName, setBildName] = useState("");
   const [loeschtBild, setLoeschtBild] = useState(null);
   const [offen, setOffen] = useMerker("gestaltungOffen", []);
-  const farbfeld = useRef(null);
 
   const umschalten = (name) => setOffen((alt) =>
     alt.includes(name) ? alt.filter((x) => x !== name) : [...alt, name]);
@@ -387,18 +465,14 @@ export default function Gestaltung() {
                     border: einstellungen.akzent === farbe
                       ? "2px solid var(--schrift)" : "1px solid var(--rand)" }} />
               ))}
-              <button title="Eigene Farbe" onClick={() => farbfeld.current?.click()}
-                style={{ width: 30, height: 30, borderRadius: 9, cursor: "pointer",
+              <EigeneFarbe wert={einstellungen.akzent} setzen={(f) => setzen("akzent", f)}
+                style={{ width: 30, height: 30, borderRadius: 9,
                   border: eigeneFarbe ? "2px solid var(--schrift)" : "1px solid var(--rand)",
                   background: eigeneFarbe ? einstellungen.akzent
-                    : "conic-gradient(#ef5b6b,#e8b84b,#3fbf7f,#4bc6d8,#5b8bff,#a97bf0,#ef5b6b)",
-                  display: "grid", placeItems: "center" }}>
+                    : "conic-gradient(#ef5b6b,#e8b84b,#3fbf7f,#4bc6d8,#5b8bff,#a97bf0,#ef5b6b)" }}>
                 {eigeneFarbe && <Symbol name="stift" groesse={14}
                   style={{ color: "var(--akzent-schrift)" }} />}
-              </button>
-              <input ref={farbfeld} type="color" value={einstellungen.akzent}
-                style={{ width: 0, height: 0, opacity: 0, position: "absolute" }}
-                onChange={(e) => setzen("akzent", e.target.value)} />
+              </EigeneFarbe>
             </div>
             <p className="klein blass" style={{ margin: 0 }}>
               Grün, Gelb und Rot bleiben, wie sie sind, sie bedeuten in dieser App
@@ -461,6 +535,8 @@ export default function Gestaltung() {
             onClick={() => setZuruecksetzen(true)}>
             Auf die Vorgaben zurücksetzen
           </Knopf>
+
+          <ZwischenGeraeten einstellungen={einstellungen} paletteAnlegen={paletteAnlegen} />
         </div>
 
         {/* ---------------------------- Vorschau ------------------------- */}

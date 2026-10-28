@@ -28,6 +28,7 @@ import { gehe } from "../App.jsx";
 import Kalenderausfuhr from "./Kalenderausfuhr.jsx";
 import {
   Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Leer, Dialog, Rueckfrage, KLICKBAR, FachPunkt,
+  EigeneFarbe,
 } from "./basis.jsx";
 
 /** Vorschlag beim ersten Mal — Fächer des Technischen Gymnasiums. */
@@ -57,7 +58,6 @@ export function freieFarbe(faecher) {
 }
 
 export function Farbwahl({ wert, setzen }) {
-  const eigenes = React.useRef(null);
   const eigene = wert && !FACHFARBEN.some(([f]) => f.toLowerCase() === wert.toLowerCase());
   return (
     <div className="reihe umbruch" style={{ gap: 8 }}>
@@ -68,14 +68,10 @@ export function Farbwahl({ wert, setzen }) {
           style={{ background: farbe }}
           onClick={() => setzen(farbe)} />
       ))}
-      <button type="button" title="Eigene Farbe" aria-label="Eigene Farbe"
+      <EigeneFarbe wert={wert || "#5b8bff"} setzen={setzen}
         className={"farbfeld" + (eigene ? " gewaehlt" : "")}
         style={{ background: eigene ? wert
-          : "conic-gradient(#ef5b6b,#e8b84b,#3fbf7f,#4bc6d8,#5b8bff,#a97bf0,#ef5b6b)" }}
-        onClick={() => eigenes.current?.click()} />
-      <input ref={eigenes} type="color" value={wert || "#5b8bff"}
-        style={{ width: 0, height: 0, opacity: 0, position: "absolute" }}
-        onChange={(e) => setzen(e.target.value)} />
+          : "conic-gradient(#ef5b6b,#e8b84b,#3fbf7f,#4bc6d8,#5b8bff,#a97bf0,#ef5b6b)" }} />
     </div>
   );
 }

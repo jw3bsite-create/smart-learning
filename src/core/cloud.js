@@ -16,6 +16,7 @@
  */
 
 import * as db from "./db.js";
+import { STANDARD_GESTALTUNG } from "./gestaltung.js";
 import { tonSchluessel, tonTeile } from "./ton.js";
 import { UEBERLAPPUNG, zuUebernehmen, neueMarke, medienPlan } from "./abgleich.js";
 
@@ -779,4 +780,55 @@ export async function letzterAbgleich() {
 export async function abgleichZuruecksetzen() {
   await db.setSetting("wolkeMarkeServer", 0);
   await db.setSetting("wolkeGesendet", 0);
+}
+
+/* --------------------------- Gestaltung teilen -------------------------- */
+
+/*
+ * Die Gestaltung liegt als eine Zeile eigener Art in derselben Tabelle. Der
+ * Abgleich kennt diese Art nicht und übergeht sie — sie wird nur auf
+ * ausdrücklichen Wunsch geschrieben und gelesen (ui/Gestaltung.jsx).
+ */
+const GESTALTUNG_ZEILE = { art: "gestaltung", id: "gestaltung" };
+
+/* Was zur Gestaltung gehört: alles aus STANDARD_GESTALTUNG und die eigenen
+   Erscheinungsbilder. */
+const GESTALTUNG_SCHLUESSEL = [...Object.keys(STANDARD_GESTALTUNG),
+  "eigeneErscheinungsbilder", "ausgeblendeteErscheinungsbilder"];
+
+function geraetName() {
+  const ua = typeof navigator !== "undefined" ? navigator.userAgent : "";
+  if (/iPhone|Android.+Mobile/.test(ua)) return "Handy";
+  if (/iPad|Android/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "Tablet";
+  return "Rechner";
+}
+
+async function angemeldet() {
+  const k = await verbinde();
+  if (!k) throw new Error("Die Cloud ist nicht eingerichtet.");
+  const { data } = await k.auth.getSession();
+  if (!data?.session) throw new Error("Nicht angemeldet.");
+  return k;
+}
+
+export async function gestaltungAblegen(einstellungen) {
+  const k = await angemeldet();
+  const werte = Object.fromEntries(GESTALTUNG_SCHLUESSEL
+    .filter((s) => einstellungen[s] !== undefined).map((s) => [s, einstellungen[s]]));
+  const { error } = await k.rpc("karteikasten_schreiben", { zeilen: [{
+    ...GESTALTUNG_ZEILE, daten: { werte, geraet: geraetName() }, updated_at: Date.now(), deleted: false,
+  }] });
+  if (error) throw abgleichFehler(error);
+}
+
+/** Die abgelegte Gestaltung: { werte, geraet, zeit }, oder null. */
+export async function gestaltungHolen() {
+  const k = await angemeldet();
+  const { data, error } = await k.from(TABELLE).select("daten, updated_at")
+    .eq("art", GESTALTUNG_ZEILE.art).eq("id", GESTALTUNG_ZEILE.id).maybeSingle();
+  if (error) throw abgleichFehler(error);
+  if (!data || !data.daten?.werte) return null;
+  const werte = Object.fromEntries(Object.entries(data.daten.werte)
+    .filter(([s]) => GESTALTUNG_SCHLUESSEL.includes(s)));
+  return { werte, geraet: data.daten.geraet || "anderes Gerät", zeit: Number(data.updated_at) || 0 };
 }

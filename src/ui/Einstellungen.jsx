@@ -9,6 +9,7 @@ import * as wolke from "../core/cloud.js";
 import * as ki from "../core/ki.js";
 import * as erinnerung from "../core/erinnerung.js";
 import * as push from "../core/push.js";
+import { WOCHE, HOECHSTENS_JE_TAG, zeitplanOrdnen } from "../core/pushplan.js";
 import * as tagessicherung from "../core/tagessicherung.js";
 import { UmzugAlt, UmzugNeu } from "./Umzug.jsx";
 import { stimmen, beiStimmen, sprich } from "../core/speech.js";
@@ -616,8 +617,13 @@ function Erinnerungsteil() {
   const [kalender, setKalender] = useState(false);
   const [erlaubnis, setErlaubnis] = useState(erinnerung.erlaubnisStand());
   const [probe, setProbe] = useState("");
+  const pushTakt = useRef(null);
 
-  useEffect(() => { erinnerung.einstellungLesen().then(setE); }, []);
+  // Der Zeitplan wird beim Öffnen einmal geordnet, beim Tippen nicht: Sonst
+  // spränge eine Uhrzeit mitten im Ändern an eine andere Stelle.
+  useEffect(() => {
+    erinnerung.einstellungLesen().then((x) => setE({ ...x, zeitplan: zeitplanOrdnen(x.zeitplan, x.stunde) }));
+  }, []);
   if (!e) return null;
 
   const aendern = async (aenderung) => {
@@ -637,31 +643,27 @@ function Erinnerungsteil() {
     aendern(an ? { an } : { an, push: false });
   };
 
-  const stundeAendern = (stunde) => {
-    aendern({ stunde });
-    if (e.push) push.stundeSetzen(stunde).catch(() => {});
+  // Beim Absender erst eintragen, wenn das Tippen eine Weile ruht.
+  const zeitplanAendern = (zeitplan) => {
+    aendern({ zeitplan });
+    if (!e.push) return;
+    clearTimeout(pushTakt.current);
+    pushTakt.current = setTimeout(() => push.zeitplanSetzen(zeitplan, e.stunde).catch(() => {}), 800);
   };
 
   return (
-    <Abschnitt titel="Tageserinnerung"
-      hinweis="Eine ruhige Nachricht am Tag mit der Zahl der fälligen Karten. Keine Drohung, keine Flamme.">
+    <Abschnitt titel="Erinnerung"
+      hinweis="Eine ruhige Nachricht mit der Zahl der fälligen Karten, zu den Uhrzeiten, die du hier einstellst. Keine Drohung, keine Flamme.">
       <label className="schalter">
         <input type="checkbox" checked={Boolean(e.an)}
           onChange={(ev) => anschalten(ev.target.checked)} />
-        <span>Einmal am Tag erinnern</span>
+        <span>An fällige Karten erinnern</span>
       </label>
 
-      {e.an && (
-        <label className="reihe klein matt" style={{ gap: 8, marginTop: 10 }}>
-          Ab
-          <input className="feld" type="number" min="0" max="23" style={{ width: 80 }}
-            value={e.stunde} onChange={(ev) => stundeAendern(Number(ev.target.value))} />
-          Uhr
-        </label>
-      )}
+      {e.an && <Zeitplan plan={e.zeitplan} setzen={zeitplanAendern} />}
 
       {e.an && (
-        <PushTeil stunde={e.stunde} aktivHier={Boolean(e.push)}
+        <PushTeil stunde={e.stunde} zeitplan={e.zeitplan} aktivHier={Boolean(e.push)}
           setzeAktivHier={(an) => aendern({ push: an })} />
       )}
 
@@ -723,6 +725,66 @@ function Erinnerungsteil() {
 }
 
 /*
+ * Wann erinnert wird: je Wochentag bis zu acht Uhrzeiten. Gerechnet wird
+ * damit in core/pushplan.js — vom Absender wie von der offenen App.
+ */
+function Zeitplan({ plan, setzen }) {
+  const tagSetzen = (tag, liste) => setzen({ ...plan, [tag]: liste });
+  const dazu = (tag) => {
+    const liste = plan[tag];
+    const letzte = liste[liste.length - 1];
+    // Drei Stunden nach der letzten, sonst der späte Nachmittag.
+    const neu = letzte
+      ? String((Number(letzte.slice(0, 2)) + 3) % 24).padStart(2, "0") + letzte.slice(2) : "17:00";
+    tagSetzen(tag, [...liste, neu]);
+  };
+  const uebertragen = (auf) => setzen({ ...plan, ...Object.fromEntries(auf.map((w) => [w, [...plan[1]]])) });
+  const anzahl = Object.values(plan).reduce((n, l) => n + l.length, 0);
+
+  return (
+    <div className="oben-12">
+      <div className="zeitplan">
+        {WOCHE.map(([tag, kurz, lang]) => (
+          <div key={tag} className="zeitplan-zeile">
+            <span className="zeitplan-tag" title={lang}>{kurz}</span>
+            <div className="zeitplan-zeiten">
+              {plan[tag].length === 0 && <span className="klein blass">keine</span>}
+              {plan[tag].map((u, i) => (
+                <span key={i} className="zeitplan-zeit">
+                  <input type="time" className="feld" value={u}
+                    aria-label={lang + ", " + (i + 1) + ". Uhrzeit"}
+                    onChange={(ev) => ev.target.value
+                      && tagSetzen(tag, plan[tag].map((x, j) => (j === i ? ev.target.value : x)))} />
+                  <SymbolKnopf symbol="kreuz" groesse={14} titel={"Diese Uhrzeit am " + lang + " entfernen"}
+                    onClick={() => tagSetzen(tag, plan[tag].filter((_, j) => j !== i))} />
+                </span>
+              ))}
+              {plan[tag].length < HOECHSTENS_JE_TAG && (
+                <SymbolKnopf symbol="plus" titel={"Uhrzeit am " + lang + " hinzufügen"}
+                  onClick={() => dazu(tag)} />
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="reihe umbruch oben-8" style={{ gap: 8 }}>
+        <Knopf art="klein" disabled={!plan[1].length} onClick={() => uebertragen([2, 3, 4, 5])}>
+          Montag auf Di–Fr übertragen
+        </Knopf>
+        <Knopf art="klein" disabled={!plan[1].length} onClick={() => uebertragen([0, 2, 3, 4, 5, 6])}>
+          Montag auf alle Tage
+        </Knopf>
+      </div>
+      <p className="klein blass oben-8" style={{ marginBottom: 0 }}>
+        {anzahl === 0 ? "Keine Uhrzeit eingestellt — es kommt keine Nachricht."
+          : anzahl + (anzahl === 1 ? " Erinnerung" : " Erinnerungen") + " in der Woche. "
+            + "Sind zu einer Uhrzeit keine Karten fällig, bleibt sie still."}
+      </p>
+    </div>
+  );
+}
+
+/*
  * Was der Absender über dieses Gerät weiß. Drei Zeilen, die zusammen
  * sagen, ob und warum eine Nachricht kommt.
  */
@@ -744,17 +806,23 @@ function PushEinblick() {
   );
   return (
     <div className="oben-8 unten-8" style={{ display: "grid", gap: 4 }}>
-      {zeile(e.eingetragen, e.eingetragen
-        ? "Beim Absender eingetragen, Nachricht ab " + e.stunde + " Uhr."
-        : "Beim Absender nicht eingetragen. Schalter einmal aus- und wieder einschalten.")}
+      {zeile(e.eingetragen && !e.zeitplanFehlt, !e.eingetragen
+        ? "Beim Absender nicht eingetragen. Schalter einmal aus- und wieder einschalten."
+        : e.zeitplanFehlt
+          ? "Beim Absender eingetragen, aber nur mit einer Uhrzeit (ab " + e.stunde + " Uhr): "
+            + "Für mehrere braucht Supabase wolke.sql in Fassung 5."
+          : "Beim Absender eingetragen"
+            + (e.zeitplan ? " mit " + Object.values(e.zeitplan).flat().length + " Uhrzeiten in der Woche."
+              : ", Nachricht ab " + e.stunde + " Uhr."))}
       {zeile(heuteZahl !== undefined, heuteZahl === undefined
         ? "Für heute liegt keine Vorschau vor. Einmal unter Cloud abgleichen."
         : "Vorschau: heute " + heuteZahl + (heuteZahl === 1 ? " Karte" : " Karten") + " fällig"
           + (alter !== null ? ", aktualisiert vor " + (alter < 60 ? alter + " Min." : Math.round(alter / 60) + " Std.") : "")
           + (heuteZahl === 0 ? " — ohne fällige Karten kommt keine Nachricht." : "."))}
       {zeile(Boolean(e.letzte), e.letzte
-        ? "Letzte Nachricht am " + new Date(e.letzte + "T12:00").toLocaleDateString("de-DE",
-          { weekday: "long", day: "numeric", month: "long" }) + "."
+        ? "Letzte Nachricht am " + new Date(e.letzte.slice(0, 10) + "T12:00").toLocaleDateString("de-DE",
+          { weekday: "long", day: "numeric", month: "long" })
+          + (e.letzte.length > 10 ? ", " + e.letzte.slice(11) + " Uhr" : "") + "."
         : "Bisher keine Nachricht gesendet.")}
     </div>
   );
@@ -767,7 +835,7 @@ function PushEinblick() {
  * Geheimnis kommt als ANCHOR_PUSH zu GitHub, wo der Absender läuft. Danach
  * schaltet man jedes Gerät einzeln ein.
  */
-function PushTeil({ stunde, aktivHier, setzeAktivHier }) {
+function PushTeil({ stunde, zeitplan, aktivHier, setzeAktivHier }) {
   const [lage, setLage] = useState({ stand: "laedt" });
   const [fehler, setFehler] = useState("");
   const [laeuft, setLaeuft] = useState(false);
@@ -820,7 +888,7 @@ function PushTeil({ stunde, aktivHier, setzeAktivHier }) {
       if (an) {
         // Die Erlaubnis als Allererstes, solange der Tipp frisch ist.
         await push.erlaubnisSichern();
-        await push.geraetAnmelden({ oeffentlich: lage.zugang.oeffentlich, stunde });
+        await push.geraetAnmelden({ oeffentlich: lage.zugang.oeffentlich, stunde, zeitplan });
       } else {
         await push.geraetAbmelden();
       }
@@ -837,9 +905,9 @@ function PushTeil({ stunde, aktivHier, setzeAktivHier }) {
     <div className="zahl-kachel oben-16">
       <strong>Auch bei geschlossener App</strong>
       <p className="klein matt" style={{ margin: "6px 0 10px" }}>
-        Als echte Push-Nachricht, verschickt über GitHub. Sie kommt ab {stunde} Uhr,
-        meist innerhalb einer halben Stunde, und nur, wenn Karten warten. Hast du
-        vorher schon gelernt, bleibt sie aus.
+        Als echte Push-Nachricht, verschickt über GitHub, zu den Uhrzeiten oben und nur,
+        wenn Karten warten. Wie pünktlich sie kommt, hängt davon ab, wie oft GitHub den
+        Absender anstößt — mal nach Minuten, mal erst später.
       </p>
 
       {lage.stand === "laedt" && <div className="klein blass">Prüfe …</div>}

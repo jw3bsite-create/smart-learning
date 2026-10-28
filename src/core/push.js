@@ -9,7 +9,7 @@
  */
 
 import { verbinde } from "./cloud.js";
-import { geheimnisZusammensetzen } from "./pushplan.js";
+import { geheimnisZusammensetzen, fruehesteStunde, zeitplanOrdnen } from "./pushplan.js";
 import { laeuftLokal } from "./umzug.js";
 
 export { laeuftLokal };
@@ -35,7 +35,7 @@ async function sha256hex(text) {
 
 /* Fehlt die Tabelle, wurde wolke.sql in Fassung 4 noch nicht ausgeführt. */
 const NEUE_FASSUNG = "Dafür braucht dein Supabase-Projekt die neue Fassung von wolke.sql "
-  + "(Fassung 4). Öffne dort den SQL Editor, füge den Inhalt ein und drücke Run.";
+  + "(Fassung 5). Öffne dort den SQL Editor, füge den Inhalt ein und drücke Run.";
 
 function fehler(f) {
   const text = f?.message || String(f || "");
@@ -107,6 +107,32 @@ export async function einrichten() {
 /* ------------------------------- Das Gerät ------------------------------ */
 
 /*
+ * Den Zeitplan (mehrere Uhrzeiten je Wochentag) kennt die Tabelle erst seit
+ * Fassung 5 von wolke.sql. Fehlt die Spalte, wird ohne ihn geschrieben —
+ * mit der frühesten Stunde der Woche, so wie es vorher war. Die
+ * Einstellungen sagen dann, dass die neue Fassung fehlt.
+ */
+let ohneZeitplan = false;
+const fehltZeitplan = (f) => /zeitplan/i.test(f?.message || "");
+
+async function mitZeitplan(schreiben, zeile) {
+  if (!ohneZeitplan) {
+    const { error } = await schreiben(zeile);
+    if (!error) return;
+    if (!fehltZeitplan(error)) throw fehler(error);
+    ohneZeitplan = true;
+  }
+  const ohne = { ...zeile };
+  delete ohne.zeitplan;
+  const { error } = await schreiben(ohne);
+  if (error) throw fehler(error);
+}
+
+function zeitplanZeile(zeitplan, stunde) {
+  return { zeitplan: zeitplanOrdnen(zeitplan, stunde), stunde: fruehesteStunde(zeitplan, stunde) };
+}
+
+/*
  * Ohne Dienst-Arbeiter kein Push. Den gibt es nur in der veröffentlichten
  * Fassung — nicht, wenn Anchor am Rechner über „Anchor starten“ von
  * localhost läuft. Das ist kein Fehler: Dort braucht man keine
@@ -160,7 +186,7 @@ export async function geraetStand() {
  * Meldet dieses Gerät an. Muss aus einem Klick heraus kommen — sonst fragt
  * Safari gar nicht erst nach der Erlaubnis.
  */
-export async function geraetAnmelden({ oeffentlich, stunde }) {
+export async function geraetAnmelden({ oeffentlich, stunde, zeitplan }) {
   if (!unterstuetzt()) throw new Error("Dieser Browser kann keine Push-Nachrichten empfangen.");
   const reg = await registrierung();
   await erlaubnisSichern();
@@ -176,11 +202,10 @@ export async function geraetAnmelden({ oeffentlich, stunde }) {
   }
   const { k, uid } = await klient();
   const json = abo.toJSON();
-  const { error } = await k.from("anchor_push_abo").upsert({
-    user_id: uid, endpoint: json.endpoint, abo: json, stunde: Number(stunde) || 17,
+  await mitZeitplan((z) => k.from("anchor_push_abo").upsert(z), {
+    user_id: uid, endpoint: json.endpoint, abo: json, ...zeitplanZeile(zeitplan, stunde),
     zeitzone: zeitzone(), geaendert: new Date().toISOString(),
   });
-  if (error) throw fehler(error);
   return abo;
 }
 
@@ -195,15 +220,13 @@ export async function geraetAbmelden() {
   } catch (e) { /* ohne Anschluss bleibt die Zeile; der Absender räumt sie ab */ }
 }
 
-/** Die Stunde dieses Geräts ändern. */
-export async function stundeSetzen(stunde) {
+/** Die Uhrzeiten dieses Geräts ändern. */
+export async function zeitplanSetzen(zeitplan, stunde) {
   const abo = await geraetStand();
   if (!abo) return;
   const { k } = await klient();
-  const { error } = await k.from("anchor_push_abo")
-    .update({ stunde: Number(stunde) || 17, zeitzone: zeitzone(), geaendert: new Date().toISOString() })
-    .eq("endpoint", abo.endpoint);
-  if (error) throw fehler(error);
+  await mitZeitplan((z) => k.from("anchor_push_abo").update(z).eq("endpoint", abo.endpoint),
+    { ...zeitplanZeile(zeitplan, stunde), zeitzone: zeitzone(), geaendert: new Date().toISOString() });
 }
 
 /* ------------------------------ Die Vorschau ---------------------------- */
@@ -246,16 +269,24 @@ export async function lageSchreiben(plan) {
 export async function geraetEinblick() {
   const abo = await geraetStand();
   const { k } = await klient();
-  const [eintrag, lage] = await Promise.all([
-    abo ? k.from("anchor_push_abo").select("stunde, letzte, zeitzone").eq("endpoint", abo.endpoint)
-      .maybeSingle() : Promise.resolve({ data: null }),
+  const zeileLesen = async (spalten) => (abo
+    ? k.from("anchor_push_abo").select(spalten).eq("endpoint", abo.endpoint).maybeSingle()
+    : { data: null });
+  let [eintrag, lage] = await Promise.all([
+    zeileLesen("stunde, letzte, zeitzone" + (ohneZeitplan ? "" : ", zeitplan")),
     k.from("anchor_lage").select("plan, geaendert").maybeSingle(),
   ]);
+  if (eintrag.error && fehltZeitplan(eintrag.error)) {
+    ohneZeitplan = true;
+    eintrag = await zeileLesen("stunde, letzte, zeitzone");
+  }
   if (eintrag.error) throw fehler(eintrag.error);
   return {
     abonniert: Boolean(abo),
     eingetragen: Boolean(eintrag.data),
     stunde: eintrag.data?.stunde ?? null,
+    zeitplan: eintrag.data?.zeitplan || null,
+    zeitplanFehlt: ohneZeitplan,
     letzte: eintrag.data?.letzte || null,
     vorschauZeit: lage.data?.geaendert ? new Date(lage.data.geaendert).getTime() : null,
     plan: lage.data?.plan || null,

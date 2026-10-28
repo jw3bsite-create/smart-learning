@@ -1,6 +1,6 @@
 /*
- * Schickt die Tageserinnerung als Push-Nachricht — läuft auf GitHub,
- * stündlich (.github/workflows/push-erinnerung.yml).
+ * Schickt die Erinnerung als Push-Nachricht — läuft auf GitHub, so oft
+ * GitHub es zulässt (.github/workflows/push-erinnerung.yml).
  *
  * Braucht drei Geheimnisse des Projekts auf GitHub:
  *   WOLKE_URL         die Project URL von Supabase
@@ -34,14 +34,14 @@ export async function senden({ url, schluessel, geheimnis, zeit = Date.now(),
       body: JSON.stringify(koerper),
     });
     if (!antwort.ok) throw new Error(name + " antwortet mit " + antwort.status
-      + (antwort.status === 404 ? " — ist wolke.sql in Fassung 4 ausgeführt?" : ""));
+      + (antwort.status === 404 ? " — ist wolke.sql in Fassung 5 ausgeführt?" : ""));
     const text = await antwort.text();
     return text ? JSON.parse(text) : null;
   };
 
   const auftraege = (await rpc("anchor_push_auftraege", { geheimnis: g.token })) || [];
   const stand = { abos: auftraege.length, gesendet: 0, entfernt: 0, fehler: 0,
-    gruende: { zeit: 0, heute: 0, nichts: 0, vorschau: 0 } };
+    gruende: { frei: 0, zeit: 0, heute: 0, nichts: 0, vorschau: 0 } };
 
   for (const a of auftraege) {
     const faellig = sollSenden({ abo: a, plan: a.plan, zeit });
@@ -55,14 +55,15 @@ export async function senden({ url, schluessel, geheimnis, zeit = Date.now(),
       // Sechs Stunden Gültigkeit: Ist das Handy bis dahin aus, verfällt die
       // Nachricht, statt nachts nachzukommen.
       await schicken(a.abo, inhalt, { TTL: 6 * 3600, urgency: "normal" });
-      await rpc("anchor_push_vermerken", { geheimnis: g.token, endpunkt: a.endpoint, datum: faellig.datum });
+      // Vermerkt wird die Uhrzeit, nicht nur der Tag: Die nächste des Tages kommt dann noch.
+      await rpc("anchor_push_vermerken", { geheimnis: g.token, endpunkt: a.endpoint, datum: faellig.termin });
       stand.gesendet += 1;
     } catch (f) {
       // 404/410: Das Gerät hat das Abonnement aufgegeben (App gelöscht,
       // Erlaubnis entzogen). Es kommt nicht wieder; die Zeile kann weg.
       if (f?.statusCode === 404 || f?.statusCode === 410) {
         await rpc("anchor_push_vermerken", { geheimnis: g.token, endpunkt: a.endpoint,
-          datum: faellig.datum, entfernen: true });
+          datum: faellig.termin, entfernen: true });
         stand.entfernt += 1;
       } else {
         stand.fehler += 1;
@@ -91,8 +92,9 @@ if (process.argv[1]?.endsWith("push-senden.mjs")) {
     const g = s.gruende;
     console.log("::notice::Anchor-Absender: "
       + (s.abos ? s.abos + " Gerät(e), " + s.gesendet + " gesendet"
-        + (g.zeit ? ", Uhrzeit noch nicht erreicht: " + g.zeit : "")
-        + (g.heute ? ", heute schon gesendet: " + g.heute : "")
+        + (g.frei ? ", heute keine Uhrzeit eingestellt: " + g.frei : "")
+        + (g.zeit ? ", nächste Uhrzeit noch nicht erreicht: " + g.zeit : "")
+        + (g.heute ? ", für die letzte Uhrzeit schon gesendet: " + g.heute : "")
         + (g.nichts ? ", nichts fällig: " + g.nichts : "")
         + (g.vorschau ? ", keine Vorschau für heute: " + g.vorschau : "")
         + (s.entfernt ? ", abgemeldete entfernt: " + s.entfernt : "")

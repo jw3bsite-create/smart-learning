@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import webpush from "web-push";
 import {
   tagesplan, ortszeit, sollSenden, nachricht, geheimnisZusammensetzen, geheimnisZerlegen,
-  grundOhneSenden,
+  grundOhneSenden, letzterTermin, zeitplanOrdnen, fruehesteStunde, uhrzeitOrdnen,
 } from "../src/core/pushplan.js";
 import { senden } from "../werkzeug/push-senden.mjs";
 
@@ -67,7 +67,9 @@ test("vor der eingestellten Stunde kommt nichts", () => {
 });
 
 test("ab der Stunde kommt die Nachricht, einmal", () => {
-  assert.deepEqual(sollSenden({ abo, plan, zeit: um(17) }), { datum: "2026-10-15", anzahl: 12 });
+  assert.deepEqual(sollSenden({ abo, plan, zeit: um(17) }),
+    { datum: "2026-10-15", termin: "2026-10-15 17:00", anzahl: 12 });
+  assert.equal(sollSenden({ abo: { ...abo, letzte: "2026-10-15 17:00" }, plan, zeit: um(18) }), null);
   assert.equal(sollSenden({ abo: { ...abo, letzte: "2026-10-15" }, plan, zeit: um(18) }), null);
 });
 
@@ -157,7 +159,7 @@ test("der Absender verschlüsselt mit Browserschlüsseln und vermerkt den Tag", 
   assert.equal(geschickt[0].headers["Content-Encoding"], "aes128gcm");
   assert.equal(aufrufe[0].url, "https://projekt.supabase.co/rest/v1/rpc/anchor_push_auftraege");
   const vermerk = aufrufe.find((x) => x.name === "anchor_push_vermerken");
-  assert.deepEqual(vermerk.koerper, { geheimnis: TOKEN, endpunkt: a.endpoint, datum: "2026-10-15" });
+  assert.deepEqual(vermerk.koerper, { geheimnis: TOKEN, endpunkt: a.endpoint, datum: "2026-10-15 17:00" });
   assert.ok(!JSON.stringify(aufrufe).includes(s.privat), "der private Schlüssel verlässt GitHub nie");
 });
 
@@ -221,5 +223,77 @@ test("die Zählung der Gründe kommt im Ergebnis an", async () => {
   const { holen } = wolkeAttrappe([zeile(a)]);
   const stand = await senden({ url: "https://p.supabase.co", schluessel: "anon", geheimnis,
     zeit: um(15), holen, schicken: async () => {} });
-  assert.deepEqual(stand.gruende, { zeit: 1, heute: 0, nichts: 0, vorschau: 0 });
+  assert.deepEqual(stand.gruende, { frei: 0, zeit: 1, heute: 0, nichts: 0, vorschau: 0 });
+});
+
+/* ====================== Mehrere Uhrzeiten je Wochentag ==================== */
+
+// 15. Oktober 2026 ist ein Donnerstag (4), der 16. ein Freitag (5).
+const DO = 4, FR = 5;
+const mitPlan = (zeitplan, letzte = null) => ({ ...abo, zeitplan, letzte });
+
+test("der Zeitplan wird geordnet: sortiert, einmalig, alle sieben Tage", () => {
+  const p = zeitplanOrdnen({ 4: ["17:00", "7:05", "17:00", "25:00", "x"] });
+  assert.deepEqual(p[4], ["07:05", "17:00"]);
+  assert.deepEqual(p[1], []);
+  assert.equal(Object.keys(p).length, 7);
+  assert.equal(uhrzeitOrdnen("7:5"), null);
+});
+
+test("ohne Zeitplan gilt die alte Stunde an jedem Tag", () => {
+  const p = zeitplanOrdnen(null, 18);
+  for (let w = 0; w < 7; w++) assert.deepEqual(p[w], ["18:00"]);
+  assert.equal(fruehesteStunde({ 1: ["19:30"], 4: ["07:15", "20:00"] }), 7);
+});
+
+test("mehrmals am Tag: jede Uhrzeit erinnert einmal", () => {
+  const zp = { [DO]: ["07:00", "12:30", "19:00"] };
+  assert.equal(sollSenden({ abo: mitPlan(zp), plan, zeit: um(6, 50) }), null);
+  assert.equal(sollSenden({ abo: mitPlan(zp), plan, zeit: um(7, 5) }).termin, "2026-10-15 07:00");
+  assert.equal(sollSenden({ abo: mitPlan(zp, "2026-10-15 07:00"), plan, zeit: um(12, 10) }), null);
+  assert.equal(sollSenden({ abo: mitPlan(zp, "2026-10-15 07:00"), plan, zeit: um(12, 40) }).termin,
+    "2026-10-15 12:30");
+  assert.equal(grundOhneSenden({ abo: mitPlan(zp, "2026-10-15 07:00"), plan, zeit: um(12, 10) }), "heute");
+});
+
+test("kam der Absender länger nicht dran, geht eine Nachricht hinaus, für die letzte Uhrzeit", () => {
+  const zp = { [DO]: ["07:00", "12:30", "19:00"] };
+  assert.equal(sollSenden({ abo: mitPlan(zp), plan, zeit: um(20) }).termin, "2026-10-15 19:00");
+  assert.equal(sollSenden({ abo: mitPlan(zp, "2026-10-15 19:00"), plan, zeit: um(21) }), null);
+});
+
+test("der Wochentag zählt: ein freier Tag bleibt still", () => {
+  const zp = { [FR]: ["17:00"] };
+  assert.equal(sollSenden({ abo: mitPlan(zp), plan, zeit: um(18) }), null);
+  assert.equal(grundOhneSenden({ abo: mitPlan(zp), plan, zeit: um(18) }), "frei");
+});
+
+test("eine Uhrzeit nach Mitternacht gehört zum Lerntag davor", () => {
+  // Freitag 1:00 Uhr Berlin (Donnerstag 23:00 UTC) — Lerntag ist noch Donnerstag.
+  const nachts = Date.UTC(2026, 9, 15, 23, 10);
+  const t = letzterTermin({ zeitplan: { [FR]: ["01:00"] }, zeitzone: "Europe/Berlin", zeit: nachts });
+  assert.deepEqual(t, { datum: "2026-10-15", termin: "2026-10-16 01:00", hatTermine: true });
+  assert.equal(sollSenden({ abo: mitPlan({ [FR]: ["01:00"] }), plan, zeit: nachts }).anzahl, 12);
+  // Donnerstag 1:00 gehört dagegen zum Mittwoch und zählt am Donnerstagabend nicht.
+  assert.equal(grundOhneSenden({ abo: mitPlan({ [DO]: ["01:00"] }), plan, zeit: um(18) }), "frei");
+});
+
+test("ein Vermerk alter Art (nur der Tag) heißt: heute schon erinnert", () => {
+  const zp = { [DO]: ["07:00", "19:00"] };
+  assert.equal(sollSenden({ abo: mitPlan(zp, "2026-10-15"), plan, zeit: um(20) }), null);
+  assert.equal(sollSenden({ abo: mitPlan(zp, "2026-10-14"), plan, zeit: um(20) }).termin, "2026-10-15 19:00");
+});
+
+test("die Uhrzeit gilt in der Zeitzone des Geräts", () => {
+  // 17:30 UTC ist 19:30 in Berlin, aber 13:30 in New York.
+  const zeit = Date.UTC(2026, 9, 15, 17, 30);
+  const zp = { [DO]: ["19:00"] };
+  assert.equal(letzterTermin({ zeitplan: zp, zeitzone: "Europe/Berlin", zeit }).termin, "2026-10-15 19:00");
+  assert.equal(letzterTermin({ zeitplan: zp, zeitzone: "America/New_York", zeit }).termin, null);
+});
+
+test("wolke.sql liefert den Zeitplan an den Absender", () => {
+  assert.match(sql, /add column if not exists zeitplan jsonb/);
+  assert.match(sql, /drop function if exists public\.anchor_push_auftraege\(text\);\s*create function public\.anchor_push_auftraege/);
+  assert.match(sql, /a\.letzte, coalesce\(l\.plan, '\{\}'::jsonb\), a\.zeitplan/);
 });
