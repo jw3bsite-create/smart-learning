@@ -1218,3 +1218,74 @@ html.zieht { cursor: grabbing; }
   font-variant-numeric: tabular-nums; }
 .zeitplan-zeit .feld:focus { box-shadow: none; }
 .zeitplan-zeit:focus-within { border-color: var(--akzent); }
+
+/* ------------------------- Telefon: wie eine App ------------------------ */
+
+/*
+ * Kein Heranzoomen. Doppeltippen auf Text oder eine freie Fläche zoomte die
+ * Seite bisher heran, danach ließ sie sich seitlich hin und her schieben —
+ * „wie eine Website“. Abgeschaltet war das nur auf Knöpfen. Jetzt gilt für
+ * die ganze Seite: nur blättern, nicht zoomen. Die Schriftgröße stellt man
+ * unter Gestaltung ein.
+ */
+@media (pointer: coarse) {
+  html { touch-action: pan-x pan-y; }
+}
+
+/* Die Leiste unten (Fussleiste in App.jsx). */
+.fussleiste { display: none; }
+@media (max-width: 860px) {
+  .fussleiste {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+    padding: 4px max(4px, env(safe-area-inset-right, 0px))
+      calc(4px + env(safe-area-inset-bottom, 0px)) max(4px, env(safe-area-inset-left, 0px));
+    background: var(--grund); border-top: 1px solid var(--rand);
+  }
+  /* Platz für die Leiste, damit das Letzte auf der Seite nicht darunter liegt. */
+  .mitte { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+}
+.fuss-knopf {
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 4px 0; min-height: 48px; background: none; border: 0; cursor: pointer;
+  color: var(--schrift-matt); font: inherit; font-size: 11px; line-height: 1.2;
+  -webkit-user-select: none; user-select: none; touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.fuss-knopf.aktiv { color: var(--akzent); }
+.fuss-symbol { display: grid; place-items: center; height: 28px; padding: 0 14px; border-radius: 14px;
+  transition: background var(--wechsel), transform var(--wechsel); }
+.fuss-knopf.aktiv .fuss-symbol { background: color-mix(in srgb, var(--akzent) 16%, transparent); }
+.fuss-knopf.haupt .fuss-symbol { background: var(--akzent); color: var(--akzent-schrift); }
+.fuss-knopf:active .fuss-symbol { transform: scale(0.92); }
+.fuss-zahl {
+  position: absolute; top: 0; left: calc(50% + 10px); min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 9px; background: var(--rot); color: #fff; font-size: 11px; font-weight: 600;
+  line-height: 18px; text-align: center;
+}
+
+/* Antippen fühlt sich an wie Drücken: Kacheln und Zeilen geben kurz nach. */
+@media (pointer: coarse) {
+  .kachel:active, .listenzeile:active, .knopf:active { transform: scale(0.98); }
+  .knopf, .kachel, .listenzeile, .schalter, .baum-zeile {
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+  }
+}
+
+/* Karteikarten wischen (ui/wischen.js). Senkrecht blättert die Seite, waagrecht
+   gehört die Bewegung der Karte. */
+.karte-wisch { position: relative; touch-action: pan-y; -webkit-user-select: none; user-select: none; }
+.wisch-marke {
+  position: absolute; top: 14px; z-index: 2; padding: 4px 12px; border-radius: 999px;
+  font-size: 14px; font-weight: 600; pointer-events: none; border: 2px solid currentColor;
+  background: var(--grund-2);
+}
+/* Die Marke steht auf der Seite, die im Bild bleibt: Wer nach rechts wischt,
+   schiebt die rechte Kante hinaus. */
+.wisch-marke.gut { left: 14px; color: var(--gruen); }
+.wisch-marke.ueben { right: 14px; color: var(--gelb); }
+/* „Noch üben“ und „Weiß ich“ in einer Zeile, auch auf schmalen Telefonen. */
+.karten-leiste .knopf { white-space: nowrap; }
+@media (max-width: 480px) { .karten-leiste { gap: 8px; } }
+.karte-wisch .karte-gross { animation: karte-rein calc(var(--wechsel) * 1.6) ease-out; }
+@keyframes karte-rein { from { opacity: 0; transform: scale(0.97); } }

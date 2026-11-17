@@ -14,6 +14,7 @@ import Tonaufnahme from "../ui/Tonaufnahme.jsx";
 import { gehe } from "../App.jsx";
 import { Knopf, SymbolKnopf, Symbol, Stern, Leer, useTastatur } from "../ui/basis.jsx";
 import KarteBearbeiten from "../ui/KarteBearbeiten.jsx";
+import { useWischen } from "../ui/wischen.js";
 import {
   useModus, useBrauchbar, ModusRahmen, Seite, Ergebnis, ModusLeiste, Wahl, Hinweis, RICHTUNGEN, seitenFuer, sprachenFuer, LeerKnoepfe,
 } from "./gemeinsam.jsx";
@@ -92,6 +93,12 @@ export default function Karteikarten({ setId, aufSchliessen }) {
       gedreht ? sprachen.antwort : sprachen.frage, einstellungen.sprechTempo),
   }, Boolean(karte) && !fertig);
 
+  /* Wischen wie bei Quizlet: rechts „Weiß ich“, links „Noch üben“. */
+  const wisch = useWischen({
+    rechts: () => urteilen(true), links: () => urteilen(false),
+    aktiv: Boolean(karte) && !fertig && !bearbeitet,
+  });
+
   useEffect(() => {
     if (!fertig) return;
     const werte = Object.values(urteile);
@@ -152,6 +159,7 @@ export default function Karteikarten({ setId, aufSchliessen }) {
           Nur Markierte
         </label>
         <div className="dehnen" />
+        <span className="klein blass nur-schmal">Wischen: rechts weiß ich, links noch üben</span>
         <span className="klein blass nur-breit">
           <span className="tastenhilfe">Leertaste</span> drehen ·
           <span className="tastenhilfe">↑</span> weiß ich ·
@@ -160,7 +168,17 @@ export default function Karteikarten({ setId, aufSchliessen }) {
       </ModusLeiste>
 
       <div className="karten-buehne">
-        <div className={"karte-gross" + (gedreht ? " gedreht" : "")}
+        <div className="karte-wisch" style={wisch.stil} {...wisch.griffe}>
+        {wisch.anteil !== 0 && (
+          <div className={"wisch-marke " + (wisch.anteil > 0 ? "gut" : "ueben")}
+            style={{ opacity: Math.min(1, Math.abs(wisch.anteil) * 1.4) }}>
+            {wisch.anteil > 0 ? "Weiß ich" : "Noch üben"}
+          </div>
+        )}
+        {/* Je Karte neu aufgebaut: Sonst dreht sich die Karte beim Weiterblättern
+            sichtbar zurück, und für einen Augenblick steht die Antwort der
+            nächsten Karte auf ihrer Rückseite. */}
+        <div key={karte.id + ":" + stelle} className={"karte-gross" + (gedreht ? " gedreht" : "")}
           onClick={() => setGedreht((g) => !g)}>
           <div className="karte-seite">
             <div className="karte-ecke">{richtung === "dt"
@@ -190,6 +208,7 @@ export default function Karteikarten({ setId, aufSchliessen }) {
               seite={seitenFuerRichtung(richtung === "beide" ? "td" : richtung).loesung}
               autoAbspielen={gedreht && einstellungen.eigeneStimmeAutomatisch} />
           </div>
+        </div>
         </div>
       </div>
 

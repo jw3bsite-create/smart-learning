@@ -88,3 +88,43 @@ test("eine gewöhnliche Liste ohne Trennzeichen ergibt keine falschen Karten", (
   assert.equal(e.paare.length, 0);
   assert.equal(e.uebrig.length, 3);
 });
+
+/* ===================== Link, Seitenkopie, Quizlet-Knopf =================== */
+
+import { nurQuizletLink } from "../src/core/importer.js";
+import { knopfAdresse, quizletKnopf } from "../src/core/quizletknopf.js";
+
+test("ein eingefügter Link wird als Link erkannt, nicht als Karte", () => {
+  assert.equal(nurQuizletLink("https://quizlet.com/de/123456789/romantik-flash-cards/"), true);
+  assert.equal(nurQuizletLink("Lerne mit Quizlet: Romantik\nhttps://quizlet.com/_abc123?x=1"), true);
+  assert.equal(nurQuizletLink("la casa" + TAB + "das Haus"), false);
+  assert.equal(quizletLesen("https://quizlet.com/de/123456789/romantik/").paare.length, 0);
+});
+
+test("von der Quizlet-Seite kopiert: Begriff und Definition in abwechselnden Zeilen", () => {
+  const e = quizletLesen("Begriffe in diesem Set (3)\nNovalis\nBlaue Blume\n\nEichendorff\n"
+    + "Aus dem Leben eines Taugenichts\nE. T. A. Hoffmann\nDer Sandmann – Nachtstück");
+  assert.equal(e.spalte, "abwechselnd");
+  assert.deepEqual(e.paare.map((p) => p.term), ["Novalis", "Eichendorff", "E. T. A. Hoffmann"]);
+  assert.equal(e.paare[2].definition, "Der Sandmann – Nachtstück");
+});
+
+test("abwechselnd auf Wunsch, eine Zeile ohne Partner wird gemeldet", () => {
+  const e = quizletLesen("la casa\ndas Haus\nel perro\nder Hund\nla mesa", { abwechselnd: true });
+  assert.equal(e.paare.length, 2);
+  assert.deepEqual(e.uebrig, ["la mesa"]);
+});
+
+test("ohne Wunsch und ohne Seitenkopf bleibt eine Liste ohne Trennzeichen ungeteilt", () => {
+  assert.equal(quizletLesen("la casa\ndas Haus").paare.length, 0);
+});
+
+test("der Quizlet-Knopf ist eine gültige Adresse ohne Bezug nach außen", () => {
+  const adresse = knopfAdresse("https://beispiel.github.io/anchor/");
+  assert.match(adresse, /^javascript:/);
+  assert.ok(!adresse.slice(11).includes("%") || /%[0-9A-F]{2}/.test(adresse), "verschlüsselt");
+  const code = decodeURIComponent(adresse.slice("javascript:".length));
+  assert.doesNotThrow(() => new Function(code), "der Code lässt sich übersetzen");
+  assert.ok(code.endsWith("void 0"), "liefert nichts zurück, sonst ersetzte der Browser die Seite");
+  assert.equal(typeof quizletKnopf, "function");
+});

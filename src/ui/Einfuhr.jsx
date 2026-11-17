@@ -9,11 +9,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import {
-  zerlege, rateTrenner, ankiLesen, quizletLesen, SPALTEN_TRENNER, ZEILEN_TRENNER,
+  zerlege, rateTrenner, ankiLesen, quizletLesen, nurQuizletLink, SPALTEN_TRENNER, ZEILEN_TRENNER,
 } from "../core/importer.js";
+import { knopfAdresse } from "../core/quizletknopf.js";
 import { erkenne, zuKarten, ausText, OCR_SPRACHEN } from "../core/ocr.js";
 import { anzahl } from "../core/util.js";
-import { Dialog, Knopf, Symbol, SymbolKnopf } from "./basis.jsx";
+import { Dialog, Knopf, Symbol, SymbolKnopf, useMerker } from "./basis.jsx";
 
 /* --------------------------- Durchsicht der Paare ---------------------- */
 
@@ -45,6 +46,32 @@ const SPALTEN_NAME = {
 };
 const ZEILEN_NAME = { zeile: "neue Zeile", leerzeile: "Leerzeile" };
 
+/* Die Adresse von Anchor selbst, für „Anchor öffnen“ im Quizlet-Knopf. */
+const ANCHOR_ADRESSE = typeof window !== "undefined"
+  ? window.location.origin + window.location.pathname : "";
+
+/*
+ * Der Quizlet-Knopf zum Ziehen in die Favoritenleiste. React lässt
+ * `javascript:`-Adressen im JSX nicht durch; sie wird darum nach dem
+ * Zeichnen gesetzt.
+ */
+function KnopfZumZiehen() {
+  const ziel = useRef(null);
+  useEffect(() => { ziel.current?.setAttribute("href", knopfAdresse(ANCHOR_ADRESSE)); }, []);
+  return (
+    <a ref={ziel} className="knopf klein voll" draggable="true" style={{ textDecoration: "none" }}
+      onClick={(e) => e.preventDefault()} title="In die Favoritenleiste ziehen">
+      <Symbol name="stern" groesse={15} /> Nach Anchor
+    </a>
+  );
+}
+
+const WEGE = [
+  ["knopf", "Quizlet-Knopf"],
+  ["export", "Exportieren"],
+  ["markieren", "Markieren"],
+];
+
 /*
  * Stapel aus Quizlet uebernehmen.
  *
@@ -53,24 +80,52 @@ const ZEILEN_NAME = { zeile: "neue Zeile", leerzeile: "Leerzeile" };
  * nicht. Wer eine Vokabelliste seiner Lehrerin uebernehmen will, soll nicht
  * erst Trennzeichen vergleichen muessen.
  *
+ * Quizlet gibt seine Karten nicht an andere Seiten heraus; ein Link allein
+ * hilft also nicht. Darum stehen oben drei Wege, je nachdem, was man hat:
+ * den Quizlet-Knopf (jeder Stapel, am besten am Rechner), „Exportieren“
+ * (eigene Stapel) und das Markieren der Begriffsliste (geht immer).
+ *
  * Bilder kommen nicht mit — Quizlet gibt sie nicht heraus.
  */
 export function QuizletEinfuhr({ setId, aufSchliessen }) {
   const { kartenAnlegenViele } = useDaten();
   const [text, setText] = useState("");
   const [tauschen, setTauschen] = useState(false);
+  const [abwechselnd, setAbwechselnd] = useState(false);
   const [bearbeitet, setBearbeitet] = useState(null);
+  const [weg, setWeg] = useMerker("quizletWeg", "knopf");
+  const [meldung, setMeldung] = useState("");
+  const [kopiert, setKopiert] = useState(false);
   const datei = useRef(null);
 
-  const gelesen = useMemo(() => quizletLesen(text), [text]);
+  const gelesen = useMemo(() => quizletLesen(text, { abwechselnd }), [text, abwechselnd]);
   const paare = bearbeitet ?? (tauschen
     ? gelesen.paare.map((p) => ({ term: p.definition, definition: p.term }))
     : gelesen.paare);
+  const nurLink = !paare.length && nurQuizletLink(text);
+
+  const neuerText = (t) => { setText(t); setBearbeitet(null); setAbwechselnd(false); setMeldung(""); };
 
   const dateiGewaehlt = async (f) => {
     if (!f) return;
-    setBearbeitet(null);
-    setText(await f.text());
+    neuerText(await f.text());
+  };
+
+  /* Auf dem iPhone fragt Safari mit „Einsetzen“ nach; am Rechner fragt der
+     Browser einmal um Erlaubnis. */
+  const einfuegen = async () => {
+    try {
+      const t = await navigator.clipboard.readText();
+      if (!t.trim()) { setMeldung("In der Zwischenablage liegt nichts."); return; }
+      neuerText(t);
+    } catch (f) {
+      setMeldung("Einfügen ging nicht direkt. Tipp ins Feld, halte gedrückt und wähle Einsetzen.");
+    }
+  };
+
+  const codeKopieren = async () => {
+    try { await navigator.clipboard.writeText(knopfAdresse(ANCHOR_ADRESSE)); setKopiert(true); }
+    catch (f) { setMeldung("Kopieren ging nicht."); }
   };
 
   const anlegen = async () => {
@@ -87,46 +142,114 @@ export function QuizletEinfuhr({ setId, aufSchliessen }) {
           {anzahl(paare.length, "Karte anlegen", "Karten anlegen")}
         </Knopf>
       </>}>
-      <ol className="klein matt" style={{ marginTop: 0, paddingLeft: 20 }}>
-        <li>Den Stapel bei Quizlet im Browser öffnen.</li>
-        <li>Auf die drei Punkte neben dem Stapel tippen und <strong>Exportieren</strong> wählen.</li>
-        <li>Den ganzen Text im Kasten markieren, kopieren und hier einsetzen.</li>
-      </ol>
-      <p className="klein blass oben-0">
-        Die Trennzeichen erkennt die App selbst. Hast du die Liste als Datei,
-        kannst du sie auch auswählen. Bilder gibt Quizlet nicht heraus, Text schon.
+      <p className="klein matt oben-0">
+        Ein Link reicht leider nicht: Quizlet gibt seine Karten nicht an andere Seiten heraus.
+        Die Karten selbst müssen herüber — auf einem dieser Wege:
       </p>
 
-      <textarea className="feld" autoFocus
-        style={{ minHeight: 150, fontFamily: "ui-monospace, monospace" }}
-        placeholder={"la casa\tdas Haus\nel perro\tder Hund"}
-        value={text}
-        onChange={(e) => { setText(e.target.value); setBearbeitet(null); }} />
+      <div className="reihe umbruch unten-12" style={{ gap: 6 }}>
+        {WEGE.map(([schluessel, name]) => (
+          <button key={schluessel} type="button"
+            className={"knopf klein" + (weg === schluessel ? " voll" : "")}
+            onClick={() => setWeg(schluessel)}>{name}</button>
+        ))}
+      </div>
 
-      <div className="reihe umbruch oben-8">
+      {weg === "knopf" && (
+        <div className="zahl-kachel klein unten-12">
+          <strong>Jeder Stapel, am einfachsten am Rechner.</strong> Einmal einrichten:
+          <ol className="oben-8 unten-8" style={{ paddingLeft: 20 }}>
+            <li className="unten-4">Die Favoritenleiste einblenden (in Edge: Strg + Umschalt + B).</li>
+            <li className="unten-4">Diesen Knopf mit der Maus in die Leiste ziehen: <KnopfZumZiehen /></li>
+          </ol>
+          Danach jedes Mal: den Stapel bei Quizlet im Browser öffnen, in der Leiste
+          auf <strong>Nach Anchor</strong> klicken, dann <strong>Kopieren</strong> — und hier
+          unten <strong>Einfügen</strong>.
+          <details className="oben-8">
+            <summary className="matt" style={{ cursor: "pointer" }}>Auf dem iPhone (Safari)</summary>
+            <ol className="oben-8 unten-0" style={{ paddingLeft: 20 }}>
+              <li className="unten-4">
+                <button type="button" className="pfad-verweis" onClick={codeKopieren}>
+                  {kopiert ? "Code kopiert" : "Code des Knopfs kopieren"}</button>.
+              </li>
+              <li className="unten-4">In Safari irgendeine Seite als Lesezeichen sichern (Teilen →
+                Lesezeichen hinzufügen) und es <strong>Nach Anchor</strong> nennen.</li>
+              <li className="unten-4">Lesezeichen öffnen → Bearbeiten → das Lesezeichen antippen,
+                die Adresse löschen und den Code einsetzen.</li>
+              <li>Den Quizlet-Stapel in Safari öffnen (nicht in der Quizlet-App), oben in die
+                Adresszeile tippen, <strong>Nach Anchor</strong> eingeben und den Vorschlag antippen.</li>
+            </ol>
+          </details>
+        </div>
+      )}
+      {weg === "export" && (
+        <div className="zahl-kachel klein unten-12">
+          <strong>Nur für eigene Stapel und nur auf der Quizlet-Webseite</strong> (in der App fehlt es):
+          <ol className="oben-8 unten-0" style={{ paddingLeft: 20 }}>
+            <li className="unten-4">Den Stapel bei Quizlet im Browser öffnen.</li>
+            <li className="unten-4">Auf die drei Punkte ··· neben dem Stapel tippen und
+              <strong> Exportieren</strong> wählen.</li>
+            <li>Auf <strong>Text kopieren</strong> tippen und hier unten <strong>Einfügen</strong>.</li>
+          </ol>
+        </div>
+      )}
+      {weg === "markieren" && (
+        <div className="zahl-kachel klein unten-12">
+          <strong>Geht immer, ist aber Handarbeit.</strong>
+          <ol className="oben-8 unten-0" style={{ paddingLeft: 20 }}>
+            <li className="unten-4">Den Stapel bei Quizlet im Browser öffnen und nach unten zur
+              Liste aller Begriffe scrollen.</li>
+            <li className="unten-4">Die Liste von der Überschrift (Begriffe in diesem Set) bis zum
+              letzten Begriff markieren und kopieren.</li>
+            <li>Hier unten <strong>Einfügen</strong>. Anchor liest Begriff und Definition aus
+              abwechselnden Zeilen; prüf in der Durchsicht, ob es aufgeht.</li>
+          </ol>
+        </div>
+      )}
+
+      <div className="reihe umbruch unten-8" style={{ gap: 8 }}>
+        <Knopf art="klein voll" symbol="papier" onClick={einfuegen}>Einfügen</Knopf>
         <input ref={datei} type="file" accept=".txt,.csv,.tsv,text/plain,text/csv"
           style={{ display: "none" }}
           onChange={(e) => dateiGewaehlt(e.target.files[0])} />
         <Knopf art="klein" symbol="hinauf" onClick={() => datei.current?.click()}>
           Datei auswählen
         </Knopf>
-        <label className="schalter">
-          <input type="checkbox" checked={tauschen}
-            onChange={(e) => { setTauschen(e.target.checked); setBearbeitet(null); }} />
-          <span>Seiten vertauschen
-            <span className="klein blass">(Deutsch vorn statt hinten)</span>
-          </span>
-        </label>
       </div>
 
-      {text.trim() && (
-        <div className={"rueckmeldung klein " + (paare.length ? "gut" : "schlecht")}
-          style={{ marginTop: 12 }}>
+      <textarea className="feld"
+        style={{ minHeight: 120, fontFamily: "ui-monospace, monospace" }}
+        placeholder={"Oder hier hineinkopieren, etwa:\nla casa\tdas Haus\nel perro\tder Hund"}
+        value={text}
+        onChange={(e) => neuerText(e.target.value)} />
+
+      <label className="schalter oben-8">
+        <input type="checkbox" checked={tauschen}
+          onChange={(e) => { setTauschen(e.target.checked); setBearbeitet(null); }} />
+        <span>Seiten vertauschen
+          <span className="klein blass">(Deutsch vorn statt hinten)</span>
+        </span>
+      </label>
+
+      {meldung && <div className="rueckmeldung schlecht klein oben-8">{meldung}</div>}
+
+      {nurLink && (
+        <div className="rueckmeldung schlecht klein oben-12">
+          Das ist nur der Link zum Stapel, nicht die Karten selbst — Anchor kann Quizlet nicht
+          für dich öffnen. Öffne den Link im Browser und nimm einen der Wege oben, am
+          einfachsten den Quizlet-Knopf.
+        </div>
+      )}
+
+      {text.trim() && !nurLink && (
+        <div className={"rueckmeldung klein oben-12 " + (paare.length ? "gut" : "schlecht")}>
           {paare.length ? (
             <>
               <Symbol name="haken" groesse={15} /> Erkannt:
-              {" " + (SPALTEN_NAME[gelesen.spalte] || gelesen.spalte)} zwischen den Seiten,
-              {" " + (ZEILEN_NAME[gelesen.zeile] || gelesen.zeile)} zwischen den Karten.
+              {gelesen.spalte === "abwechselnd"
+                ? " Begriff und Definition in abwechselnden Zeilen."
+                : " " + (SPALTEN_NAME[gelesen.spalte] || gelesen.spalte) + " zwischen den Seiten, "
+                  + (ZEILEN_NAME[gelesen.zeile] || gelesen.zeile) + " zwischen den Karten."}
               {gelesen.doppelte > 0
                 && " " + anzahl(gelesen.doppelte, "doppelte Karte", "doppelte Karten")
                   + " übergangen."}
@@ -136,9 +259,10 @@ export function QuizletEinfuhr({ setId, aufSchliessen }) {
             </>
           ) : (
             <>
-              Daraus lässt sich nichts lesen. Kommt der Text wirklich aus
-              „Exportieren"? Sonst hilft „Text einfügen", dort lassen sich die
-              Trennzeichen von Hand wählen.
+              Daraus lassen sich keine Karten lesen. Stehen Begriff und Definition in
+              abwechselnden Zeilen untereinander (vom Markieren der Quizlet-Seite)?{" "}
+              <button type="button" className="pfad-verweis" onClick={() => setAbwechselnd(true)}>
+                So lesen</button>
             </>
           )}
         </div>

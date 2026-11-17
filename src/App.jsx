@@ -15,7 +15,7 @@ import { zustaendeImPlan } from "./core/warteschlange.js";
 import { tagesLage } from "./core/straehne.js";
 import { anwenden as gestaltungAnwenden } from "./core/gestaltung.js";
 import { fortschreiben, vorheriger } from "./core/verlauf.js";
-import { SymbolKnopf } from "./ui/basis.jsx";
+import { Symbol } from "./ui/basis.jsx";
 import Seitenleiste from "./ui/Seitenleiste.jsx";
 import Bibliothek from "./ui/Bibliothek.jsx";
 import Stapelansicht from "./ui/Stapelansicht.jsx";
@@ -144,6 +144,43 @@ function useWeg() {
 
 /* --------------------------------- App --------------------------------- */
 
+/*
+ * Die Leiste unten am Telefon, wie in Quizlet und den meisten Apps: die
+ * Hauptwege dort, wo der Daumen ohnehin ist. Vorher lag alles hinter dem
+ * Menüknopf oben links — die weiteste Stelle für eine Hand. „Mehr“ öffnet
+ * das bisherige Menü mit Ordnern, Suche und Einstellungen.
+ */
+function Fussleiste({ weg, faellig, aufMehr }) {
+  const erster = weg[0] || "";
+  const punkte = [
+    ["start", "Start", "haus", START, erster === "start"],
+    ["faecher", "Fächer", "buch", "/faecher", erster === "faecher" || erster === "fach"],
+    ["abrufen", "Abrufen", "blitz", "/abrufen", false],
+    ["stapel", "Stapel", "stapel", "/",
+      erster === "" || erster === "ordner" || erster === "stapel" || erster === "suche"],
+  ];
+  return (
+    <nav className="fussleiste nur-schmal" aria-label="Hauptwege">
+      {punkte.map(([schluessel, name, symbol, ziel, aktiv]) => (
+        <button key={schluessel} type="button"
+          className={"fuss-knopf" + (aktiv ? " aktiv" : "") + (schluessel === "abrufen" ? " haupt" : "")}
+          aria-current={aktiv ? "page" : undefined}
+          onClick={() => gehe(ziel)}>
+          <span className="fuss-symbol"><Symbol name={symbol} groesse={20} /></span>
+          <span>{name}</span>
+          {schluessel === "abrufen" && faellig > 0 && (
+            <span className="fuss-zahl">{faellig > 99 ? "99+" : faellig}</span>
+          )}
+        </button>
+      ))}
+      <button type="button" className="fuss-knopf" onClick={aufMehr}>
+        <span className="fuss-symbol"><Symbol name="balken" groesse={20} /></span>
+        <span>Mehr</span>
+      </button>
+    </nav>
+  );
+}
+
 export default function App() {
   const daten = useDaten();
   const { bereit, einstellungen, setWolkeStand, setAenderungsMelder, neuLaden } = daten;
@@ -241,10 +278,16 @@ export default function App() {
   const { karten, zustaende, stapelVon, wolkeStand } = daten;
   useEffect(() => {
     if (!bereit) return undefined;
-    const t = setTimeout(() => {
+    const schreiben = () =>
       lageSchreiben(tagesplan(zustaendeImPlan(karten, zustaende, stapelVon))).catch(() => {});
-    }, 30000);
-    return () => clearTimeout(t);
+    const t = setTimeout(schreiben, 30000);
+    /* Wer nach dem Lernen gleich zum Startbildschirm wischt, wartet keine
+       halbe Minute. Dann sofort — sonst zählt die Erinnerung am Abend
+       (Kurzbefehl, Push) Karten, die längst erledigt sind. lageSchreiben
+       schreibt nur, wenn sich etwas geändert hat. */
+    const weg = () => { if (document.visibilityState === "hidden") schreiben(); };
+    document.addEventListener("visibilitychange", weg);
+    return () => { clearTimeout(t); document.removeEventListener("visibilitychange", weg); };
   }, [bereit, karten, zustaende, stapelVon, wolkeStand.zeit]);
 
   /* Einmal am Tag eine Kopie im Browser, kurz nach dem Start und still. */
@@ -285,7 +328,7 @@ export default function App() {
 /* Die Wege. Eigenes Bauteil, damit der Zeitmesser oben bei jedem Weg dabei ist. */
 function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
   const teile = weg.split("/").filter(Boolean);
-  const { stapel } = useDaten();
+  const { stapel, offen } = useDaten();
 
   /* Jede Seite in ihrer eigenen Auffanglinie. Der Schlüssel ist der Weg:
      Wer nach einem Absturz woandershin geht, bekommt eine frische Hülle. */
@@ -380,8 +423,6 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
             oben die Statusleiste ausgeglichen werden, und ein fest
             eingetragener Wert kann das nicht. */}
         <div className="menue-streifen nur-schmal">
-          <SymbolKnopf symbol="balken" titel="Menü" art="leer" groesse={22}
-            onClick={() => setLeisteOffen(true)} />
           <button type="button" className="logo-knopf" title="Zur Startseite"
             onClick={() => gehe(START)}>
             <img src="./logo-96.png" className="logo-bild klein" alt="" />
@@ -390,6 +431,8 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
         </div>
         {gefangen(inhalt)}
       </main>
+      <Fussleiste weg={teile} faellig={offen?.faellig || 0}
+        aufMehr={() => setLeisteOffen(true)} />
     </div>
   );
 }

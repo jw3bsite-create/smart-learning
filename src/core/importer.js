@@ -217,8 +217,56 @@ export function ankiLesen(text) {
  * Nebenbei fallen Kopfzeilen, Nummerierungen und doppelte Karten weg.
  *
  * Eine Adresse hilft nicht: Quizlet gibt seine Inhalte nicht an fremde Seiten
- * heraus. Kopieren (oder die heruntergeladene Datei) ist der einzige Weg.
+ * heraus. Kopieren (oder die heruntergeladene Datei) ist der einzige Weg —
+ * aus „Exportieren“, mit dem Quizlet-Knopf (core/quizletknopf.js) oder durch
+ * Markieren der Begriffsliste auf der Seite. Im letzten Fall stehen Vorder-
+ * und Rückseite in abwechselnden Zeilen (`abwechselnd`).
  */
+
+/* Die Überschrift über der Begriffsliste einer Quizlet-Seite. Steht sie im
+   Text, wurde die Seite markiert und kopiert. */
+const SEITEN_KOPF = /^\s*(begriffe in diesem (lern)?set|terms in this set)\b.*$/i;
+
+/** Steht da nur ein Link zu Quizlet statt der Karten? */
+export function nurQuizletLink(text) {
+  const s = String(text || "").trim();
+  if (!/quizlet\.com\//i.test(s) || s.length > 400) return false;
+  return s.split("\n").filter((z) => z.trim()).length <= 3 && !s.includes("\t");
+}
+
+/* Doppelte fallen weg, Felder werden gesäubert — für jede Lesart gleich. */
+function aufbereiten(rohPaare) {
+  const gesehen = new Set();
+  const paare = [];
+  let doppelte = 0;
+  for (const paar of rohPaare) {
+    const term = saeubereFeld(paar.term);
+    const definition = saeubereFeld(paar.definition);
+    if (!term && !definition) continue;
+    const schluessel = term.toLowerCase() + "\u0001" + definition.toLowerCase();
+    if (gesehen.has(schluessel)) { doppelte += 1; continue; }
+    gesehen.add(schluessel);
+    paare.push({ term, definition });
+  }
+  return { paare, doppelte };
+}
+
+/*
+ * Vorder- und Rückseite in abwechselnden Zeilen: so, wie die Begriffsliste
+ * aus der Quizlet-Seite kommt, wenn man sie markiert und kopiert. Leere
+ * Zeilen und die Überschrift der Liste zählen nicht. Eine Zeile am Ende
+ * ohne Partner wird gemeldet.
+ */
+function abwechselndLesen(text) {
+  const zeilen = text.split("\n").map((z) => z.trim()).filter((z) => z && !SEITEN_KOPF.test(z));
+  const roh = [];
+  for (let i = 0; i + 1 < zeilen.length; i += 2) roh.push({ term: zeilen[i], definition: zeilen[i + 1] });
+  const { paare, doppelte } = aufbereiten(roh);
+  return {
+    paare, doppelte, spalte: "abwechselnd", zeile: "zeile",
+    uebrig: zeilen.length % 2 ? [saeubereFeld(zeilen[zeilen.length - 1])] : [],
+  };
+}
 
 const KOPFZEILE = /^\s*(begriff|term|vorderseite|front|frage)\s*[\t;,|-]+\s*(definition|erkl\u00e4rung|erklaerung|r\u00fcckseite|rueckseite|back|antwort)\s*$/i;
 
@@ -233,9 +281,12 @@ function saeubereFeld(text) {
   return s.replace(/\s*\n\s*/g, " ").replace(/[ \t]{2,}/g, " ").trim();
 }
 
-export function quizletLesen(text) {
+export function quizletLesen(text, { abwechselnd = false } = {}) {
   const roh = String(text || "").replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").trim();
-  if (!roh) return { paare: [], uebrig: [], spalte: "tab", zeile: "zeile", doppelte: 0 };
+  /* Ein Link ist keine Karte. Vorher wurde er am Doppelpunkt geteilt und
+     ergab eine Karte „https“ mit dem Rest der Adresse als Rückseite. */
+  if (!roh || nurQuizletLink(roh)) return { paare: [], uebrig: [], spalte: "tab", zeile: "zeile", doppelte: 0 };
+  if (abwechselnd) return abwechselndLesen(roh);
 
   // Eine Kopfzeile wie „Begriff — Definition" gehoert nicht in die Karten.
   const zeilen = roh.split("\n");
@@ -294,18 +345,15 @@ export function quizletLesen(text) {
   if (!beste.paare.length)
     beste = kandidaten.find((k) => k.zeile === "zeile" && k.spalte === "tab") || beste;
 
-  const gesehen = new Set();
-  const paare = [];
-  let doppelte = 0;
-  for (const paar of beste.paare) {
-    const term = saeubereFeld(paar.term);
-    const definition = saeubereFeld(paar.definition);
-    if (!term && !definition) continue;
-    const schluessel = term.toLowerCase() + "\u0001" + definition.toLowerCase();
-    if (gesehen.has(schluessel)) { doppelte += 1; continue; }
-    gesehen.add(schluessel);
-    paare.push({ term, definition });
+  /* Von der Quizlet-Seite kopiert: Dort stehen die Seiten in abwechselnden
+     Zeilen. Ein Gedankenstrich in einem Begriff ergäbe sonst ein paar
+     zufällige Paare und verdrängte die richtige Lesart. */
+  if (roh.split("\n").some((z) => SEITEN_KOPF.test(z))) {
+    const zeilenweise = abwechselndLesen(roh);
+    if (zeilenweise.paare.length > beste.paare.length) return zeilenweise;
   }
+
+  const { paare, doppelte } = aufbereiten(beste.paare);
 
   return {
     paare,

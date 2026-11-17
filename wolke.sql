@@ -4,7 +4,7 @@
 -- Danach in den Einstellungen der App Adresse und öffentlichen Schlüssel
 -- (Project URL und anon key) eintragen und anmelden.
 --
--- Fassung 5 (Oktober 2026). Wer eine frühere Fassung schon ausgeführt
+-- Fassung 6 (November 2026). Wer eine frühere Fassung schon ausgeführt
 -- hat, führt diese einfach noch einmal aus; jeder Schritt verträgt das.
 -- Daten gehen dabei nicht verloren.
 --
@@ -251,6 +251,64 @@ revoke all on function public.anchor_push_auftraege(text) from public;
 revoke all on function public.anchor_push_vermerken(text, text, text, boolean) from public;
 grant execute on function public.anchor_push_auftraege(text) to anon, authenticated;
 grant execute on function public.anchor_push_vermerken(text, text, text, boolean) to anon, authenticated;
+
+-- ---------------------------------------------------------------------
+-- Erinnerung über die App „Kurzbefehle“ auf dem iPhone (Fassung 6).
+--
+-- Push über GitHub kommt nicht pünktlich: GitHub lässt den Absender nur
+-- alle paar Stunden laufen. Das iPhone kann es selbst — eine Automation in
+-- „Kurzbefehle“ läuft auf die Minute genau, auch bei geschlossener App, und
+-- fragt hier nach, wie viele Karten heute fällig sind.
+--
+--   anchor_kurzbefehl  je Kennung: der Fingerabdruck (SHA-256) eines
+--                      Schlüssels, den nur der Kurzbefehl kennt, und die
+--                      Zeitzone des Geräts
+--
+-- anchor_heute antwortet nur mit dem richtigen Schlüssel, und dann nur mit
+-- einer Zahl und einem Satz. Ohne passenden Schlüssel: nichts.
+-- ---------------------------------------------------------------------
+
+create table if not exists public.anchor_kurzbefehl (
+  user_id         uuid primary key default auth.uid() references auth.users (id) on delete cascade,
+  schluessel_hash text not null,
+  zeitzone        text not null default 'Europe/Berlin',
+  geaendert       timestamptz not null default now()
+);
+
+alter table public.anchor_kurzbefehl enable row level security;
+
+drop policy if exists "eigener kurzbefehl" on public.anchor_kurzbefehl;
+create policy "eigener kurzbefehl" on public.anchor_kurzbefehl
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- `apikey` steht nur in der Liste, damit der Kurzbefehl mit einer einzigen
+-- Adresse auskommt: Supabase nimmt den öffentlichen Schlüssel auch in der
+-- Adresse an, reicht ihn aber als Angabe an die Funktion weiter. Benutzt
+-- wird er hier nicht. Der Lerntag beginnt um 4 Uhr, wie in der App.
+-- Ist nichts fällig, bleibt `text` leer (null) — dann zeigt der Kurzbefehl
+-- keine Mitteilung.
+create or replace function public.anchor_heute(schluessel text, apikey text default null)
+  returns json language sql stable security definer set search_path = public, extensions as $$
+  select json_build_object(
+           'anzahl', z.anzahl,
+           'text', case when z.anzahl = 0 then null
+                        when z.anzahl = 1 then 'Heute wartet eine Karte.'
+                        else 'Heute warten ' || z.anzahl || ' Karten.' end,
+           'tag', z.tag)
+    from public.anchor_kurzbefehl k
+    left join public.anchor_lage l on l.user_id = k.user_id
+    cross join lateral (
+      select to_char((now() at time zone k.zeitzone) - interval '4 hours', 'YYYY-MM-DD') as tag
+    ) d
+    cross join lateral (
+      select d.tag, coalesce((l.plan ->> d.tag)::integer, 0) as anzahl
+    ) z
+   where length(coalesce(schluessel, '')) >= 32
+     and k.schluessel_hash = encode(extensions.digest(schluessel, 'sha256'), 'hex');
+$$;
+
+revoke all on function public.anchor_heute(text, text) from public;
+grant execute on function public.anchor_heute(text, text) to anon, authenticated;
 
 -- Den Zwischenspeicher der Schnittstelle neu einlesen. Ohne diese Zeile kann
 -- es einen Moment dauern, bis die neue Tabelle gefunden wird; die Meldung

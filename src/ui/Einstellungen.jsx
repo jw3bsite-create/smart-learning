@@ -9,6 +9,7 @@ import * as wolke from "../core/cloud.js";
 import * as ki from "../core/ki.js";
 import * as erinnerung from "../core/erinnerung.js";
 import * as push from "../core/push.js";
+import * as kurzbefehl from "../core/kurzbefehl.js";
 import { WOCHE, HOECHSTENS_JE_TAG, zeitplanOrdnen } from "../core/pushplan.js";
 import * as tagessicherung from "../core/tagessicherung.js";
 import { UmzugAlt, UmzugNeu } from "./Umzug.jsx";
@@ -662,6 +663,10 @@ function Erinnerungsteil() {
 
       {e.an && <Zeitplan plan={e.zeitplan} setzen={zeitplanAendern} />}
 
+      {/* Am iPhone der verlässliche Weg bei geschlossener App — unabhängig
+          vom Schalter oben, der nur die Nachricht bei offener App regelt. */}
+      <KurzbefehlTeil />
+
       {e.an && (
         <PushTeil stunde={e.stunde} zeitplan={e.zeitplan} aktivHier={Boolean(e.push)}
           setzeAktivHier={(an) => aendern({ push: an })} />
@@ -721,6 +726,137 @@ function Erinnerungsteil() {
         </p>
       )}
     </Abschnitt>
+  );
+}
+
+/*
+ * Die Erinnerung über die App „Kurzbefehle“ (core/kurzbefehl.js).
+ *
+ * Anchor kann auf dem iPhone keinen Kurzbefehl anlegen — das geht nur in
+ * der App selbst. Also: eine Adresse erzeugen, die man einmal kopiert, und
+ * eine Anleitung, die jeden Handgriff mit dem Namen nennt, unter dem er
+ * auf dem iPhone steht.
+ */
+function KurzbefehlTeil() {
+  const [adresse, setAdresse] = useState("");
+  const [laeuft, setLaeuft] = useState(false);
+  const [meldung, setMeldung] = useState("");
+  const [probe, setProbe] = useState(null);
+  const [kopiert, setKopiert] = useState("");
+  const [offen, setOffen] = useState(false);
+
+  useEffect(() => { kurzbefehl.adresseLesen().then(setAdresse).catch(() => {}); }, []);
+
+  const pruefen = async (a) => {
+    setMeldung(""); setProbe(null);
+    try { setProbe(await kurzbefehl.pruefen(a)); }
+    catch (f) { setMeldung(f.message); }
+  };
+
+  const erzeugen = async () => {
+    if (adresse && !(await bestaetigen({
+      titel: "Neue Adresse erzeugen?", ja: "Neu erzeugen",
+      text: "Die bisherige Adresse gilt danach nicht mehr. Im Kurzbefehl musst du sie "
+        + "durch die neue ersetzen.",
+    }))) return;
+    setLaeuft(true); setMeldung("");
+    try {
+      const neu = await kurzbefehl.einrichten();
+      setAdresse(neu); setOffen(true);
+      await pruefen(neu);
+    } catch (f) { setMeldung(f.message); }
+    finally { setLaeuft(false); }
+  };
+
+  const kopieren = async (text, was) => {
+    try { await navigator.clipboard.writeText(text); setKopiert(was); }
+    catch (f) { setMeldung("Kopieren ging nicht. Halte den Text gedrückt und wähle Kopieren."); }
+  };
+
+  const mitKopf = probe?.weg === "kopf";
+  const aufgabe = (n, inhalt) => <li className="unten-8" key={n}>{inhalt}</li>;
+
+  return (
+    <div className="zahl-kachel oben-16">
+      <strong>Auf dem iPhone, auch bei geschlossener App</strong>
+      <p className="klein matt" style={{ margin: "6px 0 10px" }}>
+        Über die App <strong>Kurzbefehle</strong>, die auf jedem iPhone ist. Sie erinnert auf die
+        Minute genau, an den Tagen und zu den Uhrzeiten, die du dort einstellst — und nur, wenn
+        Karten fällig sind. Einmal einrichten, etwa fünf Minuten.
+      </p>
+
+      {!adresse ? (
+        <Knopf art="klein voll" disabled={laeuft} onClick={erzeugen}>
+          {laeuft ? "Erzeuge …" : "Adresse für den Kurzbefehl erzeugen"}
+        </Knopf>
+      ) : (
+        <>
+          <div className="reihe umbruch" style={{ gap: 8 }}>
+            <Knopf art="klein voll" symbol="papier"
+              onClick={() => kopieren(mitKopf ? kurzbefehl.ohneApikey(adresse) : adresse, "adresse")}>
+              {kopiert === "adresse" ? "Adresse kopiert" : "Adresse kopieren"}
+            </Knopf>
+            <Knopf art="klein" onClick={() => pruefen(adresse)}>Prüfen</Knopf>
+            <Knopf art="klein" onClick={() => setOffen((x) => !x)}>
+              {offen ? "Anleitung zuklappen" : "Anleitung"}
+            </Knopf>
+            <Knopf art="klein leer" disabled={laeuft} onClick={erzeugen}>Neu erzeugen</Knopf>
+          </div>
+          {probe && (
+            <div className="rueckmeldung gut klein oben-8">
+              <Symbol name="haken" groesse={15} /> Die Adresse antwortet:{" "}
+              {probe.ergebnis.text || "heute ist nichts fällig, also käme keine Mitteilung"}
+            </div>
+          )}
+        </>
+      )}
+      {meldung && <div className="rueckmeldung schlecht klein oben-8">{meldung}</div>}
+
+      {adresse && offen && (
+        <div className="klein oben-12">
+          <strong>1. Den Kurzbefehl anlegen (einmal)</strong>
+          <ol style={{ paddingLeft: 20 }}>
+            {aufgabe(1, <>App <strong>Kurzbefehle</strong> öffnen, unten <strong>Kurzbefehle</strong>,
+              oben rechts <strong>+</strong>. Oben als Namen <strong>Anchor</strong> eintragen.</>)}
+            {aufgabe(2, <>Aktion suchen: <strong>Inhalte von URL abrufen</strong>. Auf das blaue
+              Wort <strong>URL</strong> tippen und die kopierte Adresse einsetzen.</>)}
+            {mitKopf && aufgabe(3, <>In derselben Aktion auf den Pfeil tippen, unter
+              <strong> Header</strong> einen Eintrag hinzufügen: Schlüssel <strong>apikey</strong>,
+              als Wert den öffentlichen Schlüssel{" "}
+              <button type="button" className="pfad-verweis"
+                onClick={() => kopieren(kurzbefehl.apikeyAus(adresse), "apikey")}>
+                {kopiert === "apikey" ? "(kopiert)" : "(kopieren)"}</button>.</>)}
+            {aufgabe(4, <>Aktion <strong>Wörterbuchwert abrufen</strong> hinzufügen. Auf
+              <strong> Schlüssel</strong> tippen und <strong>text</strong> eintragen.</>)}
+            {aufgabe(5, <>Aktion <strong>Wenn</strong> hinzufügen. Als Bedingung
+              <strong> hat einen beliebigen Wert</strong> wählen.</>)}
+            {aufgabe(6, <>Aktion <strong>Mitteilung anzeigen</strong> hinzufügen und sie zwischen
+              <strong> Wenn</strong> und <strong>Sonst</strong> ziehen. Den Text darin löschen und
+              stattdessen die Variable <strong>Wörterbuchwert</strong> einsetzen (über der Tastatur).</>)}
+            {aufgabe(7, <>Oben rechts <strong>Fertig</strong>. Einmal antippen zum Probieren: Sind
+              Karten fällig, kommt die Mitteilung sofort.</>)}
+          </ol>
+
+          <strong>2. Die Uhrzeiten festlegen</strong>
+          <ol style={{ paddingLeft: 20 }}>
+            {aufgabe(1, <>In Kurzbefehle unten <strong>Automation</strong>, dann <strong>+</strong> bzw.
+              <strong> Neue Automation</strong>.</>)}
+            {aufgabe(2, <><strong>Tageszeit</strong> wählen, die Uhrzeit einstellen, darunter
+              <strong> Wöchentlich</strong> und die Tage antippen.</>)}
+            {aufgabe(3, <><strong>Sofort ausführen</strong> wählen und <strong>Bei Ausführung
+              mitteilen</strong> ausschalten. Dann <strong>Weiter</strong>.</>)}
+            {aufgabe(4, <>In der Liste den Kurzbefehl <strong>Anchor</strong> antippen. Steht dort
+              keine Liste: Aktion <strong>Kurzbefehl ausführen</strong> hinzufügen und darin
+              <strong> Anchor</strong> wählen. Dann <strong>Fertig</strong>.</>)}
+          </ol>
+          <p className="matt" style={{ margin: 0 }}>
+            Jede Uhrzeit ist eine eigene Automation — für morgens und abends also zwei. Die Zahl
+            stammt aus der Cloud; sie stimmt, sobald Anchor nach dem Lernen kurz abgeglichen hat.
+            Antippen der Mitteilung öffnet die Kurzbefehle, nicht Anchor.
+          </p>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -906,8 +1042,8 @@ function PushTeil({ stunde, zeitplan, aktivHier, setzeAktivHier }) {
       <strong>Auch bei geschlossener App</strong>
       <p className="klein matt" style={{ margin: "6px 0 10px" }}>
         Als echte Push-Nachricht, verschickt über GitHub, zu den Uhrzeiten oben und nur,
-        wenn Karten warten. Wie pünktlich sie kommt, hängt davon ab, wie oft GitHub den
-        Absender anstößt — mal nach Minuten, mal erst später.
+        wenn Karten warten. Pünktlich ist das nicht: GitHub lässt den Absender oft nur alle
+        paar Stunden laufen. Auf dem iPhone ist der Weg über Kurzbefehle (oben) verlässlicher.
       </p>
 
       {lage.stand === "laedt" && <div className="klein blass">Prüfe …</div>}

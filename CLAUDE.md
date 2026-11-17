@@ -30,6 +30,9 @@ npm run dev      # http://localhost:5180
 npm test         # 500 Prüfungen (Kern, Speicher, Abgleich, Dialoge, Push, Abschnitte)
 npm run test:oberflaeche   # die gebaute App in Edge, am Handymaß (playwright-core)
 npm run lint
+node test-oberflaeche/fotos.mjs <ordner> /start "/einstellungen@Erinnerung"
+                 # Bildschirmfotos am Handymaß gegen den laufenden Server
+                 # (in der Git-Bash mit MSYS_NO_PATHCONV=1 davor)
 npm run symbole  # Symbole aus "Anchor Logo.pdf" (braucht: pip install pymupdf pillow)
 ```
 
@@ -404,6 +407,29 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     `localhost` aus „Anchor (alte Fassung)“ dient dem Umzug und dem
     Entwickeln (`core/umzug.js`, `ui/Umzug.jsx`). Daten liegen je Adresse
     getrennt im Browser; nur Abgleich oder Sicherungsdatei verbinden sie.
+61. **Erinnerung am iPhone über „Kurzbefehle“** (`core/kurzbefehl.js`,
+    `anchor_heute` in wolke.sql Fassung 6). Push über GitHub kommt nur alle
+    paar Stunden (gemessen: etwa alle acht), taugt also nicht für Uhrzeiten.
+    Die Adresse trägt einen eigenen Schlüssel (in der Wolke nur sein
+    Fingerabdruck) und den öffentlichen Schlüssel als `apikey`; die Funktion
+    hat darum einen unbenutzten Parameter `apikey`. Antwort nur Zahl und
+    Satz, `text` ist null, wenn nichts fällig ist. Die Vorschau
+    (`anchor_lage`) wird auch beim Verlassen der App sofort geschrieben.
+62. **Der Quizlet-Knopf ist ein Lesezeichen** (`core/quizletknopf.js`). Die
+    Funktion `quizletKnopf` läuft auf quizlet.com: nichts von außerhalb
+    benutzen, altes JavaScript, und die Adresse endet auf `void 0` — sonst
+    ersetzt der Browser die Seite durch den Rückgabewert. Quizlet sperrt
+    automatische Browser aus; geprüft wird an nachgebauten Seiten. Ein
+    eingefügter Quizlet-Link ist keine Karte (`nurQuizletLink`), vorher wurde
+    er am Doppelpunkt zu „https“ geteilt.
+63. **Am Telefon wird nicht gezoomt** (`touch-action: pan-x pan-y` am
+    Wurzelelement bei groben Zeigern). Doppeltippen auf Text zoomte vorher
+    heran, danach ließ sich die Seite seitlich schieben. Unten steht die
+    `Fussleiste` (App.jsx); `.mitte` hält unten Platz dafür frei.
+64. **Wischen nur in Übungsmodi** (`ui/wischen.js`, Karteikarten). Im
+    Abrufen nie: Dort steht vor jeder Bewertung das Aufdecken. Die Karte ist
+    je Karte neu aufgebaut (`key`), sonst dreht sie sich beim Weiterblättern
+    sichtbar zurück und zeigt kurz die Antwort der nächsten.
 
 ## Stapel aus Lernmaterial (im Chat)
 

@@ -16,7 +16,7 @@ export { laeuftLokal };
 
 /* ------------------------------- Werkzeug ------------------------------- */
 
-function base64url(bytes) {
+export function base64url(bytes) {
   let s = "";
   for (const b of new Uint8Array(bytes)) s += String.fromCharCode(b);
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -28,7 +28,7 @@ function ausBase64url(text) {
   return Uint8Array.from(roh, (c) => c.charCodeAt(0));
 }
 
-async function sha256hex(text) {
+export async function sha256hex(text) {
   const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
   return [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }

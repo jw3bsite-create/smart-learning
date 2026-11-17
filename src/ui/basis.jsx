@@ -17,6 +17,7 @@ const PFADE = {
   ordner: "M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
   stapel: "M4 7h13v11H4zM7 4h13v11",
   plus: "M12 5v14M5 12h14",
+  haus: "M4 10.5L12 4l8 6.5M6 9v11h4.5v-6h3v6H18V9",
   suche: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3",
   zurueck: "M15 18l-6-6 6-6",
   weiter: "M9 6l6 6-6 6",
