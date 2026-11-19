@@ -478,6 +478,15 @@ export default function Gestaltung() {
               Grün, Gelb und Rot bleiben, wie sie sind, sie bedeuten in dieser App
               richtig, unsicher und falsch.
             </p>
+
+            {/* Wem die Töne je Funktion zu bunt sind: alles wieder einheitlich. */}
+            <label className="schalter oben-16">
+              <input type="checkbox" checked={einstellungen.sinnbilderFarbig !== false}
+                onChange={(e) => setzen("sinnbilderFarbig", e.target.checked)} />
+              <span>Farbige Sinnbilder
+                <span className="klein blass"> (aus: alle Zeichen einheitlich, wie früher)</span>
+              </span>
+            </label>
           </Klappe>
 
           {/* ---------------------------- Schriften --------------------- */}

@@ -1447,3 +1447,11 @@ html.zieht { cursor: grabbing; }
   }
 }
 .sinnbild.gross { width: 36px; height: 36px; border-radius: 10px; }
+
+/* Schlicht (Gestaltung → Farben, „Farbige Sinnbilder“ aus): Zeichen in der
+   Farbe des Textes, ohne getöntes Feld; nur der Akzent bleibt, wo er ohnehin
+   stand (aktiver Reiter, Abrufen). Bewegungen und Flamme bleiben. */
+:root[data-sinnbilder="schlicht"] .sinnbild { color: inherit; background: none; }
+:root[data-sinnbilder="schlicht"] .baum-zeile.aktiv .sinnbild { background: none; }
+:root[data-sinnbilder="schlicht"] .fuss-knopf { --ton: var(--akzent); }
+:root[data-sinnbilder="schlicht"] .glocke-sinnbild { color: var(--schrift-matt); }
