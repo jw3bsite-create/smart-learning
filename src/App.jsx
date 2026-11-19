@@ -22,6 +22,7 @@ import Stapelansicht from "./ui/Stapelansicht.jsx";
 import Faecher from "./ui/Faecher.jsx";
 import FachSeite from "./ui/FachSeite.jsx";
 import Startseite from "./ui/Startseite.jsx";
+import Glocke from "./ui/Glocke.jsx";
 import Zeitmesser from "./ui/Zeitmesser.jsx";
 import { Ladefehler, Hinweisleiste } from "./ui/Meldungen.jsx";
 import Auffanglinie from "./ui/Auffanglinie.jsx";
@@ -429,6 +430,8 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
             <img src="./logo-96.png" className="logo-bild klein" alt="" />
             <span>Anchor</span>
           </button>
+          <span className="dehnen" />
+          <Glocke />
         </div>
         {gefangen(inhalt)}
       </main>

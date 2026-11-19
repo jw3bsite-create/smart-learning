@@ -12,6 +12,7 @@ import { gehe, START } from "../App.jsx";
 import { Symbol, SymbolKnopf, Knopf, useMerker, KLICKBAR, FachPunkt } from "./basis.jsx";
 import { erfragen } from "./Rueckfragen.jsx";
 import Flamme from "./Flamme.jsx";
+import Glocke from "./Glocke.jsx";
 
 function Zweig({ ordner, tiefe, aktiv, offen, umschalten, aufAblegen }) {
   const [ziel, setZiel] = useState(false);
@@ -108,6 +109,8 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
           <img src="./logo-96.png" className="logo-bild" alt="" />
           <span>Anchor</span>
         </button>
+        {/* Am Telefon steht die Glocke im Kopfstreifen, hier nur am Rechner. */}
+        <span className="nur-breit"><Glocke seite="links" /></span>
         <SymbolKnopf symbol="kreuz" titel="Menü schließen" art="leer klein nur-schmal"
           onClick={aufSchliessen} />
       </div>

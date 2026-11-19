@@ -1289,3 +1289,41 @@ html.zieht { cursor: grabbing; }
 @media (max-width: 480px) { .karten-leiste { gap: 8px; } }
 .karte-wisch .karte-gross { animation: karte-rein calc(var(--wechsel) * 1.6) ease-out; }
 @keyframes karte-rein { from { opacity: 0; transform: scale(0.97); } }
+
+/* ------------------------------ Die Glocke ------------------------------ */
+.glocke { position: relative; display: inline-flex; }
+.glocke-knopf {
+  position: relative; display: grid; place-items: center; width: 40px; height: 40px;
+  border: 0; border-radius: 12px; background: none; color: var(--schrift-matt); cursor: pointer;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation;
+  transition: background var(--wechsel), color var(--wechsel);
+}
+.glocke-knopf:hover { background: var(--grund-3); }
+.glocke-knopf.hat { color: var(--schrift); }
+/* Hat sie etwas, schwingt sie beim Erscheinen einmal kurz — nicht dauernd. */
+.glocke-knopf.hat svg { transform-origin: 50% 10%; animation: glocke-schwingen calc(var(--wechsel) * 8) ease-in-out 1; }
+@keyframes glocke-schwingen {
+  0%, 100% { transform: rotate(0); } 20% { transform: rotate(14deg); } 40% { transform: rotate(-10deg); }
+  60% { transform: rotate(6deg); } 80% { transform: rotate(-3deg); }
+}
+.glocke-zahl {
+  position: absolute; top: 3px; right: 2px; min-width: 17px; height: 17px; padding: 0 4px;
+  border-radius: 9px; background: var(--rot); color: #fff; font-size: 11px; font-weight: 700;
+  line-height: 17px; text-align: center; box-shadow: 0 0 0 2px var(--grund);
+}
+.glocke-tafel {
+  position: absolute; top: calc(100% + 6px); z-index: 70; width: min(340px, calc(100vw - 24px));
+  padding: 12px; border-radius: calc(var(--rund) * 0.9); background: var(--grund-2);
+  border: 1px solid var(--rand); box-shadow: var(--schatten);
+  animation: tafel-auf calc(var(--wechsel) * 1.5) ease-out;
+}
+.glocke-tafel.rechts { right: 0; }
+.glocke-tafel.links { left: 0; }
+@keyframes tafel-auf { from { opacity: 0; transform: translateY(-4px) scale(0.98); } }
+.glocke-titel { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+.glocke-eintrag { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid var(--rand); }
+.glocke-eintrag:first-of-type { border-top: 0; }
+.glocke-sinnbild { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px;
+  background: var(--grund-3); color: var(--akzent); }
+.glocke-eintrag.pruefung .glocke-sinnbild { color: var(--gelb); }
+.glocke-eintrag.ruht .glocke-sinnbild { color: var(--lila); }

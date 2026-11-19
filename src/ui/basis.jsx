@@ -18,6 +18,7 @@ const PFADE = {
   stapel: "M4 7h13v11H4zM7 4h13v11",
   plus: "M12 5v14M5 12h14",
   haus: "M4 10.5L12 4l8 6.5M6 9v11h4.5v-6h3v6H18V9",
+  glocke: "M6 9a6 6 0 1 1 12 0c0 6 2.5 8 2.5 8h-17S6 15 6 9M10.3 20.5a2 2 0 0 0 3.4 0",
   suche: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3",
   zurueck: "M15 18l-6-6 6-6",
   weiter: "M9 6l6 6-6 6",
