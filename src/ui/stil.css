@@ -1058,7 +1058,10 @@ html.dialog-offen { overflow: hidden; }
  * Titel, Beschreibung und Balken gemacht sind — mit einer einzigen Zeile
  * Inhalt waren sie zu drei Vierteln leer.
  */
-.liste { display: grid; gap: 6px; }
+/* minmax(0, …): Ohne Spaltenangabe darf eine Zeile nicht schmaler werden als
+   ihr längster Text. Ein langer Stapelname unter „Zuletzt gelernt“ schob sie
+   dann über den Rand, statt mit „…“ zu enden. */
+.liste { display: grid; gap: 6px; grid-template-columns: minmax(0, 1fr); }
 .listenzeile {
   display: flex; align-items: center; gap: 12px; width: 100%;
   padding: 12px 14px; min-height: 48px; text-align: left;

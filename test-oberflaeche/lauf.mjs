@@ -73,21 +73,24 @@ try {
 
   await schritt("Abrufen: bewerten und die Bewertung zurücknehmen", async () => {
     // Die Beispieldaten entstehen zufällig: das erste Fach nehmen, in dem
-    // wirklich etwas ansteht.
+    // wirklich etwas ansteht — und dessen erste Karte kein Rechenweg ist.
+    // Dort führt Enter zum nächsten Schritt statt zum Aufdecken; je nachdem,
+    // welches Fach zuerst kam, hing der Test vorher dreißig Sekunden.
     const faecher = await ausDb("subjects");
     let gefunden = false;
     for (const f of faecher) {
       await gehe("/abrufen/" + f.id);
-      if (await seite.locator(".konfidenz-gitter").waitFor({ timeout: 2500 }).then(() => true, () => false)) {
-        gefunden = true;
-        break;
-      }
+      if (!await seite.locator(".konfidenz-gitter").waitFor({ timeout: 2500 }).then(() => true, () => false)) continue;
+      await seite.keyboard.press("1");
+      await warte(300);
+      if (await seite.getByRole("button", { name: "Nächster Schritt" }).count()) continue;
+      gefunden = true;
+      break;
     }
-    soll(gefunden, "in keinem Fach stand etwas zum Abrufen an");
+    soll(gefunden, "in keinem Fach stand eine einfache Karte zum Abrufen an");
     const zaehler = seite.locator(".modus-kopf .mono");
     const vorher = await zaehler.textContent();
-    await seite.keyboard.press("1");
-    await warte(1200);                       // keine Antwort unter einer Sekunde zählt
+    await warte(900);                        // keine Antwort unter einer Sekunde zählt
     await seite.keyboard.press("Enter");
     await seite.locator(".bewertung-gitter").waitFor();
     await seite.keyboard.press("3");
@@ -133,11 +136,31 @@ try {
       "/kalibrierung", "/pruefung", "/erklaeren", "/tutor", "/papierkorb",
       "/stapel/" + stapel.id, "/stapel/" + stapel.id + "/bearbeiten"];
     const zu = [];
+    /* Wer steht über? Für die Meldung: Element und laufende Bewegung. */
+    const messen = () => seite.evaluate(() => {
+      const b = document.documentElement.clientWidth;
+      const ueber = document.documentElement.scrollWidth - b;
+      const wer = ueber <= 0 ? [] : [...document.querySelectorAll("body *")]
+        .filter((e) => e.getBoundingClientRect().right > b + 0.5)
+        .map((e) => e.tagName.toLowerCase() + "." + [...e.classList].join(".")
+          + (getComputedStyle(e).animationName !== "none" ? " (" + getComputedStyle(e).animationName + ")" : ""))
+        .slice(0, 4);
+      return { ueber, wer };
+    });
     for (const w of wege) {
       await gehe(w);
-      const ueber = await seite.evaluate(() =>
-        document.documentElement.scrollWidth - document.documentElement.clientWidth);
-      if (ueber > 0) zu.push(w + " (" + ueber + " Punkte)");
+      let m = await messen();
+      /* Steht etwas nur für einen Augenblick über (eine Bewegung, die gerade
+         läuft), ist das kein Gestaltungsfehler. Darum ein zweites Mal nach
+         einer Sekunde; erst was dann noch übersteht, zählt. Das Kurze wird
+         genannt, damit man es zuordnen kann. */
+      if (m.ueber > 0) {
+        const kurz = m;
+        await warte(1000);
+        m = await messen();
+        if (m.ueber <= 0) console.log("  (kurz zu breit: " + w + ", " + kurz.ueber + " Punkte, " + kurz.wer.join(", ") + ")");
+      }
+      if (m.ueber > 0) zu.push(w + " (" + m.ueber + " Punkte: " + m.wer.join(", ") + ")");
     }
     soll(!zu.length, "zu breit: " + zu.join(", "));
   });
