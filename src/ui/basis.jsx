@@ -19,6 +19,8 @@ const PFADE = {
   plus: "M12 5v14M5 12h14",
   haus: "M4 10.5L12 4l8 6.5M6 9v11h4.5v-6h3v6H18V9",
   glocke: "M6 9a6 6 0 1 1 12 0c0 6 2.5 8 2.5 8h-17S6 15 6 9M10.3 20.5a2 2 0 0 0 3.4 0",
+  ziel: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 16.5a4.5 4.5 0 1 0 0-9 4.5 4.5 0 0 0 0 9zM12 12.5v-1",
+  medaille: "M12 15.5a5.5 5.5 0 1 0 0-11 5.5 5.5 0 0 0 0 11zM8.6 14.4 7 21l5-2.6 5 2.6-1.6-6.6",
   suche: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.3-4.3",
   zurueck: "M15 18l-6-6 6-6",
   weiter: "M9 6l6 6-6 6",
@@ -78,6 +80,20 @@ export function Symbol({ name, groesse = 18, fuell = false, ...rest }) {
       aria-hidden="true" style={{ flex: "none" }} {...rest}>
       <path d={d} />
     </svg>
+  );
+}
+
+/*
+ * Ein Sinnbild in seinem Farbton: ein kleines getöntes Feld mit dem Zeichen
+ * darin. Jede Funktion hat überall denselben Ton (Abrufen blau, Fächer grün,
+ * Fehlerheft rot …), so findet man sie wieder, ohne zu lesen. Die Töne
+ * stehen in stil.css, je Design abgestimmt.
+ */
+export function Sinnbild({ name, ton = "blau", groesse = 16, className = "" }) {
+  return (
+    <span className={"sinnbild ton-" + ton + (className ? " " + className : "")} aria-hidden="true">
+      <Symbol name={name} groesse={groesse} />
+    </span>
   );
 }
 
@@ -330,9 +346,14 @@ export function Balken({ anteile, hoehe = 8 }) {
 }
 
 export function Stern({ an, aufKlick, groesse = 18 }) {
+  /* Ein kurzer Sprung beim Markieren — nur beim Antippen, nicht bei jedem
+     Zeichnen eines schon markierten Sterns. */
+  const [hupf, setHupf] = useState(false);
   return (
-    <button className={"stern" + (an ? " an" : "")} title={an ? "Markierung entfernen" : "Markieren"}
-      onClick={(e) => { e.stopPropagation(); aufKlick?.(); }}>
+    <button type="button" className={"stern" + (an ? " an" : "") + (hupf ? " hupf" : "")}
+      title={an ? "Markierung entfernen" : "Markieren"}
+      onAnimationEnd={() => setHupf(false)}
+      onClick={(e) => { e.stopPropagation(); if (!an) setHupf(true); aufKlick?.(); }}>
       <Symbol name="stern" groesse={groesse} fuell={an} />
     </button>
   );

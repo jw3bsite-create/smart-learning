@@ -449,6 +449,16 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     Übung. Der alte Rundenbau aus `scheduler.js` (`baueRunde`) wird dort nicht
     mehr gebraucht. „Beide Richtungen“ heißt in Lernen und Karteikarten
     „Zufällig je Karte“.
+68. **Jede Funktion hat einen festen Farbton** (`Sinnbild` in `ui/basis.jsx`,
+    Töne `--ton-*` in `stil.css`, im hellen Design dunkler): Abrufen blau,
+    Fächer grün, Erklären und Lernen lila, Prüfungen und Test orange,
+    Fehlerheft rot, Kalibrierung und Fortschritt türkis, Fragen gelb. Ein
+    neues Sinnbild bekommt den Ton seiner Funktion, keinen neuen. Bewegungen
+    rechnen mit `--wechsel` (0 bei „Ruhige Oberfläche“) und fallen bei
+    `prefers-reduced-motion` aus. Kein Seiteneffekt per `transform` auf
+    `.mitte`: sonst wird sie zum Bezugsrahmen fester Elemente.
+69. **Tutoren sind ausgeblendet** (Wunsch des Nutzers, 19. November 2026): nur
+    der Eintrag in der Seitenleiste fehlt, der Weg `/tutor` besteht weiter.
 
 ## Stapel aus Lernmaterial (im Chat)
 

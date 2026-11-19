@@ -15,7 +15,7 @@ import { wegName } from "../core/verlauf.js";
 import { herunterladen } from "../core/datei.js";
 import { alsStapeldatei } from "../core/stapeldatei.js";
 import {
-  Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Bild, Stern, Leer, Dialog, Rueckfrage, KLICKBAR,
+  Symbol, Sinnbild, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Bild, Stern, Leer, Dialog, Rueckfrage, KLICKBAR,
 } from "./basis.jsx";
 import Formel from "./Formel.jsx";
 import Auswahlleiste from "./Kartenauswahl.jsx";
@@ -214,7 +214,7 @@ export default function Stapelansicht({ setId }) {
             onClick={() => gehe(derStapel.subjectId
               ? "/abrufen/" + derStapel.subjectId : "/faecher")}>
             <div className="lernweg-raster">
-              <Symbol name="blitz" groesse={20} />
+              <Sinnbild name="blitz" ton="blau" groesse={18} className="gross" />
               <div>
                 <div className="titel">Abrufen</div>
                 <div className="klein matt">
@@ -241,9 +241,9 @@ export default function Stapelansicht({ setId }) {
               dem „?“ (und hier beim Überfahren mit der Maus). */}
           <div className="modus-raster">
             {MODI.map((m) => (
-              <Knopf key={m.id} symbol={m.symbol} title={m.text}
+              <Knopf key={m.id} title={m.text}
                 onClick={() => gehe("/stapel/" + setId + "/" + m.id)}>
-                {m.name}
+                <Sinnbild name={m.symbol} ton={m.ton} />{m.name}
               </Knopf>
             ))}
           </div>
@@ -422,9 +422,9 @@ export default function Stapelansicht({ setId }) {
           </p>
           <div className="modus-raster unten-0">
             {MODI.map((m) => (
-              <Knopf key={m.id} symbol={m.symbol} title={m.text}
+              <Knopf key={m.id} title={m.text}
                 onClick={() => gehe("/stapel/" + setId + "/" + m.id + "/" + uebtAbschnitt.id)}>
-                {m.name}
+                <Sinnbild name={m.symbol} ton={m.ton} />{m.name}
               </Knopf>
             ))}
           </div>

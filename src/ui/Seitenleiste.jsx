@@ -9,7 +9,7 @@ import { baueBaum } from "../core/model.js";
 import { allgemeineOrdner } from "../core/fachordner.js";
 import { fehlerZahlKurz } from "../core/fehler.js";
 import { gehe, START } from "../App.jsx";
-import { Symbol, SymbolKnopf, Knopf, useMerker, KLICKBAR, FachPunkt } from "./basis.jsx";
+import { Symbol, Sinnbild, SymbolKnopf, Knopf, useMerker, KLICKBAR, FachPunkt } from "./basis.jsx";
 import { erfragen } from "./Rueckfragen.jsx";
 import Flamme from "./Flamme.jsx";
 import Glocke from "./Glocke.jsx";
@@ -131,7 +131,7 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
         <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/abrufen") ? " aktiv" : "")}
           onClick={() => gehe("/abrufen")}>
           <span className="pfeil" />
-          <Symbol name="blitz" groesse={16} />
+          <Sinnbild name="blitz" ton="blau" />
           <span className="name dehnen">Abrufen</span>
           {faellig > 0 && <span className="marke gelb klein">{faellig}</span>}
         </div>
@@ -149,7 +149,7 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
               <Symbol name={faecherOffen ? "runter" : "weiter"} groesse={14} />
             )}
           </span>
-          <Symbol name="buch" groesse={16} />
+          <Sinnbild name="buch" ton="gruen" />
           <span className="name dehnen">Fächer</span>
           {faecher.length > 0 && <span className="klein blass">{faecher.length}</span>}
         </div>
@@ -169,44 +169,40 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
         <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/erklaeren") ? " aktiv" : "")}
           onClick={() => gehe("/erklaeren")}>
           <span className="pfeil" />
-          <Symbol name="buch" groesse={16} />
+          <Sinnbild name="schreiben" ton="lila" />
           <span className="name">Erklären</span>
         </div>
         <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/pruefung") ? " aktiv" : "")}
           onClick={() => gehe("/pruefung")}>
           <span className="pfeil" />
-          <Symbol name="papier" groesse={16} />
+          <Sinnbild name="papier" ton="orange" />
           <span className="name">Prüfungen</span>
         </div>
-        <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/tutor") ? " aktiv" : "")}
-          onClick={() => gehe("/tutor")}>
-          <span className="pfeil" />
-          <Symbol name="schreiben" groesse={16} />
-          <span className="name">Tutoren</span>
-        </div>
+        {/* Tutoren: auf Wunsch des Nutzers ausgeblendet (19. November 2026).
+            Der Weg /tutor besteht weiter, er ist nur nicht mehr verlinkt. */}
         <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/fehler") ? " aktiv" : "")}
           onClick={() => gehe("/fehler")}>
           <span className="pfeil" />
-          <Symbol name="kreuz" groesse={16} />
+          <Sinnbild name="kreuz" ton="rot" />
           <span className="name dehnen">Fehlerheft</span>
           {fehlerZahl > 0 && <span className="marke rot klein">{fehlerZahl}</span>}
         </div>
         <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/kalibrierung") ? " aktiv" : "")}
           onClick={() => gehe("/kalibrierung")}>
           <span className="pfeil" />
-          <Symbol name="auge" groesse={16} />
+          <Sinnbild name="auge" ton="tuerkis" />
           <span className="name">Kalibrierung</span>
         </div>
         <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/fragen") ? " aktiv" : "")}
           onClick={() => gehe("/fragen")}>
           <span className="pfeil" />
-          <Symbol name="wuerfel" groesse={16} />
+          <Sinnbild name="wuerfel" ton="gelb" />
           <span className="name">Fragen</span>
         </div>
         <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/punkte") ? " aktiv" : "")}
           onClick={() => gehe("/punkte")}>
           <span className="pfeil" />
-          <Symbol name="statistik" groesse={16} />
+          <Sinnbild name="medaille" ton="gruen" />
           <span className="name">Punkte</span>
         </div>
 
@@ -223,7 +219,7 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
             if (nutzlast) stapelAendern(nutzlast, { folderId: null });
           }}>
           <span className="pfeil" />
-          <Symbol name="buch" groesse={16} />
+          <Sinnbild name="stapel" ton="blau" />
           <span className="name" style={{ flex: 1 }}>Alle Stapel</span>
           <span className="klein blass">{stapel.length}</span>
         </div>
@@ -250,13 +246,13 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
 
       <div className="leiste-fuss">
         <div {...KLICKBAR} className="baum-zeile" onClick={() => gehe("/statistik")}>
-          <Symbol name="statistik" groesse={16} /><span className="name">Fortschritt</span>
+          <Sinnbild name="statistik" ton="tuerkis" /><span className="name">Fortschritt</span>
         </div>
         <div {...KLICKBAR} className="baum-zeile" onClick={() => gehe("/papierkorb")}>
-          <Symbol name="papierkorb" groesse={16} /><span className="name">Papierkorb</span>
+          <Sinnbild name="papierkorb" ton="grau" /><span className="name">Papierkorb</span>
         </div>
         <div {...KLICKBAR} className="baum-zeile" onClick={() => gehe("/einstellungen")}>
-          <Symbol name="zahnrad" groesse={16} /><span className="name">Einstellungen</span>
+          <Sinnbild name="zahnrad" ton="grau" /><span className="name">Einstellungen</span>
         </div>
         {wolkeStand.zustand !== "aus" && (
           <div {...KLICKBAR} className="baum-zeile klein" title={wolkeStand.text} onClick={aufAbgleich}>

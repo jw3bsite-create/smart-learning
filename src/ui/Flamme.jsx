@@ -7,7 +7,7 @@
  * zusammen ergeben sie ein ehrliches Bild.
  */
 
-import React, { useMemo } from "react";
+import React, { useId, useMemo } from "react";
 import { useDaten } from "../core/store.jsx";
 import { straehne, laengsteStraehne, TAGESPENSUM, RUHETAGE_JE_MONAT } from "../core/straehne.js";
 import { kalibrierung } from "../core/kalibrierung.js";
@@ -15,6 +15,44 @@ import { istFaellig } from "../core/fsrs.js";
 import { anzahl } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import { Symbol, Knopf, KLICKBAR } from "./basis.jsx";
+
+/*
+ * Das Zeichen der Flamme. Brennt sie (heute geschafft), flackert sie sanft:
+ * zwei Zungen, die sich gegeneinander und ungleichmäßig bewegen, damit es
+ * nicht nach Taktgeber aussieht. Sonst steht da nur ihr Umriss, still.
+ * „Ruhige Oberfläche“ und „Bewegung reduzieren“ halten sie an (stil.css).
+ */
+export function FlammeZeichen({ an, groesse = 16 }) {
+  const kennung = useId().replace(/:/g, "");
+  if (!an) {
+    return (
+      <svg className="flamme-zeichen" width={groesse} height={groesse} viewBox="0 0 24 24" aria-hidden="true"
+        fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" style={{ flex: "none" }}>
+        <path d={AUSSEN} />
+      </svg>
+    );
+  }
+  return (
+    <svg className="flamme-zeichen an" width={groesse} height={groesse} viewBox="0 0 24 24" aria-hidden="true"
+      style={{ flex: "none", overflow: "visible" }}>
+      <defs>
+        <linearGradient id={"fa" + kennung} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#ffc14d" />
+          <stop offset="1" stopColor="#ff6a3d" />
+        </linearGradient>
+        <linearGradient id={"fi" + kennung} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#fff3c4" />
+          <stop offset="1" stopColor="#ffc24f" />
+        </linearGradient>
+      </defs>
+      <path className="aussen" d={AUSSEN} fill={"url(#fa" + kennung + ")"} />
+      <path className="innen" d={INNEN} fill={"url(#fi" + kennung + ")"} />
+    </svg>
+  );
+}
+
+const AUSSEN = "M12 2.5c.7 3.1 2.6 4.8 4.3 6.8 1.4 1.7 2.2 3.5 2.2 5.7 0 3.9-2.9 6.5-6.5 6.5S5.5 18.9 5.5 15c0-2.6 1.3-4.4 2.6-5.8.3 1.4 1.1 2.4 2.2 2.8-.4-3.4.5-6.8 1.7-9.5z";
+const INNEN = "M12 21.3c-2 0-3.4-1.4-3.4-3.3 0-1.8 1.3-2.9 2.3-4.2.3 1 .9 1.6 1.6 1.8-.1-1.4.4-2.6 1.2-3.6.9 1.6 2.2 2.9 2.2 5.4 0 2.3-1.7 3.9-3.9 3.9z";
 
 export default function Flamme({ knapp = false }) {
   const { reviews, zustaende } = useDaten();
@@ -35,8 +73,7 @@ export default function Flamme({ knapp = false }) {
         title={stand.heuteGeschafft
           ? "Heute erledigt" : stand.fehlendHeute + " Abrufe fehlen heute"}>
         <span className="pfeil" />
-        <Symbol name="feuer" groesse={16} fuell={stand.heuteGeschafft}
-          style={{ color: farbe }} />
+        <span className="sinnbild ton-orange"><FlammeZeichen an={stand.heuteGeschafft} groesse={16} /></span>
         <span className="name dehnen">{stand.laenge}</span>
         {treffer !== null && (
           <span className="klein blass mono">{Math.round(treffer * 100)} %</span>
@@ -51,7 +88,7 @@ export default function Flamme({ knapp = false }) {
         {/* Beharrlichkeit */}
         <div style={{ minWidth: 150 }}>
           <div className="reihe klein matt">
-            <Symbol name="feuer" groesse={15} style={{ color: farbe }} /> Strähne
+            <FlammeZeichen an={stand.heuteGeschafft} groesse={17} /> Strähne
           </div>
           <div className="zahl" style={{ color: farbe }}>{stand.laenge}</div>
           <div className="klein blass">

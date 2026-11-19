@@ -206,7 +206,7 @@ export default function Lernen({ setId, aufSchliessen }) {
 
   if (!brauchbare.length) {
     return (
-      <ModusRahmen titel="Lernen" symbol="blitz" aufSchliessen={aufSchliessen}>
+      <ModusRahmen titel="Lernen" symbol="ziel" aufSchliessen={aufSchliessen}>
         <Leer titel="Nichts zu lernen" text="Der Stapel braucht Karten mit beiden Seiten.">
           <LeerKnoepfe setId={setId} nurMarkierte={nurMarkierte} aufAlle={() => setNurMarkierte(false)} />
         </Leer>
@@ -218,7 +218,7 @@ export default function Lernen({ setId, aufSchliessen }) {
   if (phase === "start") {
     const begonnen = stand.gemeistert + stand.bekannt > 0;
     return (
-      <ModusRahmen titel="Lernen" symbol="blitz" aufSchliessen={aufSchliessen}>
+      <ModusRahmen titel="Lernen" symbol="ziel" aufSchliessen={aufSchliessen}>
         <h1 className="unten-8">{derStapel.title}</h1>
         <p className="matt">
           {stand.fertig ? "Alles gemeistert. Du kannst von vorn beginnen."
@@ -270,7 +270,7 @@ export default function Lernen({ setId, aufSchliessen }) {
   if (phase === "rundenende") {
     const inDieserRunde = [...new Map(runde.map((a) => [a.karte.id, a])).values()];
     return (
-      <ModusRahmen titel="Lernen" symbol="blitz" aufSchliessen={aufSchliessen}>
+      <ModusRahmen titel="Lernen" symbol="ziel" aufSchliessen={aufSchliessen}>
         <div className="lern-ende">
           <div className={"lern-ende-zeichen" + (stand.fertig ? " fertig" : "")}>
             <Symbol name={stand.fertig ? "haken" : "blitz"} groesse={30} />
@@ -320,7 +320,7 @@ export default function Lernen({ setId, aufSchliessen }) {
   /* ------------------------------- Aufgabe ------------------------------ */
   if (!aufgabe) {
     return (
-      <ModusRahmen titel="Lernen" symbol="blitz" aufSchliessen={aufSchliessen}>
+      <ModusRahmen titel="Lernen" symbol="ziel" aufSchliessen={aufSchliessen}>
         <div className="leerer-zustand">Einen Augenblick …</div>
       </ModusRahmen>
     );
@@ -330,7 +330,7 @@ export default function Lernen({ setId, aufSchliessen }) {
   const sprachen = sprachenFuer(derStapel, aufgabe.richtung);
 
   return (
-    <ModusRahmen titel="Lernen" symbol="blitz" aufSchliessen={aufSchliessen}
+    <ModusRahmen titel="Lernen" symbol="ziel" aufSchliessen={aufSchliessen}
       anteil={stand.gesamt ? stand.gemeistert / stand.gesamt : 0}
       rechts={<span className="klein matt mono">{stand.gemeistert} / {stand.gesamt}</span>}>
 

@@ -16,7 +16,8 @@ import { fachZaehlung, tageBisPruefung } from "../core/warteschlange.js";
 import { straehne } from "../core/straehne.js";
 import { anzahl, datumKurz } from "../core/util.js";
 import { gehe } from "../App.jsx";
-import { Symbol, Knopf, Leer, KLICKBAR, FachPunkt } from "./basis.jsx";
+import { Symbol, Sinnbild, Knopf, Leer, KLICKBAR, FachPunkt } from "./basis.jsx";
+import { FlammeZeichen } from "./Flamme.jsx";
 import { useLernzeiten } from "./Lernzeit.jsx";
 import { summe, tagesBeginn, dauerText } from "../core/lernzeit.js";
 import { UmzugNeu, UmzugHinweis } from "./Umzug.jsx";
@@ -103,7 +104,7 @@ export default function Startseite() {
       ) : (
         <>
           {/* ------------------------------ Heute ----------------------------- */}
-          <div className="zahl-kachel oben-16">
+          <div className="zahl-kachel held oben-16">
             <div className="reihe umbruch" style={{ gap: 20, alignItems: "flex-end" }}>
               <div style={{ minWidth: 140 }}>
                 <div className="klein matt">Heute offen</div>
@@ -114,8 +115,7 @@ export default function Startseite() {
               </div>
               <div style={{ minWidth: 140 }}>
                 <div className="reihe klein matt" style={{ gap: 6 }}>
-                  <Symbol name="feuer" groesse={15} fuell={stand.heuteGeschafft}
-                    style={{ color: stand.heuteGeschafft ? "var(--gelb)" : undefined }} />
+                  <FlammeZeichen an={stand.heuteGeschafft} groesse={17} />
                   Strähne
                 </div>
                 <div className="zahl">{stand.laenge}</div>
@@ -195,7 +195,7 @@ export default function Startseite() {
                 {zuletzt.map(({ s, zeit }) => (
                   <button type="button" key={s.id} className="listenzeile"
                     onClick={() => gehe("/stapel/" + s.id)}>
-                    <Symbol name="stapel" groesse={16} />
+                    <Sinnbild name="stapel" ton="blau" />
                     <span className="dehnen">{s.title || "Ohne Titel"}</span>
                     <span className="klein blass">{datumKurz(zeit)}</span>
                   </button>
@@ -209,11 +209,11 @@ export default function Startseite() {
       {/* ---------------------------- Schnellzugriff -------------------------- */}
       <Abschnitt titel="Schnell">
         <div className="schnell-raster">
-          <Knopf symbol="wuerfel" onClick={() => gehe("/fragen")}>Fragen</Knopf>
-          <Knopf symbol="buch" onClick={() => gehe("/erklaeren")}>Erklären</Knopf>
-          <Knopf symbol="papier" onClick={() => gehe("/pruefung")}>Prüfungen</Knopf>
-          <Knopf symbol="stapel" onClick={() => gehe("/")}>Alle Stapel</Knopf>
-          <Knopf symbol="statistik" onClick={() => gehe("/statistik")}>Fortschritt</Knopf>
+          <Knopf onClick={() => gehe("/fragen")}><Sinnbild name="wuerfel" ton="gelb" />Fragen</Knopf>
+          <Knopf onClick={() => gehe("/erklaeren")}><Sinnbild name="schreiben" ton="lila" />Erklären</Knopf>
+          <Knopf onClick={() => gehe("/pruefung")}><Sinnbild name="papier" ton="orange" />Prüfungen</Knopf>
+          <Knopf onClick={() => gehe("/")}><Sinnbild name="stapel" ton="blau" />Alle Stapel</Knopf>
+          <Knopf onClick={() => gehe("/statistik")}><Sinnbild name="statistik" ton="tuerkis" />Fortschritt</Knopf>
         </div>
       </Abschnitt>
     </div>

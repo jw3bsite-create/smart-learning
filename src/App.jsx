@@ -154,17 +154,17 @@ function useWeg() {
 function Fussleiste({ weg, faellig, aufMehr }) {
   const erster = weg[0] || "";
   const punkte = [
-    ["start", "Start", "haus", START, erster === "start"],
-    ["faecher", "Fächer", "buch", "/faecher", erster === "faecher" || erster === "fach"],
-    ["abrufen", "Abrufen", "blitz", "/abrufen", false],
+    ["start", "Start", "haus", START, erster === "start", "blau"],
+    ["faecher", "Fächer", "buch", "/faecher", erster === "faecher" || erster === "fach", "gruen"],
+    ["abrufen", "Abrufen", "blitz", "/abrufen", false, "blau"],
     ["stapel", "Stapel", "stapel", "/",
-      erster === "" || erster === "ordner" || erster === "stapel" || erster === "suche"],
+      erster === "" || erster === "ordner" || erster === "stapel" || erster === "suche", "lila"],
   ];
   return (
     <nav className="fussleiste nur-schmal" aria-label="Hauptwege">
-      {punkte.map(([schluessel, name, symbol, ziel, aktiv]) => (
+      {punkte.map(([schluessel, name, symbol, ziel, aktiv, ton]) => (
         <button key={schluessel} type="button"
-          className={"fuss-knopf" + (aktiv ? " aktiv" : "") + (schluessel === "abrufen" ? " haupt" : "")}
+          className={"fuss-knopf ton-" + ton + (aktiv ? " aktiv" : "") + (schluessel === "abrufen" ? " haupt" : "")}
           aria-current={aktiv ? "page" : undefined}
           onClick={() => gehe(ziel)}>
           <span className="fuss-symbol"><Symbol name={symbol} groesse={20} /></span>

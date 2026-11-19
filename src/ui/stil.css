@@ -56,6 +56,16 @@
   --schrift-oberflaeche: var(--grotesk);
   --schrift-karten: var(--serifen);
   --akzent-schrift: #ffffff;   /* Schrift auf gefüllten Knöpfen */
+  /* Farbtöne der Sinnbilder (ui/basis.jsx, `Sinnbild`): eine abgestimmte
+     Reihe, gleich hell und gleich satt, damit keiner vordrängt. Blau ist der
+     Akzent selbst. Im hellen Design dunkler, für genug Kontrast. */
+  --ton-gruen: #3fbf7f;
+  --ton-gelb: #e8b84b;
+  --ton-orange: #f0915b;
+  --ton-rot: #ef6b79;
+  --ton-lila: #a97bf0;
+  --ton-tuerkis: #45bfd0;
+  --ton-grau: #8b97a8;
   color-scheme: dark;
 }
 
@@ -80,6 +90,13 @@
   --schatten: 0 8px 30px rgba(20, 30, 60, 0.10);
   --lz-lernen: #2f6ae0;       /* geprueft auf Weiss */
   --lz-erstellen: #c46f12;
+  --ton-gruen: #1f9d5f;
+  --ton-gelb: #b98410;
+  --ton-orange: #d6682c;
+  --ton-rot: #d64357;
+  --ton-lila: #8656d6;
+  --ton-tuerkis: #1d93a5;
+  --ton-grau: #687387;
   color-scheme: light;
 }
 
@@ -224,10 +241,10 @@ select.feld { appearance: none; padding-right: 30px;
 .schalter { display: flex; align-items: center; gap: 10px; cursor: pointer; padding: 7px 0; }
 .schalter input { appearance: none; width: 40px; height: 23px; border-radius: 12px;
   background: var(--grund-3); border: 1px solid var(--rand); position: relative;
-  cursor: pointer; flex: none; transition: background 0.15s; }
+  cursor: pointer; flex: none; transition: background calc(var(--wechsel) * 1.5), border-color calc(var(--wechsel) * 1.5); }
 .schalter input::after { content: ""; position: absolute; top: 2px; left: 2px;
   width: 17px; height: 17px; border-radius: 50%; background: var(--schrift-matt);
-  transition: transform 0.15s, background 0.15s; }
+  transition: transform calc(var(--wechsel) * 2) cubic-bezier(.3, 1.4, .5, 1), background calc(var(--wechsel) * 1.5); }
 .schalter input:checked { background: var(--akzent); border-color: var(--akzent); }
 .schalter input:checked::after { transform: translateX(17px); background: #fff; }
 
@@ -270,7 +287,7 @@ select.feld { appearance: none; padding-right: 30px;
 /* ------------------------------ Fortschritt --------------------------- */
 
 .balken { height: 8px; border-radius: 999px; background: var(--grund-3); overflow: hidden; display: flex; }
-.balken > span { display: block; height: 100%; }
+.balken > span { display: block; height: 100%; transition: width calc(var(--wechsel) * 4) ease-out; }
 .balken .neu { background: var(--rand); }
 .balken .lernen { background: var(--gelb); }
 .balken .vertraut { background: var(--akzent); }
@@ -1347,3 +1364,83 @@ html.zieht { cursor: grabbing; }
 .lern-ergebnis.gut { background: color-mix(in srgb, var(--gruen) 18%, transparent); color: var(--gruen); }
 .lern-ergebnis.schlecht { background: color-mix(in srgb, var(--rot) 16%, transparent); color: var(--rot); }
 .lern-aufgabe { animation: karte-rein calc(var(--wechsel) * 1.6) ease-out; }
+
+/* ------------------------- Sinnbilder in Farbe -------------------------- */
+.sinnbild {
+  display: inline-grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 8px;
+  color: var(--ton, var(--akzent)); background: color-mix(in srgb, var(--ton, var(--akzent)) 15%, transparent);
+  transition: transform var(--wechsel), background var(--wechsel);
+}
+.ton-blau { --ton: var(--akzent); }
+.ton-gruen { --ton: var(--ton-gruen); }
+.ton-gelb { --ton: var(--ton-gelb); }
+.ton-orange { --ton: var(--ton-orange); }
+.ton-rot { --ton: var(--ton-rot); }
+.ton-lila { --ton: var(--ton-lila); }
+.ton-tuerkis { --ton: var(--ton-tuerkis); }
+.ton-grau { --ton: var(--ton-grau); }
+.baum-zeile .sinnbild { width: 24px; height: 24px; border-radius: 7px; }
+.baum-zeile.aktiv .sinnbild { background: color-mix(in srgb, var(--ton, var(--akzent)) 26%, transparent); }
+.knopf .sinnbild { margin-left: -4px; }
+/* Ein Knopf mit Sinnbild steht links bündig: Zeichen, dann Name. */
+.schnell-raster .knopf, .modus-raster .knopf { justify-content: flex-start; }
+
+/* Die Leiste unten: der aktive Reiter in seinem Ton. */
+.fuss-knopf.aktiv { color: var(--ton, var(--akzent)); }
+.fuss-knopf.aktiv .fuss-symbol { background: color-mix(in srgb, var(--ton, var(--akzent)) 16%, transparent); }
+.fuss-knopf.aktiv .fuss-symbol svg { animation: fuss-hupf calc(var(--wechsel) * 3) ease-out; }
+@keyframes fuss-hupf { 40% { transform: translateY(-3px); } }
+
+/* Die Kachel „Heute“ auf der Startseite: ein Hauch Akzent, mehr nicht. */
+.zahl-kachel.held {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--akzent) 9%, var(--grund-2)) 0%, var(--grund-2) 65%);
+  border-color: color-mix(in srgb, var(--akzent) 22%, var(--rand));
+}
+
+/* ------------------------------ Die Flamme ------------------------------ */
+.flamme-zeichen { color: var(--schrift-blass); }
+.flamme-zeichen.an path { transform-box: fill-box; }
+.flamme-zeichen.an .aussen { transform-origin: 50% 95%;
+  animation: flackern calc(var(--wechsel) * 16) ease-in-out infinite; }
+.flamme-zeichen.an .innen { transform-origin: 50% 100%;
+  animation: flackern-innen calc(var(--wechsel) * 11) ease-in-out infinite; }
+.flamme-zeichen.an { filter: drop-shadow(0 0 3px rgba(255, 140, 60, 0.35)); }
+@keyframes flackern {
+  0%, 100% { transform: scale(1, 1) skewX(0deg); }
+  22% { transform: scale(0.97, 1.05) skewX(-2.5deg); }
+  48% { transform: scale(1.02, 0.97) skewX(1.5deg); }
+  71% { transform: scale(0.98, 1.03) skewX(-1deg); }
+}
+@keyframes flackern-innen {
+  0%, 100% { transform: scale(1, 1); opacity: 0.95; }
+  35% { transform: scale(0.9, 1.1) translateY(-0.4px); opacity: 1; }
+  65% { transform: scale(1.04, 0.94); opacity: 0.85; }
+}
+
+/* --------------------------- Kleine Bewegungen -------------------------- */
+/* Knöpfe geben beim Drücken nach, überall. */
+.knopf:active:not(:disabled) { transform: scale(0.97); }
+@media (hover: hover) {
+  .kachel:hover { transform: translateY(-2px); box-shadow: var(--schatten); }
+  .knopf:hover .sinnbild, .baum-zeile:hover .sinnbild { transform: scale(1.08); }
+}
+.knopf:active .sinnbild { transform: scale(0.92); }
+/* Seiten blenden weich ein. Nur die Deckkraft: Eine Verschiebung machte die
+   Seite für einen Augenblick zum Bezugsrahmen fester Elemente darin. */
+.mitte { animation: seite-rein calc(var(--wechsel) * 1.8) ease-out; }
+@keyframes seite-rein { from { opacity: 0; } }
+/* Der Stern springt beim Markieren kurz auf. */
+.stern svg { transition: transform var(--wechsel); }
+.stern.hupf svg { animation: stern-hupf calc(var(--wechsel) * 3.5) cubic-bezier(.3, 1.6, .5, 1); }
+@keyframes stern-hupf { 0% { transform: scale(0.6) rotate(-15deg); } 60% { transform: scale(1.3) rotate(8deg); } 100% { transform: scale(1); } }
+/* Menüs und Dialoge erscheinen, statt aufzuspringen. */
+.menue, .dialog { animation: tafel-auf calc(var(--wechsel) * 1.5) ease-out; }
+
+/* Wer am Gerät „Bewegung reduzieren“ gewählt hat, bekommt keine. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important; animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+.sinnbild.gross { width: 36px; height: 36px; border-radius: 10px; }
