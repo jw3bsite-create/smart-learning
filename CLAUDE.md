@@ -443,6 +443,12 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     macht aus `node_modules` Platzhalter; Rolldown folgt ihnen beim Auflösen
     und findet dann kein Paket mehr — im Bau und im Entwicklungsserver, während
     Node alles findet. Zeigt sich erst Stunden nach `npm install`.
+67. **„Lernen“ läuft nach Quizlet-Art** (`core/lernsitzung.js`, seit dem
+    19. November 2026): Stufen neu → bekannt → gemeistert in einer Sitzung,
+    Stand je Stapel im Gerät (`useMerker("lernen:<stapel>")`), Antworten als
+    Übung. Der alte Rundenbau aus `scheduler.js` (`baueRunde`) wird dort nicht
+    mehr gebraucht. „Beide Richtungen“ heißt in Lernen und Karteikarten
+    „Zufällig je Karte“.
 
 ## Stapel aus Lernmaterial (im Chat)
 

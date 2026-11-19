@@ -1327,3 +1327,23 @@ html.zieht { cursor: grabbing; }
   background: var(--grund-3); color: var(--akzent); }
 .glocke-eintrag.pruefung .glocke-sinnbild { color: var(--gelb); }
 .glocke-eintrag.ruht .glocke-sinnbild { color: var(--lila); }
+
+/* ------------------------ Lernen nach Quizlet-Art ----------------------- */
+.lern-balken { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--grund-3); }
+.lern-balken span { display: block; height: 100%; transition: width calc(var(--wechsel) * 4) ease-out; }
+.lern-balken .gemeistert { background: var(--gruen); }
+.lern-balken .bekannt { background: var(--gelb); }
+.lern-punkt { display: inline-block; width: 9px; height: 9px; border-radius: 3px; margin-right: 4px;
+  vertical-align: 0; background: var(--grund-3); border: 1px solid var(--rand); }
+.lern-punkt.gemeistert { background: var(--gruen); border-color: var(--gruen); }
+.lern-punkt.bekannt { background: var(--gelb); border-color: var(--gelb); }
+.lern-ende { text-align: center; padding: 16px 0 20px; }
+.lern-ende-zeichen { display: inline-grid; place-items: center; width: 64px; height: 64px; border-radius: 50%;
+  background: color-mix(in srgb, var(--akzent) 16%, transparent); color: var(--akzent);
+  animation: lern-auf calc(var(--wechsel) * 4) cubic-bezier(.3, 1.5, .5, 1); }
+.lern-ende-zeichen.fertig { background: color-mix(in srgb, var(--gruen) 18%, transparent); color: var(--gruen); }
+@keyframes lern-auf { from { transform: scale(0.5); opacity: 0; } }
+.lern-ergebnis { flex: none; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; }
+.lern-ergebnis.gut { background: color-mix(in srgb, var(--gruen) 18%, transparent); color: var(--gruen); }
+.lern-ergebnis.schlecht { background: color-mix(in srgb, var(--rot) 16%, transparent); color: var(--rot); }
+.lern-aufgabe { animation: karte-rein calc(var(--wechsel) * 1.6) ease-out; }

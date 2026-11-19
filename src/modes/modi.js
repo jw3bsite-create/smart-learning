@@ -10,7 +10,7 @@ export const MODI = [
   { id: "karten", name: "Karteikarten", symbol: "stapel",
     text: "Durchblättern und umdrehen, mit Vorlesen und Selbsteinschätzung." },
   { id: "lernen", name: "Lernen", symbol: "blitz",
-    text: "Runden aus Auswahl und Schreiben, verteilt über die Tage." },
+    text: "Erst erkennen, dann schreiben, in Runden, bis jede Karte sitzt." },
   { id: "schreiben", name: "Schreiben", symbol: "schreiben",
     text: "Antwort tippen. Verzeiht Tippfehler, nicht aber Unwissen." },
   { id: "buchstabieren", name: "Buchstabieren", symbol: "buchstaben",
