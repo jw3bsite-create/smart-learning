@@ -34,7 +34,11 @@ function dienstArbeiter() {
         // die Startseite steht schon fest darin, und Dateien mit einem Punkt
         // vorn (etwa .nojekyll fuer GitHub Pages) sind Anweisungen an den
         // Anbieter, nicht Teil der App.
-        .filter((d) => d !== "sw.js" && d !== "index.html" && !d.startsWith("."));
+        .filter((d) => d !== "sw.js" && d !== "index.html" && !d.startsWith("."))
+        // pdf.js (1,8 MB) nur für das Einlesen einer Quizlet-PDF — das geschieht
+        // selten und mit Netz. Im Vorrat machte es jede Aktualisierung um die
+        // Hälfte größer. Gebraucht, holt der Dienst-Arbeiter es nach.
+        .filter((d) => !/^assets\/pdf[.-]/.test(d));
 
       const ziel = join(wurzel, "sw.js");
       const stand = Date.now().toString(36);

@@ -21,8 +21,11 @@
  */
 
 /* eslint-disable no-var */
-export function quizletKnopf(anchorAdresse, nurLesen) {
+/* `seite`: ein anderes Dokument als das offene — etwa eine als Datei
+   gesicherte Quizlet-Seite (core/quizletdatei.js). Dann nur lesen. */
+export function quizletKnopf(anchorAdresse, nurLesen, seite) {
   var WAHL = ".TermText, [class*='TermText']";
+  var dok = seite || document;
   var paare = [], gesehen = {};
 
   function rein(t) { return String(t == null ? "" : t).replace(/\s+/g, " ").trim(); }
@@ -44,7 +47,7 @@ export function quizletKnopf(anchorAdresse, nurLesen) {
   }
 
   /* 1. Die Begriffsliste: je Zeile genau zwei Felder. */
-  var felder = felderIn(document), reihen = [];
+  var felder = felderIn(dok), reihen = [];
   for (var i = 0; i < felder.length; i++) {
     var r = felder[i].parentElement;
     while (r && felderIn(r).length < 2) r = r.parentElement;
@@ -77,13 +80,13 @@ export function quizletKnopf(anchorAdresse, nurLesen) {
     }
   }
   if (!paare.length) {
-    var skripte = document.querySelectorAll("script#__NEXT_DATA__, script[type='application/json']");
+    var skripte = dok.querySelectorAll("script#__NEXT_DATA__, script[type='application/json']");
     for (var s = 0; s < skripte.length; s++) {
       try { suche(JSON.parse(skripte[s].textContent), 0); } catch (e) { /* kein JSON */ }
     }
   }
 
-  if (nurLesen) return paare;
+  if (nurLesen || seite) return paare;
 
   /* ----------------------------- Anzeige ------------------------------ */
   var text = paare.map(function (p) { return p[0] + "\t" + p[1]; }).join("\n");

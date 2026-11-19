@@ -430,6 +430,15 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     Abrufen nie: Dort steht vor jeder Bewertung das Aufdecken. Die Karte ist
     je Karte neu aufgebaut (`key`), sonst dreht sie sich beim Weiterblättern
     sichtbar zurück und zeigt kurz die Antwort der nächsten.
+65. **Quizlet-Stapel aus einer Datei** (`core/quizletdatei.js`): PDF, Safari-
+    Webarchiv, MHTML, HTML — erkannt am Inhalt, nicht an der Endung. Fremde
+    Stapel lassen sich ohne Plus weder exportieren noch kopieren, die Seite
+    sichern geht immer. PDF liest pdf.js (`pdfjs-dist`, Mozilla, die einzige
+    Abhängigkeit dafür, der `legacy`-Bau für ältere iPhones); es lädt erst
+    beim Einlesen und steht **nicht** im Vorrat des Dienst-Arbeiters
+    (`vite.config.js`), sonst wüchse jede Aktualisierung um 1,8 MB. Aus den
+    Textstücken werden Zeilen, daraus Paare: Tabelle (Rechner), Blöcke
+    (Telefon), sonst abwechselnd. Beispieldateien in `test/daten`.
 
 ## Stapel aus Lernmaterial (im Chat)
 

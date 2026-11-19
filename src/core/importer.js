@@ -225,7 +225,7 @@ export function ankiLesen(text) {
 
 /* Die Überschrift über der Begriffsliste einer Quizlet-Seite. Steht sie im
    Text, wurde die Seite markiert und kopiert. */
-const SEITEN_KOPF = /^\s*(begriffe in diesem (lern)?set|terms in this set)\b.*$/i;
+export const SEITEN_KOPF = /^\s*(begriffe in diesem (lern)?set|terms in this set)\b.*$/i;
 
 /** Steht da nur ein Link zu Quizlet statt der Karten? */
 export function nurQuizletLink(text) {
@@ -235,7 +235,7 @@ export function nurQuizletLink(text) {
 }
 
 /* Doppelte fallen weg, Felder werden gesäubert — für jede Lesart gleich. */
-function aufbereiten(rohPaare) {
+export function aufbereiten(rohPaare) {
   const gesehen = new Set();
   const paare = [];
   let doppelte = 0;

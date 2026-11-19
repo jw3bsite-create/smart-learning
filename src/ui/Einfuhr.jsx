@@ -12,6 +12,7 @@ import {
   zerlege, rateTrenner, ankiLesen, quizletLesen, nurQuizletLink, SPALTEN_TRENNER, ZEILEN_TRENNER,
 } from "../core/importer.js";
 import { knopfAdresse } from "../core/quizletknopf.js";
+import { dateiLesen } from "../core/quizletdatei.js";
 import { erkenne, zuKarten, ausText, OCR_SPRACHEN } from "../core/ocr.js";
 import { anzahl } from "../core/util.js";
 import { Dialog, Knopf, Symbol, SymbolKnopf, useMerker } from "./basis.jsx";
@@ -66,7 +67,32 @@ function KnopfZumZiehen() {
   );
 }
 
+/* Die Schritte, eine Datei zu sichern — je Gerät. Gezeigt wird zuerst das,
+   an dem man gerade sitzt; das andere ist eingeklappt. */
+const AM_TELEFON = typeof window !== "undefined" && Boolean(window.matchMedia?.("(pointer: coarse)").matches);
+const DATEI_IPHONE = (
+  <ol className="oben-8 unten-0" style={{ paddingLeft: 20 }}>
+    <li className="unten-4">Den Stapel in <strong>Safari</strong> öffnen, nicht in der Quizlet-App —
+      aus der App kommt beim Sichern nur der Link. Am einfachsten: in der App Teilen → Link
+      kopieren, dann in Safari oben in die Adresszeile einsetzen.</li>
+    <li className="unten-4">Bis zur Liste aller Begriffe hinunterscrollen. Steht dort Mehr
+      anzeigen, antippen.</li>
+    <li className="unten-4">Teilen → oben <strong>Optionen</strong> → <strong>PDF</strong> →
+      <strong> In Dateien sichern</strong>.</li>
+    <li>Hier <strong>Datei auswählen</strong> und die Datei aus Dateien wählen.</li>
+  </ol>
+);
+const DATEI_PC = (
+  <ol className="oben-8 unten-0" style={{ paddingLeft: 20 }}>
+    <li className="unten-4">Den Stapel im Browser öffnen und bis zur Liste aller Begriffe scrollen.</li>
+    <li className="unten-4"><strong>Strg + P</strong>, als Drucker <strong>Als PDF speichern</strong>
+      wählen, Speichern. (Oder Strg + S als Webseite.)</li>
+    <li>Hier <strong>Datei auswählen</strong> — oder die Datei einfach in dieses Fenster ziehen.</li>
+  </ol>
+);
+
 const WEGE = [
+  ["datei", "Als Datei"],
   ["knopf", "Quizlet-Knopf"],
   ["export", "Exportieren"],
   ["markieren", "Markieren"],
@@ -81,9 +107,10 @@ const WEGE = [
  * erst Trennzeichen vergleichen muessen.
  *
  * Quizlet gibt seine Karten nicht an andere Seiten heraus; ein Link allein
- * hilft also nicht. Darum stehen oben drei Wege, je nachdem, was man hat:
- * den Quizlet-Knopf (jeder Stapel, am besten am Rechner), „Exportieren“
- * (eigene Stapel) und das Markieren der Begriffsliste (geht immer).
+ * hilft also nicht. Darum stehen oben vier Wege, je nachdem, was man hat:
+ * die Seite als Datei sichern (jeder Stapel, ohne Plus, auf beiden Geräten;
+ * gelesen in core/quizletdatei.js), den Quizlet-Knopf, „Exportieren“ (eigene
+ * Stapel) und das Markieren der Begriffsliste.
  *
  * Bilder kommen nicht mit — Quizlet gibt sie nicht heraus.
  */
@@ -93,9 +120,11 @@ export function QuizletEinfuhr({ setId, aufSchliessen }) {
   const [tauschen, setTauschen] = useState(false);
   const [abwechselnd, setAbwechselnd] = useState(false);
   const [bearbeitet, setBearbeitet] = useState(null);
-  const [weg, setWeg] = useMerker("quizletWeg", "knopf");
+  const [weg, setWeg] = useMerker("quizletWegWahl", "datei");
   const [meldung, setMeldung] = useState("");
   const [kopiert, setKopiert] = useState(false);
+  const [liest, setLiest] = useState(false);
+  const [ausDatei, setAusDatei] = useState("");
   const datei = useRef(null);
 
   const gelesen = useMemo(() => quizletLesen(text, { abwechselnd }), [text, abwechselnd]);
@@ -104,11 +133,25 @@ export function QuizletEinfuhr({ setId, aufSchliessen }) {
     : gelesen.paare);
   const nurLink = !paare.length && nurQuizletLink(text);
 
-  const neuerText = (t) => { setText(t); setBearbeitet(null); setAbwechselnd(false); setMeldung(""); };
+  const neuerText = (t) => {
+    setText(t); setBearbeitet(null); setAbwechselnd(false); setMeldung(""); setAusDatei("");
+  };
 
+  /* PDF, Webarchiv, gesicherte Webseite oder Text — erkannt am Inhalt. */
   const dateiGewaehlt = async (f) => {
     if (!f) return;
-    neuerText(await f.text());
+    setLiest(true);
+    try {
+      const e = await dateiLesen(f);
+      neuerText(e.text);
+      if (e.hinweis) setMeldung(e.hinweis);
+      else if (e.art !== "text") setAusDatei(e.artName);
+    } catch (fehler) {
+      setMeldung("Die Datei ließ sich nicht lesen (" + (fehler?.message || fehler) + ").");
+    } finally {
+      setLiest(false);
+      if (datei.current) datei.current.value = "";
+    }
   };
 
   /* Auf dem iPhone fragt Safari mit „Einsetzen“ nach; am Rechner fragt der
@@ -155,6 +198,16 @@ export function QuizletEinfuhr({ setId, aufSchliessen }) {
         ))}
       </div>
 
+      {weg === "datei" && (
+        <div className="zahl-kachel klein unten-12">
+          <strong>Jeder Stapel, ohne Plus.</strong> Die Seite des Stapels als Datei sichern und
+          hier auswählen.
+          {AM_TELEFON ? <>{DATEI_IPHONE}<details className="oben-8">
+            <summary className="matt" style={{ cursor: "pointer" }}>Am PC</summary>{DATEI_PC}</details></>
+            : <>{DATEI_PC}<details className="oben-8">
+              <summary className="matt" style={{ cursor: "pointer" }}>Am iPhone</summary>{DATEI_IPHONE}</details></>}
+        </div>
+      )}
       {weg === "knopf" && (
         <div className="zahl-kachel klein unten-12">
           <strong>Jeder Stapel, am einfachsten am Rechner.</strong> Einmal einrichten:
@@ -207,21 +260,30 @@ export function QuizletEinfuhr({ setId, aufSchliessen }) {
         </div>
       )}
 
-      <div className="reihe umbruch unten-8" style={{ gap: 8 }}>
-        <Knopf art="klein voll" symbol="papier" onClick={einfuegen}>Einfügen</Knopf>
-        <input ref={datei} type="file" accept=".txt,.csv,.tsv,text/plain,text/csv"
-          style={{ display: "none" }}
-          onChange={(e) => dateiGewaehlt(e.target.files[0])} />
-        <Knopf art="klein" symbol="hinauf" onClick={() => datei.current?.click()}>
-          Datei auswählen
-        </Knopf>
-      </div>
+      {/* Eine Datei darf auch einfach hierher gezogen werden. Ohne die
+          Abfangung öffnete der Browser sie selbst und Anchor wäre weg. */}
+      <div onDragOver={(e) => e.preventDefault()}
+        onDrop={(e) => { e.preventDefault(); dateiGewaehlt(e.dataTransfer?.files?.[0]); }}>
+        <div className="reihe umbruch unten-8" style={{ gap: 8 }}>
+          <Knopf art={"klein" + (weg === "datei" ? " voll" : "")} symbol="hinauf" disabled={liest}
+            onClick={() => datei.current?.click()}>
+            {liest ? "Lese die Datei …" : "Datei auswählen"}
+          </Knopf>
+          <input ref={datei} type="file"
+            accept=".pdf,.webarchive,.html,.htm,.mhtml,.mht,.txt,.csv,.tsv,application/pdf,text/html,text/plain,text/csv"
+            style={{ display: "none" }}
+            onChange={(e) => dateiGewaehlt(e.target.files[0])} />
+          <Knopf art={"klein" + (weg === "datei" ? "" : " voll")} symbol="papier" onClick={einfuegen}>
+            Einfügen
+          </Knopf>
+        </div>
 
-      <textarea className="feld"
-        style={{ minHeight: 120, fontFamily: "ui-monospace, monospace" }}
-        placeholder={"Oder hier hineinkopieren, etwa:\nla casa\tdas Haus\nel perro\tder Hund"}
-        value={text}
-        onChange={(e) => neuerText(e.target.value)} />
+        <textarea className="feld"
+          style={{ minHeight: 120, fontFamily: "ui-monospace, monospace" }}
+          placeholder={"Oder hier hineinkopieren, etwa:\nla casa\tdas Haus\nel perro\tder Hund"}
+          value={text}
+          onChange={(e) => neuerText(e.target.value)} />
+      </div>
 
       <label className="schalter oben-8">
         <input type="checkbox" checked={tauschen}
@@ -245,8 +307,8 @@ export function QuizletEinfuhr({ setId, aufSchliessen }) {
         <div className={"rueckmeldung klein oben-12 " + (paare.length ? "gut" : "schlecht")}>
           {paare.length ? (
             <>
-              <Symbol name="haken" groesse={15} /> Erkannt:
-              {gelesen.spalte === "abwechselnd"
+              <Symbol name="haken" groesse={15} /> {ausDatei ? "Aus der Datei (" + ausDatei + ") gelesen." : "Erkannt:"}
+              {ausDatei ? "" : gelesen.spalte === "abwechselnd"
                 ? " Begriff und Definition in abwechselnden Zeilen."
                 : " " + (SPALTEN_NAME[gelesen.spalte] || gelesen.spalte) + " zwischen den Seiten, "
                   + (ZEILEN_NAME[gelesen.zeile] || gelesen.zeile) + " zwischen den Karten."}
