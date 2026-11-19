@@ -258,7 +258,11 @@ export function aufbereiten(rohPaare) {
  * ohne Partner wird gemeldet.
  */
 function abwechselndLesen(text) {
-  const zeilen = text.split("\n").map((z) => z.trim()).filter((z) => z && !SEITEN_KOPF.test(z));
+  /* Beim Markieren der Quizlet-Seite kommt manches doppelt mit (ein Text für
+     den Bildschirmleser neben dem sichtbaren). Steht eine Zeile zweimal
+     hintereinander, zählt sie einmal. */
+  const zeilen = text.split("\n").map((z) => z.trim()).filter((z) => z && !SEITEN_KOPF.test(z))
+    .filter((z, i, alle) => i === 0 || z !== alle[i - 1]);
   const roh = [];
   for (let i = 0; i + 1 < zeilen.length; i += 2) roh.push({ term: zeilen[i], definition: zeilen[i + 1] });
   const { paare, doppelte } = aufbereiten(roh);

@@ -13,6 +13,13 @@
  * Das Lesezeichen enthält nur den Text dieser einen Funktion. Und es bleibt
  * bei altem JavaScript ohne neuere Zeichen, damit es in jedem Browser läuft.
  *
+ * Übergeben wird auf zwei Wegen: „In Anchor übernehmen“ öffnet Anchor mit
+ * den Karten im Seitenweg (`#/quizlet/…`, nach dem `#` — das geht an keinen
+ * Server), „Kopieren“ legt sie in die Zwischenablage. Am Rechner teilen sich
+ * die installierte App und der Browser denselben Speicher, dort reicht der
+ * erste Weg. Auf dem iPhone hat die App vom Startbildschirm einen eigenen;
+ * dort kopiert man und setzt in der App ein.
+ *
  * Gelesen wird zuerst die Begriffsliste, so wie sie auf der Seite steht:
  * jede Zeile mit genau zwei Textfeldern (Begriff, Definition). Findet sich
  * keine, die Daten, die Quizlet für den Aufbau der Seite mitschickt.
@@ -119,7 +126,7 @@ export function quizletKnopf(anchorAdresse, nurLesen, seite) {
   } else {
     zeile.textContent = "Anchor: " + paare.length + (paare.length === 1 ? " Karte" : " Karten")
       + " gefunden. Zeigt Quizlet mehr Begriffe an? Dann erst unten „Mehr anzeigen“ und den Knopf "
-      + "noch einmal drücken.";
+      + "noch einmal drücken. Am iPhone: Kopieren und in der Anchor-App einsetzen.";
     var kopieren = knopf("Kopieren", true);
     kopieren.onclick = function () {
       function fertig() {
@@ -140,8 +147,14 @@ export function quizletKnopf(anchorAdresse, nurLesen, seite) {
       } else zurueck();
     };
     if (anchorAdresse) {
-      var oeffnen = knopf("Anchor öffnen", false);
-      oeffnen.onclick = function () { window.open(anchorAdresse, "_blank"); };
+      var titelFeld = document.querySelector("h1");
+      var titel = rein(titelFeld ? textVon(titelFeld) : document.title.replace(/\s*[|–-]\s*Quizlet.*$/i, ""));
+      var uebergabe = knopf("In Anchor übernehmen", true);
+      kasten.insertBefore(uebergabe, kopieren);
+      kopieren.style.cssText += "background:transparent;color:inherit;border:1px solid #3a3f4b;font-weight:400;";
+      uebergabe.onclick = function () {
+        window.open(anchorAdresse + "#/quizlet/" + encodeURIComponent(JSON.stringify({ t: titel, k: paare })), "_blank");
+      };
     }
   }
   knopf("Schließen", false).onclick = function () { kasten.parentNode.removeChild(kasten); };
@@ -158,4 +171,15 @@ export function quizletKnopf(anchorAdresse, nurLesen, seite) {
 export function knopfAdresse(anchorAdresse) {
   return "javascript:" + encodeURIComponent(
     "(" + quizletKnopf.toString() + ")(" + JSON.stringify(anchorAdresse || "") + ");void 0");
+}
+
+/** Die Karten aus dem Seitenweg `#/quizlet/<daten>` lesen; Unsinn ergibt null. */
+export function uebergabeLesen(roh) {
+  try {
+    const d = JSON.parse(decodeURIComponent(roh || ""));
+    const paare = (Array.isArray(d?.k) ? d.k : [])
+      .filter((p) => Array.isArray(p) && (p[0] || p[1]))
+      .map(([term, definition]) => ({ term: String(term || ""), definition: String(definition || "") }));
+    return paare.length ? { titel: String(d.t || "").slice(0, 120), paare } : null;
+  } catch (f) { return null; }
 }

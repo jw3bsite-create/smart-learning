@@ -39,6 +39,7 @@ import { UebungsBereich } from "./modes/gemeinsam.jsx";
  * genauso schnell.
  */
 const Bearbeiten = lazy(() => import("./ui/Bearbeiten.jsx"));
+const QuizletUebernahme = lazy(() => import("./ui/Einfuhr.jsx").then((m) => ({ default: m.QuizletUebernahme })));
 const Einstellungen = lazy(() => import("./ui/Einstellungen.jsx"));
 const Statistik = lazy(() => import("./ui/Statistik.jsx"));
 const Papierkorb = lazy(() => import("./ui/Papierkorb.jsx"));
@@ -406,6 +407,8 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
   else if (teile[0] === "kalibrierung") inhalt = <Kalibrierung />;
   else if (teile[0] === "fehler") inhalt = <Fehlerheft fachId={teile[1] || null} />;
   else if (teile[0] === "punkte") inhalt = <Noten />;
+  // Vom Quizlet-Knopf: die Karten stehen im Weg (core/quizletknopf.js).
+  else if (teile[0] === "quizlet") inhalt = <QuizletUebernahme daten={teile[1] || ""} />;
   else if (teile[0] === "fragen")
     inhalt = <Fragen
       bereichArt={teile[1] === "fehler" ? "fehler" : teile[1] ? "fach" : "alles"}

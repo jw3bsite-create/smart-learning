@@ -11,11 +11,11 @@ import { useDaten } from "../core/store.jsx";
 import {
   zerlege, rateTrenner, ankiLesen, quizletLesen, nurQuizletLink, SPALTEN_TRENNER, ZEILEN_TRENNER,
 } from "../core/importer.js";
-import { knopfAdresse } from "../core/quizletknopf.js";
+import { knopfAdresse, uebergabeLesen } from "../core/quizletknopf.js";
 import { dateiLesen } from "../core/quizletdatei.js";
 import { erkenne, zuKarten, ausText, OCR_SPRACHEN } from "../core/ocr.js";
 import { anzahl } from "../core/util.js";
-import { Dialog, Knopf, Symbol, SymbolKnopf, useMerker } from "./basis.jsx";
+import { Dialog, Knopf, Symbol, SymbolKnopf, useMerker, Leer } from "./basis.jsx";
 
 /* --------------------------- Durchsicht der Paare ---------------------- */
 
@@ -297,9 +297,16 @@ export function QuizletEinfuhr({ setId, aufSchliessen }) {
 
       {nurLink && (
         <div className="rueckmeldung schlecht klein oben-12">
-          Das ist nur der Link zum Stapel, nicht die Karten selbst — Anchor kann Quizlet nicht
-          für dich öffnen. Öffne den Link im Browser und nimm einen der Wege oben, am
-          einfachsten den Quizlet-Knopf.
+          Das ist der Link zum Stapel. Die Karten selbst holt Anchor nicht: Quizlet sperrt alles,
+          was nicht ein Mensch in seinem eigenen Browser ist. So geht es trotzdem schnell: den
+          Stapel öffnen und dort oben in der Favoritenleiste auf <strong>Nach Anchor</strong>,
+          dann <strong>In Anchor übernehmen</strong>. Den Knopf richtest du einmal unter
+          „Quizlet-Knopf“ ein.
+          <div className="oben-8">
+            <Knopf art="klein voll" symbol="weiter"
+              onClick={() => window.open(text.trim().match(/https?:\/\/\S+/)?.[0] || text.trim(), "_blank")}>
+              Bei Quizlet öffnen</Knopf>
+          </div>
         </div>
       )}
 
@@ -598,5 +605,75 @@ export function BildEinfuhr({ setId, aufSchliessen }) {
         </div>
       )}
     </Dialog>
+  );
+}
+
+/* --------------------------- Aus dem Quizlet-Knopf --------------------------- */
+
+/*
+ * Hierher führt „In Anchor übernehmen“ auf der Quizlet-Seite: die Karten
+ * schon fertig, zur Durchsicht. Angelegt wird ein neuer Stapel mit dem Titel
+ * von Quizlet, oder die Karten kommen in einen vorhandenen.
+ */
+export function QuizletUebernahme({ daten }) {
+  const { stapel, stapelAnlegen, kartenAnlegenViele } = useDaten();
+  const gelesen = useMemo(() => uebergabeLesen(daten), [daten]);
+  const [paare, setPaare] = useState(() => gelesen?.paare || []);
+  const [titel, setTitel] = useState(() => gelesen?.titel || "Aus Quizlet");
+  const [ziel, setZiel] = useState("neu");
+  const [laeuft, setLaeuft] = useState(false);
+
+  /* Die Karten nicht in der Adresse stehen lassen: Ein Neuladen legte sie
+     sonst ein zweites Mal vor. */
+  useEffect(() => { if (gelesen) window.history.replaceState(null, "", "#/quizlet"); }, []);
+
+  if (!gelesen) {
+    return (
+      <div className="mitte">
+        <Leer symbol="hinauf" titel="Keine Karten angekommen"
+          text="Hier landen Karten aus dem Quizlet-Knopf. Öffne einen Stapel und nimm dort „Aus Quizlet …“." />
+      </div>
+    );
+  }
+
+  const uebernehmen = async () => {
+    const brauchbar = paare.filter((p) => p.term.trim() || p.definition.trim());
+    if (!brauchbar.length) return;
+    setLaeuft(true);
+    const setId = ziel === "neu" ? (await stapelAnlegen(titel.trim() || "Aus Quizlet")).id : ziel;
+    await kartenAnlegenViele(setId, brauchbar);
+    window.location.replace("#/stapel/" + setId);
+  };
+
+  const vorhandene = stapel.filter((s) => !s.deleted)
+    .sort((a, b) => (a.title || "").localeCompare(b.title || "", "de"));
+
+  return (
+    <div className="mitte">
+      <h1 className="unten-8">Aus Quizlet</h1>
+      <p className="matt oben-0">{anzahl(paare.length, "Karte", "Karten")} angekommen. Sieh sie durch, dann übernehmen.</p>
+
+      <label className="beschriftung oben-16">Wohin?</label>
+      <select className="feld" value={ziel} onChange={(e) => setZiel(e.target.value)}>
+        <option value="neu">Neuer Stapel</option>
+        {vorhandene.map((s) => <option key={s.id} value={s.id}>{s.title || "Ohne Titel"}</option>)}
+      </select>
+      {ziel === "neu" && (
+        <>
+          <label className="beschriftung oben-12">Titel</label>
+          <input className="feld" value={titel} onChange={(e) => setTitel(e.target.value)} />
+        </>
+      )}
+
+      <div className="reihe umbruch oben-16">
+        <Knopf art="voll" symbol="haken" disabled={laeuft || !paare.length} onClick={uebernehmen}>
+          {laeuft ? "Lege an …" : anzahl(paare.length, "Karte übernehmen", "Karten übernehmen")}
+        </Knopf>
+        <Knopf onClick={() => window.location.replace("#/")}>Verwerfen</Knopf>
+      </div>
+
+      <label className="beschriftung oben-24">Durchsicht</label>
+      <Durchsicht paare={paare} setPaare={setPaare} />
+    </div>
   );
 }

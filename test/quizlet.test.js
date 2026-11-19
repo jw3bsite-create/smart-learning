@@ -128,3 +128,20 @@ test("der Quizlet-Knopf ist eine gültige Adresse ohne Bezug nach außen", () =>
   assert.ok(code.endsWith("void 0"), "liefert nichts zurück, sonst ersetzte der Browser die Seite");
   assert.equal(typeof quizletKnopf, "function");
 });
+
+/* ================== Übergabe vom Knopf, doppelte Zeilen ================== */
+
+import { uebergabeLesen } from "../src/core/quizletknopf.js";
+
+test("die Übergabe aus dem Seitenweg kommt heil an, Unsinn nicht", () => {
+  const roh = encodeURIComponent(JSON.stringify({ t: "Romantik", k: [["Novalis", "Blaue Blume"], ["", ""], ["Tieck", "Märchen / Novellen"]] }));
+  assert.deepEqual(uebergabeLesen(roh), { titel: "Romantik",
+    paare: [{ term: "Novalis", definition: "Blaue Blume" }, { term: "Tieck", definition: "Märchen / Novellen" }] });
+  assert.equal(uebergabeLesen("kaputt%"), null);
+  assert.equal(uebergabeLesen(""), null);
+});
+
+test("beim Markieren doppelt kopierte Zeilen zählen einmal", () => {
+  const e = quizletLesen("Begriffe in diesem Set (2)\nNovalis\nNovalis\nBlaue Blume\nBlaue Blume\nTieck\nMärchen");
+  assert.deepEqual(e.paare.map((p) => p.term + "=" + p.definition), ["Novalis=Blaue Blume", "Tieck=Märchen"]);
+});
