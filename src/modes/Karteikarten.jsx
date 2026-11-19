@@ -39,8 +39,16 @@ export default function Karteikarten({ setId, aufSchliessen }) {
     [brauchbare, gemischt]);
   const karte = reihe[stelle];
 
-  const seiten = karte ? seitenFuer(karte, richtung === "beide" ? "td" : richtung) : null;
-  const sprachen = sprachenFuer(derStapel, richtung === "beide" ? "td" : richtung);
+  /* „Zufällig je Karte“: Jede Karte zeigt zufällig ihre Vorder- oder ihre
+     Rückseite zuerst. Ausgelost einmal je Durchgang, damit eine Karte beim
+     Zurückblättern dieselbe Seite zeigt. Mit „Mischen“ ist dann beides
+     zufällig, Reihenfolge und Seite. */
+  const los = useMemo(() => new Map(reihe.map((k) => [k.id, Math.random() < 0.5 ? "td" : "dt"])),
+    [reihe, richtung]);
+  const aktiv = richtung === "beide" ? (karte && los.get(karte.id)) || "td" : richtung;
+
+  const seiten = karte ? seitenFuer(karte, aktiv) : null;
+  const sprachen = sprachenFuer(derStapel, aktiv);
 
   /* Vorlesen, sobald eine Seite erscheint. */
   useEffect(() => {
@@ -76,7 +84,7 @@ export default function Karteikarten({ setId, aufSchliessen }) {
 
   const urteilen = (kann) => {
     if (!karte) return;
-    antwortVerbuchen(karte, richtung === "beide" ? "td" : richtung, kann ? 2 : 0);
+    antwortVerbuchen(karte, aktiv, kann ? 2 : 0);
     setUrteile((alt) => ({ ...alt, [karte.id]: kann }));
     weiter();
   };
@@ -152,7 +160,8 @@ export default function Karteikarten({ setId, aufSchliessen }) {
 
       <ModusLeiste>
         <Wahl beschriftung="Abfrage" wert={richtung} setzen={(w) => { setRichtung(w); setGedreht(false); }}
-          moeglichkeiten={RICHTUNGEN(derStapel)} />
+          moeglichkeiten={RICHTUNGEN(derStapel).map(([w, name]) =>
+            [w, w === "beide" ? "Zufällig je Karte" : name])} />
         <label className="reihe klein matt" style={{ gap: 6, cursor: "pointer" }}>
           <input type="checkbox" checked={nurMarkierte}
             onChange={(e) => { setNurMarkierte(e.target.checked); setStelle(0); setGedreht(false); }} />
@@ -181,7 +190,7 @@ export default function Karteikarten({ setId, aufSchliessen }) {
         <div key={karte.id + ":" + stelle} className={"karte-gross" + (gedreht ? " gedreht" : "")}
           onClick={() => setGedreht((g) => !g)}>
           <div className="karte-seite">
-            <div className="karte-ecke">{richtung === "dt"
+            <div className="karte-ecke">{aktiv === "dt"
               ? (derStapel.defLabel || "Rückseite") : (derStapel.termLabel || "Vorderseite")}</div>
             <Seite text={seiten.frage} bild={seiten.frageBild} sprache={sprachen.frage}
               klasse="karte-text" />
@@ -192,7 +201,7 @@ export default function Karteikarten({ setId, aufSchliessen }) {
             </div>
           </div>
           <div className="karte-seite rueck">
-            <div className="karte-ecke">{richtung === "dt"
+            <div className="karte-ecke">{aktiv === "dt"
               ? (derStapel.termLabel || "Vorderseite") : (derStapel.defLabel || "Rückseite")}</div>
             <Seite text={seiten.antwort} bild={seiten.antwortBild} sprache={sprachen.antwort}
               klasse="karte-text" />
@@ -205,7 +214,7 @@ export default function Karteikarten({ setId, aufSchliessen }) {
             {/* Die Rueckseite ist aufgedeckt — hier darf gesprochen werden. */}
             <Tonaufnahme knapp
               cardId={karte.id}
-              seite={seitenFuerRichtung(richtung === "beide" ? "td" : richtung).loesung}
+              seite={seitenFuerRichtung(aktiv).loesung}
               autoAbspielen={gedreht && einstellungen.eigeneStimmeAutomatisch} />
           </div>
         </div>
