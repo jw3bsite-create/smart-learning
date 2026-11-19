@@ -186,6 +186,19 @@ export function istRelevant(karte) {
 }
 
 /**
+ * Ruht dieser Stapel? Dann kommt er im Abrufen nicht dran und zählt in
+ * keiner Zahl als fällig — wie abgehakt, nur für den ganzen Stapel und auf
+ * Zeit. `ruht: { seit, tage }`: seit wann, und nach wie vielen Tagen Anchor
+ * daran erinnert (core/mitteilungen.js).
+ *
+ * Vom Nutzer entschieden am 19. November 2026 (siehe CLAUDE.md, Ausnahme
+ * zu Regel 7). Der Lernstand bleibt; was in der Zeit fällig wird, wartet.
+ */
+export function ruht(stapel) {
+  return Boolean(stapel?.ruht?.seit);
+}
+
+/**
  * Ein einzelnes Review — der wichtigste Datensatz der App.
  *
  * `flag` trennt, was zählt, von dem, was nur geübt wurde:

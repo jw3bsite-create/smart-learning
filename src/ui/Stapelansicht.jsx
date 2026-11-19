@@ -5,7 +5,8 @@
 import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { anteileNachStufe, stufe, STUFEN } from "../core/fsrs.js";
-import { stapelStand } from "../core/warteschlange.js";
+import { stapelStand, rueckkehrStand } from "../core/warteschlange.js";
+import { ruht } from "../core/model.js";
 import { anzahl, datumKurz, mische } from "../core/util.js";
 import { alsCsv, alsText, alsAnkiText, alsCsvMitPlan } from "../core/importer.js";
 import { sprich, SPRACHEN } from "../core/speech.js";
@@ -47,6 +48,7 @@ export default function Stapelansicht({ setId }) {
   const [waehlt, setWaehlt] = useState(false);
   const [ausgewaehlt, setAusgewaehlt] = useState(() => new Set());
   const [uebtAbschnitt, setUebtAbschnitt] = useState(null);
+  const [ruhenWahl, setRuhenWahl] = useState(false);
 
   const derStapel = stapel.find((s) => s.id === setId);
   const karten = kartenVon(setId);
@@ -146,6 +148,11 @@ export default function Stapelansicht({ setId }) {
               Vorab abfragen …</MenuePunkt>
             <MenuePunkt symbol="zahnrad" onClick={() => setAngaben(true)}>
               Titel und Sprachen …</MenuePunkt>
+            {derStapel.subjectId && (ruht(derStapel)
+              ? <MenuePunkt symbol="blitz" onClick={() => stapelAendern(setId, { ruht: null })}>
+                Zurück ins Abrufen holen</MenuePunkt>
+              : <MenuePunkt symbol="uhr" onClick={() => setRuhenWahl(true)}>
+                Im Abrufen ruhen lassen …</MenuePunkt>)}
             <hr />
             <MenuePunkt symbol="herunter" onClick={() => ausfuhr("stapeldatei")}>
               Als Stapeldatei sichern</MenuePunkt>
@@ -166,6 +173,24 @@ export default function Stapelansicht({ setId }) {
           </Menue>
         </div>
       </div>
+
+      {/* Solange er ruht, steht das hier — mit dem, was beim Zurückholen wartet. */}
+      {ruht(derStapel) && (() => {
+        const r = rueckkehrStand(karten, zustaende, derStapel);
+        const seit = Math.max(0, Math.floor((Date.now() - derStapel.ruht.seit) / 86400000));
+        return (
+          <div className="rueckmeldung klein unten-16">
+            <div>
+              <strong>Ruht seit {seit === 0 ? "heute" : seit === 1 ? "gestern" : seit + " Tagen"}</strong>
+              {" "}— kommt im Abrufen nicht dran
+              {derStapel.ruht.tage ? ", Erinnerung nach " + derStapel.ruht.tage + " Tagen" : ""}.
+              {" "}Holst du ihn zurück, {r.faellig === 1 ? "ist eine Karte" : "sind " + r.faellig + " Karten"} fällig.
+            </div>
+            <Knopf art="klein" symbol="blitz" className="oben-8"
+              onClick={() => stapelAendern(setId, { ruht: null })}>Zurück ins Abrufen holen</Knopf>
+          </div>
+        );
+      })()}
 
       {derStapel.description && (
         <p className="matt" style={{ marginTop: -6, marginBottom: 4 }}>{derStapel.description}</p>
@@ -438,6 +463,11 @@ export default function Stapelansicht({ setId }) {
         </Dialog>
       )}
 
+      {ruhenWahl && (
+        <RuhenDialog titel={derStapel.title || "Ohne Titel"} aufSchliessen={() => setRuhenWahl(false)}
+          aufRuhen={(tage) => { stapelAendern(setId, { ruht: { seit: Date.now(), tage } }); setRuhenWahl(false); }} />
+      )}
+
       {loescht && (
         <Rueckfrage titel="Stapel löschen?"
           text="Der Stapel wandert in den Papierkorb und lässt sich von dort zurückholen."
@@ -452,5 +482,39 @@ export default function Stapelansicht({ setId }) {
           aufJa={() => { zustandZuruecksetzen(setId); setSetztZurueck(false); }} />
       )}
     </div>
+  );
+}
+
+/*
+ * Einen Stapel im Abrufen ruhen lassen (core/model.js, `ruht`). Vom Nutzer
+ * entschieden am 19. November 2026: etwa für eine Arbeit, für die der
+ * frühere Stoff gerade nicht gebraucht wird. Die Folge steht im Dialog.
+ */
+const RUHE_TAGE = [14, 30, 50, 90];
+
+function RuhenDialog({ titel, aufSchliessen, aufRuhen }) {
+  const [tage, setTage] = useState(50);
+  return (
+    <Dialog titel={"„" + titel + "“ ruhen lassen?"} aufSchliessen={aufSchliessen}
+      fuss={<>
+        <Knopf onClick={aufSchliessen}>Abbrechen</Knopf>
+        <Knopf art="voll" symbol="uhr" onClick={() => aufRuhen(tage)}>Ruhen lassen</Knopf>
+      </>}>
+      <p className="klein matt oben-0">
+        Der Stapel kommt im Abrufen nicht mehr dran und zählt nicht mehr als fällig. Sein Lernstand
+        bleibt. Was in der Zeit fällig wird, wartet — und ist danach eher vergessen. Zurückholen
+        kannst du ihn jederzeit über dasselbe Menü.
+      </p>
+      <label className="beschriftung">Erinnern nach</label>
+      <div className="reihe umbruch" style={{ gap: 6 }}>
+        {RUHE_TAGE.map((t) => (
+          <button key={t} type="button" className={"knopf klein" + (tage === t ? " voll" : "")}
+            onClick={() => setTage(t)}>{t} Tagen</button>
+        ))}
+      </div>
+      <p className="klein blass oben-8 unten-0">
+        Dann steht oben bei der Glocke eine Mitteilung, dass er noch ruht.
+      </p>
+    </Dialog>
   );
 }

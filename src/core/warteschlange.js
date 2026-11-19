@@ -11,7 +11,7 @@
  */
 
 import { istFaellig, istNeu } from "./fsrs.js";
-import { richtungenFuer, istRelevant } from "./model.js";
+import { richtungenFuer, istRelevant, ruht } from "./model.js";
 import { mische, lerntagBeginn } from "./util.js";
 
 const TAG = 24 * 3600 * 1000;
@@ -51,7 +51,7 @@ export function zustaendeImPlan(karten, zustaende, stapelVon, fachId = null) {
   for (const karte of karten) {
     if (!istRelevant(karte)) continue;
     const stapel = stapelVon(karte.setId);
-    if (!stapel || !stapel.subjectId || (fachId && stapel.subjectId !== fachId)) continue;
+    if (!stapel || ruht(stapel) || !stapel.subjectId || (fachId && stapel.subjectId !== fachId)) continue;
     for (const richtung of richtungenFuer(karte, stapel)) {
       const z = zustaende[karte.id + ":" + richtung];
       if (z) liste.push(z);
@@ -81,7 +81,7 @@ export function baueSitzung({
     // in den Zahlen darüber.
     if (!istRelevant(karte)) continue;
     const stapel = stapelVon(karte.setId);
-    if (!stapel) continue;
+    if (!stapel || ruht(stapel)) continue;               // ruhende Stapel kommen nicht dran
     const fachId = stapel.subjectId || null;
     if (fach && fachId !== fach.id) continue;
     // Beim Verschachteln über mehrere Fächer: nur die gewählten.
@@ -143,7 +143,7 @@ export function fachZaehlung(karten, zustaende, stapelVon, fachId, zeit = Date.n
     // in den Zahlen darüber.
     if (!istRelevant(karte)) continue;
     const stapel = stapelVon(karte.setId);
-    if (!stapel || (fachId && stapel.subjectId !== fachId)) continue;
+    if (!stapel || ruht(stapel) || (fachId && stapel.subjectId !== fachId)) continue;
     for (const richtung of richtungenFuer(karte, stapel)) {
       const z = zustaende[karte.id + ":" + richtung];
       gesamt += 1;
@@ -292,7 +292,7 @@ export function baueCramSitzung({ karten, zustaende, stapelVon, fach, umfang = 4
     // in den Zahlen darüber.
     if (!istRelevant(karte)) continue;
     const stapel = stapelVon(karte.setId);
-    if (!stapel || (fach && stapel.subjectId !== fach.id)) continue;
+    if (!stapel || ruht(stapel) || (fach && stapel.subjectId !== fach.id)) continue;
     for (const richtung of richtungenFuer(karte, stapel)) {
       const zustand = zustaende[karte.id + ":" + richtung];
       if (zustand?.gesperrt) continue;
@@ -336,4 +336,15 @@ export function stapelStand(karten, zustaende, stapel, zeit = Date.now()) {
     }
   }
   return { faellig, neu, gesperrt, gesamt, naechste, zustaende: alle };
+}
+
+/**
+ * Was ein ruhender Stapel beim Zurückholen mitbringt: wie viele seiner
+ * Karten dann fällig sind. Steht vor dem Zurückholen da, damit niemand von
+ * einem Berg überrascht wird.
+ */
+export function rueckkehrStand(karten, zustaende, stapel, zeit = Date.now()) {
+  const { faellig, neu } = stapelStand(karten.filter((k) => k.setId === stapel.id), zustaende,
+    stapel, zeit);
+  return { faellig, neu };
 }

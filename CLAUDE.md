@@ -439,6 +439,10 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     (`vite.config.js`), sonst wüchse jede Aktualisierung um 1,8 MB. Aus den
     Textstücken werden Zeilen, daraus Paare: Tabelle (Rechner), Blöcke
     (Telefon), sonst abwechselnd. Beispieldateien in `test/daten`.
+66. **`resolve.preserveSymlinks` bleibt an** (`vite.config.js`). OneDrive
+    macht aus `node_modules` Platzhalter; Rolldown folgt ihnen beim Auflösen
+    und findet dann kein Paket mehr — im Bau und im Entwicklungsserver, während
+    Node alles findet. Zeigt sich erst Stunden nach `npm install`.
 
 ## Stapel aus Lernmaterial (im Chat)
 
@@ -466,8 +470,18 @@ keine Selbstauswahl der Wiederholung · keine Erklärvideos.
 lassen sich Ordner zum Abrufen auswählen (`abrufStapel` in
 `core/fachordner.js`, Weg `/abrufen/<fach>/ordner/<id,id>`). Nachgefragt und
 ausdrücklich gewollt. Die übrigen fälligen Karten bleiben fällig; „Abrufen“
-ohne Auswahl nimmt weiter das ganze Fach. Keine weitere Auswahl (einzelne
-Stapel, einzelne Karten) ohne erneute Rückfrage.
+ohne Auswahl nimmt weiter das ganze Fach.
+
+**Zweite Ausnahme, vom Nutzer entschieden (19. November 2026)**, nach
+Rückfrage mit der Folge im Wortlaut: (1) Für eine Sitzung lassen sich
+einzelne Stapel eines Fachs wählen (Weg `/abrufen/<fach>/stapel/<id,id>`,
+Dialog „Auswahl …“ auf der Fachseite). (2) Ein Stapel lässt sich im Abrufen
+ruhen lassen (`ruht: { seit, tage }` am Stapel, `ruht()` in `core/model.js`):
+Er fällt aus Plan, Sitzung, Endspurt und allen Zählungen
+(`warteschlange.js`), der Lernstand bleibt, und nach `tage` erinnert eine
+Mitteilung daran. Beim Zurückholen steht da, wie viel dann fällig ist
+(`rueckkehrStand`). Einzelne Karten bleiben ausgeschlossen: dafür gibt es nur
+„kommt nicht dran“. Keine weitere Auswahl ohne erneute Rückfrage.
 
 Erscheint eines davon unterwegs sinnvoll, ist das das Zeichen, dass die
 Spezifikation gerade erodiert — dann Rückfrage, kein Alleingang.

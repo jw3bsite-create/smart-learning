@@ -345,6 +345,7 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
     // /abrufen/<fach>/ordner/<id,id>: nur diese Ordner (core/fachordner.js)
     return gefangen(<Abrufen fachId={teile[1] || null}
       ordnerAuswahl={teile[2] === "ordner" && teile[3] ? teile[3].split(",") : null}
+      stapelAuswahl={teile[2] === "stapel" && teile[3] ? teile[3].split(",") : null}
       aufSchliessen={() => zurueck("/faecher")} />);
   }
 

@@ -30,6 +30,7 @@ import {
   ordnerImFach, stapelImFach, fachordnerZweig, fachordnerPfad, abrufStapel, OBEN,
 } from "../core/fachordner.js";
 import { anzahl } from "../core/util.js";
+import { ruht } from "../core/model.js";
 import { punkteText } from "../core/noten.js";
 import { gehe } from "../App.jsx";
 import { StapelKachel } from "./Bibliothek.jsx";
@@ -54,7 +55,7 @@ export default function FachSeite({ fachId, ordnerId = null }) {
   const [liestEin, setLiestEin] = useState(false);
   const [verschiebt, setVerschiebt] = useState(null);
   const [waehltAbruf, setWaehltAbruf] = useState(false);
-  const [abrufWahl, setAbrufWahl] = useMerker("abrufOrdner:" + fachId, []);
+  const [abrufWahl, setAbrufWahl] = useMerker("abrufStapel:" + fachId, []);
 
   const fach = faecher.find((f) => f.id === fachId) || null;
   const derOrdner = ordnerId
@@ -92,6 +93,7 @@ export default function FachSeite({ fachId, ordnerId = null }) {
   }
 
   const z = fachZaehlung(karten, zustaende, stapelVon, fach.id);
+  const alleStapelDesFachs = stapel.filter((s) => !s.deleted && s.subjectId === fach.id);
   /* Was in diesem Ordner (samt Unterordnern) ansteht. */
   const imOrdner = derOrdner ? abrufStapel(stapel, ordner, fach.id, [derOrdner.id]) : null;
   const zOrdner = derOrdner
@@ -215,8 +217,8 @@ export default function FachSeite({ fachId, ordnerId = null }) {
           onClick={() => gehe("/abrufen/" + fach.id + (derOrdner ? "/ordner/" + derOrdner.id : ""))}>
           {derOrdner ? "Abrufen: " + derOrdner.name : "Abrufen"}
         </Knopf>
-        {!derOrdner && ordnerDesFachs.length > 0 && (
-          <Knopf symbol="ordner" onClick={() => setWaehltAbruf(true)}>Ordner wählen …</Knopf>
+        {!derOrdner && alleStapelDesFachs.length > 1 && (
+          <Knopf symbol="haken" onClick={() => setWaehltAbruf(true)}>Auswahl …</Knopf>
         )}
         <Knopf symbol="wuerfel" disabled={alleImFach.length === 0}
           onClick={() => gehe("/fragen/" + fach.id)}>
@@ -310,46 +312,74 @@ export default function FachSeite({ fachId, ordnerId = null }) {
       {!derOrdner && (
         <p className="klein blass" style={{ marginTop: 22, maxWidth: "62ch" }}>
           „Abrufen“ nimmt das ganze Fach; was drankommt, entscheidet der Plan. Über
-          „Ordner wählen“ oder in einem Ordner rufst du nur einen Teil ab — der Rest bleibt
-          fällig.
+          „Auswahl“ oder in einem Ordner rufst du nur einen Teil ab — der Rest bleibt fällig.
+          Was du länger nicht brauchst, lässt du im Menü des Stapels ruhen.
         </p>
       )}
 
-      {/* ------------------------- Ordner zum Abrufen ------------------------ */}
+      {/* ------------------------- Auswahl zum Abrufen ------------------------ */}
+      {/* Einzelne Stapel, nach Ordnern gegliedert; ein Haken am Ordner nimmt
+          alle seine Stapel. Ruhende stehen dabei, lassen sich aber nicht
+          wählen — erst zurückholen. */}
       {waehltAbruf && (() => {
-        const gewaehlt = abrufWahl.filter((w) => w === OBEN || ordnerDesFachs.some((o) => o.id === w));
-        const umschalten = (id) => setAbrufWahl((alt) =>
-          alt.includes(id) ? alt.filter((x) => x !== id) : [...alt, id]);
-        const bereich = abrufStapel(stapel, ordner, fach.id, gewaehlt);
+        const waehlbar = alleStapelDesFachs.filter((s) => !ruht(s));
+        const gewaehlt = abrufWahl.filter((id) => waehlbar.some((s) => s.id === id));
+        const setzen = (ids, an) => setAbrufWahl((alt) => {
+          const rest = alt.filter((x) => !ids.includes(x));
+          return an ? [...rest, ...ids] : rest;
+        });
+        const bereich = new Set(gewaehlt);
         const zw = fachZaehlung(karten, zustaende, (id) => (bereich.has(id) ? stapelVon(id) : null), fach.id);
-        const obenGibt = stapelImFach(stapel, ordner, fach.id).length > 0;
+        const fachOrdnerIds = new Set(ordnerDesFachs.map((o) => o.id));
+        const gruppen = [
+          ...ordnerDesFachs.map((o) => ({ id: o.id, name: pfadText(ordner, o.id),
+            liste: alleStapelDesFachs.filter((s) => s.folderId === o.id) })),
+          { id: OBEN, name: ordnerDesFachs.length ? "Ohne Ordner" : "",
+            liste: alleStapelDesFachs.filter((s) => !fachOrdnerIds.has(s.folderId)) },
+        ].filter((g) => g.liste.length).map((g) => ({ ...g, liste: g.liste.sort(nachTitel) }));
         return (
           <Dialog titel={"Abrufen aus " + fach.name} aufSchliessen={() => setWaehltAbruf(false)}
             fuss={<>
               <Knopf onClick={() => setWaehltAbruf(false)}>Abbrechen</Knopf>
               <Knopf art="voll" symbol="blitz" disabled={!gewaehlt.length || zw.faellig + zw.neu === 0}
-                onClick={() => gehe("/abrufen/" + fach.id + "/ordner/" + gewaehlt.join(","))}>
+                onClick={() => gehe("/abrufen/" + fach.id + "/stapel/" + gewaehlt.join(","))}>
                 Abrufen{gewaehlt.length ? " (" + zw.faellig + " fällig, " + zw.neu + " neu)" : ""}
               </Knopf>
             </>}>
             <p className="klein matt" style={{ marginTop: 0 }}>
-              Nur diese Ordner abrufen. Was in den übrigen fällig ist, bleibt fällig und kommt beim
-              nächsten Abrufen des ganzen Fachs dran.
+              Nur diese Stapel abrufen, etwa für eine Arbeit. Was in den übrigen fällig ist, bleibt
+              fällig und kommt beim nächsten Abrufen des ganzen Fachs dran.
             </p>
-            <div className="liste">
-              {ordnerDesFachs.map((o) => (
-                <label key={o.id} className="schalter listenzeile" style={{ cursor: "pointer" }}>
-                  <input type="checkbox" checked={gewaehlt.includes(o.id)} onChange={() => umschalten(o.id)} />
-                  <span className="dehnen">{pfadText(ordner, o.id)}</span>
-                </label>
-              ))}
-              {obenGibt && (
-                <label className="schalter listenzeile" style={{ cursor: "pointer" }}>
-                  <input type="checkbox" checked={gewaehlt.includes(OBEN)} onChange={() => umschalten(OBEN)} />
-                  <span className="dehnen">Stapel ohne Ordner</span>
-                </label>
-              )}
+            <div className="reihe unten-8" style={{ gap: 6 }}>
+              <Knopf art="klein" onClick={() => setAbrufWahl(waehlbar.map((s) => s.id))}>Alle</Knopf>
+              <Knopf art="klein" onClick={() => setAbrufWahl([])}>Keine</Knopf>
             </div>
+            {gruppen.map((g) => {
+              const frei = g.liste.filter((s) => !ruht(s)).map((s) => s.id);
+              const alle = frei.length > 0 && frei.every((id) => gewaehlt.includes(id));
+              return (
+                <div key={g.id} className="unten-12">
+                  {g.name && (
+                    <label className="schalter" style={{ cursor: "pointer" }}>
+                      <input type="checkbox" checked={alle} disabled={!frei.length}
+                        onChange={() => setzen(frei, !alle)} />
+                      <strong className="klein">{g.name}</strong>
+                    </label>
+                  )}
+                  <div className="liste">
+                    {g.liste.map((s) => (
+                      <label key={s.id} className="schalter listenzeile"
+                        style={{ cursor: ruht(s) ? "default" : "pointer", opacity: ruht(s) ? 0.55 : 1 }}>
+                        <input type="checkbox" checked={gewaehlt.includes(s.id)} disabled={ruht(s)}
+                          onChange={() => setzen([s.id], !gewaehlt.includes(s.id))} />
+                        <span className="dehnen">{s.title || "Ohne Titel"}</span>
+                        {ruht(s) && <span className="klein blass">ruht</span>}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
           </Dialog>
         );
       })()}

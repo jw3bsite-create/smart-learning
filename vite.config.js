@@ -66,4 +66,15 @@ export default defineConfig({
   // aus, wartet der Starter auf 5180 und findet dort nie etwas.
   server: { port: Number(process.env.PORT) || 5180, strictPort: true, open: false },
   build: { target: "es2020" },
+  /*
+   * Pfade nicht auf ihr „wirkliches“ Ziel auflösen.
+   *
+   * Der Ordner liegt in OneDrive, und OneDrive macht aus `node_modules` mit
+   * der Zeit Platzhalter (Analysepunkte, „Dateien bei Bedarf“). Rolldown
+   * folgt beim Auflösen diesen Platzhaltern und findet danach kein einziges
+   * Paket mehr — „Rolldown failed to resolve import react“, im Bau wie im
+   * Entwicklungsserver, obwohl Node alles findet. Verknüpfte Pakete
+   * (npm link) gibt es hier nicht; das Abschalten kostet nichts.
+   */
+  resolve: { preserveSymlinks: true },
 });

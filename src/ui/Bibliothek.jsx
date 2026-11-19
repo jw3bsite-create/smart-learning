@@ -6,7 +6,7 @@ import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { anteileNachStufe } from "../core/fsrs.js";
 import { stapelStand } from "../core/warteschlange.js";
-import { ordnerZweig } from "../core/model.js";
+import { ordnerZweig, ruht } from "../core/model.js";
 import { allgemeineOrdner, istFachordner, fachKennungen } from "../core/fachordner.js";
 import * as beispiel from "../core/beispiel.js";
 import { anzahl, datumKurz } from "../core/util.js";
@@ -50,8 +50,11 @@ export function StapelKachel({ stapel, karten, zustaende, aufMenue }) {
       <Balken anteile={anteile} />
       <div className="reihe klein matt">
         <span>{anzahl(karten.length, "Karte", "Karten")}</span>
-        {faellige > 0 && <span className="marke gelb">{faellige} fällig</span>}
-        {neu > 0 && <span className="marke">{neu} neu</span>}
+        {/* Ein ruhender Stapel ist nicht fällig, auch wenn Karten warten. */}
+        {ruht(stapel) ? <span className="marke" title="Kommt im Abrufen nicht dran">ruht</span> : <>
+          {faellige > 0 && <span className="marke gelb">{faellige} fällig</span>}
+          {neu > 0 && <span className="marke">{neu} neu</span>}
+        </>}
         {/* Wann der Stapel angelegt wurde — ältere Stapel wissen es nicht. */}
         {stapel.createdAt && (
           <span className="blass" style={{ marginLeft: "auto" }} title="Angelegt am">

@@ -134,7 +134,7 @@ function Antwortvorschau({ eingabe }) {
 
 /* --------------------------------- Modus -------------------------------- */
 
-export default function Abrufen({ fachId = null, ordnerAuswahl = null, aufSchliessen }) {
+export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAuswahl = null, aufSchliessen }) {
   const daten = useDaten();
   const {
     karten, zustaende, stapelVon: alleStapelVon, faecher, fachVon, einstellungen,
@@ -143,16 +143,24 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, aufSchlie
 
   /* Nur bestimmte Ordner des Fachs (core/fachordner.js): Der Sitzungsbau
      sieht dann nur deren Stapel. Die übrigen fälligen Karten bleiben fällig. */
-  const auswahlSchluessel = ordnerAuswahl ? ordnerAuswahl.join(",") : "";
-  const erlaubt = useMemo(() => (ordnerAuswahl && fachId
-    ? abrufStapel(stapel, ordner, fachId, ordnerAuswahl) : null),
-  [stapel, ordner, fachId, auswahlSchluessel]);
+  /* Oder nur bestimmte Stapel (vom Nutzer entschieden am 19. November 2026). */
+  const auswahlSchluessel = (ordnerAuswahl || []).join(",") + "|" + (stapelAuswahl || []).join(",");
+  const erlaubt = useMemo(() => {
+    if (stapelAuswahl && fachId) return new Set(stapelAuswahl);
+    return ordnerAuswahl && fachId ? abrufStapel(stapel, ordner, fachId, ordnerAuswahl) : null;
+  }, [stapel, ordner, fachId, auswahlSchluessel]);
   const stapelVon = useCallback((id) => (!erlaubt || erlaubt.has(id) ? alleStapelVon(id) : null),
     [erlaubt, alleStapelVon]);
-  const auswahlName = ordnerAuswahl
-    ? ordnerAuswahl.map((id) => (id === OBEN ? "ohne Ordner" : ordner.find((o) => o.id === id)?.name))
-      .filter(Boolean).join(", ")
-    : "";
+  const auswahlName = stapelAuswahl
+    ? (() => {
+      const namen = stapelAuswahl.map((id) => stapel.find((x) => x.id === id)?.title).filter(Boolean);
+      return namen.length > 2 ? namen.slice(0, 2).join(", ") + " und " + (namen.length - 2) + " weitere"
+        : namen.join(", ");
+    })()
+    : ordnerAuswahl
+      ? ordnerAuswahl.map((id) => (id === OBEN ? "ohne Ordner" : ordner.find((o) => o.id === id)?.name))
+        .filter(Boolean).join(", ")
+      : "";
 
   const fach = fachId ? fachVon(fachId) : null;
   /* Der Stern liest die Karte, wie sie jetzt im Bestand steht — nicht die
