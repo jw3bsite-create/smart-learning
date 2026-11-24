@@ -4,6 +4,11 @@
  * Dazu die Selbsteinschätzung „Weiß ich“ / „Noch üben“ — sie geht in denselben
  * Lernstand ein wie die übrigen Modi, sodass sich Fächer und Wiederholungen
  * auch beim bloßen Durchblättern füllen.
+ *
+ * Seit dem 24. November 2026 kommt nicht mehr alles der Reihe nach: Was
+ * falsch war oder nur langsam gewusst, kommt in derselben Sitzung wieder,
+ * im Abstand nach der Erinnerungszeit (core/wiedervorlage.js). Gemessen wird
+ * vom Erscheinen der Karte bis zum Umdrehen (ui/stoppuhr.js).
  */
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
@@ -15,19 +20,23 @@ import { gehe } from "../App.jsx";
 import { Knopf, SymbolKnopf, Symbol, Stern, Leer, useTastatur } from "../ui/basis.jsx";
 import KarteBearbeiten from "../ui/KarteBearbeiten.jsx";
 import { useWischen } from "../ui/wischen.js";
+import { useStoppuhr } from "../ui/stoppuhr.js";
+import {
+  sitzungBeginnen, antworten, zusammenfassung, zeitenAusVerlauf, stapelMedian, referenz, kappen,
+} from "../core/wiedervorlage.js";
 import {
   useModus, useBrauchbar, ModusRahmen, Seite, Ergebnis, ModusLeiste, Wahl, Hinweis, RICHTUNGEN, seitenFuer, sprachenFuer, LeerKnoepfe,
 } from "./gemeinsam.jsx";
 
 export default function Karteikarten({ setId, aufSchliessen }) {
-  const { derStapel, karten, karteAendern, antwortVerbuchen, einstellungen, sitzungMerken } = useModus(setId);
+  const { derStapel, karten, karteAendern, antwortVerbuchen, einstellungen, sitzungMerken, reviews } = useModus(setId);
   const [richtung, setRichtung] = useState("td");
   const [nurMarkierte, setNurMarkierte] = useState(false);
   const [gemischt, setGemischt] = useState(false);
   const [stelle, setStelle] = useState(0);
   const [gedreht, setGedreht] = useState(false);
   const [selbstlauf, setSelbstlauf] = useState(false);
-  const [urteile, setUrteile] = useState({});
+  const [problemBearbeitet, setProblemBearbeitet] = useState(null);
   const [fertig, setFertig] = useState(false);
   const [bearbeitet, setBearbeitet] = useState(false);
   /* Der Klick darf die Karte nicht umdrehen — er gilt dem Stift. */
@@ -35,20 +44,40 @@ export default function Karteikarten({ setId, aufSchliessen }) {
   const uhr = useRef(null);
 
   const brauchbare = useBrauchbar(karten, nurMarkierte);
-  const reihe = useMemo(() => gemischt ? mische(brauchbare) : brauchbare,
-    [brauchbare, gemischt]);
-  const karte = reihe[stelle];
+  const nachId = useMemo(() => new Map(brauchbare.map((k) => [k.id, k])), [brauchbare]);
+
+  /* Die Sitzung: welche Karte wann kommt (core/wiedervorlage.js). Neu
+     begonnen nur, wenn sich die Auswahl ändert — nicht, wenn eine Karte
+     markiert oder bearbeitet wird, sonst finge man von vorn an. */
+  const auswahl = brauchbare.map((k) => k.id).join(",") + (gemischt ? ":gemischt" : "");
+  const neueSitzung = () => sitzungBeginnen((gemischt ? mische(brauchbare) : brauchbare).map((k) => k.id));
+  const [wv, setWv] = useState(neueSitzung);
+  const [wvAuswahl, setWvAuswahl] = useState(auswahl);
+  if (wvAuswahl !== auswahl) {
+    setWvAuswahl(auswahl); setWv(neueSitzung()); setStelle(0); setGedreht(false); setFertig(false);
+  }
+  const eintrag = wv.folge[stelle];
+  const karte = eintrag ? nachId.get(eintrag.id) : null;
+  const reihe = brauchbare;
 
   /* „Zufällig je Karte“: Jede Karte zeigt zufällig ihre Vorder- oder ihre
      Rückseite zuerst. Ausgelost einmal je Durchgang, damit eine Karte beim
      Zurückblättern dieselbe Seite zeigt. Mit „Mischen“ ist dann beides
      zufällig, Reihenfolge und Seite. */
   const los = useMemo(() => new Map(reihe.map((k) => [k.id, Math.random() < 0.5 ? "td" : "dt"])),
-    [reihe, richtung]);
+    [auswahl, richtung]);
   const aktiv = richtung === "beide" ? (karte && los.get(karte.id)) || "td" : richtung;
 
   const seiten = karte ? seitenFuer(karte, aktiv) : null;
   const sprachen = sprachenFuer(derStapel, aktiv);
+
+  /* Die Erinnerungszeit: läuft, sobald die Vorderseite steht, hält beim
+     ersten Umdrehen an (ui/stoppuhr.js). */
+  const stoppuhr = useStoppuhr();
+  const gemessen = useRef(null);
+  useEffect(() => { gemessen.current = null; stoppuhr.starten(); }, [stelle, wv]);
+  useEffect(() => { if (gedreht && gemessen.current === null) gemessen.current = stoppuhr.anhalten(); }, [gedreht]);
+  const zeiten = useMemo(() => zeitenAusVerlauf(reviews, setId), [reviews, setId]);
 
   /* Vorlesen, sobald eine Seite erscheint. */
   useEffect(() => {
@@ -69,12 +98,10 @@ export default function Karteikarten({ setId, aufSchliessen }) {
     return () => clearTimeout(uhr.current);
   }, [selbstlauf, gedreht, stelle, fertig, karte]);
 
-  const weiter = () => {
+  const weiter = (laenge = wv.folge.length) => {
     setGedreht(false);
-    setStelle((s) => {
-      if (s + 1 >= reihe.length) { setFertig(true); return s; }
-      return s + 1;
-    });
+    if (stelle + 1 >= laenge) setFertig(true);
+    else setStelle(stelle + 1);
   };
 
   const zurueck = () => {
@@ -82,16 +109,24 @@ export default function Karteikarten({ setId, aufSchliessen }) {
     setStelle((s) => Math.max(0, s - 1));
   };
 
+  /* Bewertet: verbuchen, und die Sitzung entscheidet, ob und wann die Karte
+     wiederkommt. Ohne Umdrehen gilt die Zeit bis zur Bewertung. */
   const urteilen = (kann) => {
     if (!karte) return;
-    antwortVerbuchen(karte, aktiv, kann ? 2 : 0);
-    setUrteile((alt) => ({ ...alt, [karte.id]: kann }));
-    weiter();
+    const roh = gemessen.current ?? stoppuhr.anhalten();
+    const stapelMs = stapelMedian(zeiten.stapel);
+    const zeitMs = Math.round(kappen(roh, stapelMs));
+    antwortVerbuchen(karte, aktiv, kann ? 2 : 0, { erinnerungszeit: zeitMs, modus: "karten" });
+    const { sitzung } = antworten(wv, stelle, {
+      richtig: kann, zeitMs, stapelMs, referenzMs: referenz(zeiten.jeKarte.get(karte.id) || [], stapelMs),
+    });
+    setWv(sitzung);
+    weiter(sitzung.folge.length);
   };
 
   useTastatur({
     " ": () => setGedreht((g) => !g),
-    ArrowRight: weiter,
+    ArrowRight: () => weiter(),
     ArrowLeft: zurueck,
     ArrowUp: () => urteilen(true),
     ArrowDown: () => urteilen(false),
@@ -109,10 +144,9 @@ export default function Karteikarten({ setId, aufSchliessen }) {
 
   useEffect(() => {
     if (!fertig) return;
-    const werte = Object.values(urteile);
-    if (!werte.length) return;
-    sitzungMerken({ setId, modus: "karten", gesamt: werte.length,
-      richtig: werte.filter(Boolean).length });
+    const z = zusammenfassung(wv);
+    if (!z.ersteGesamt) return;
+    sitzungMerken({ setId, modus: "karten", gesamt: z.ersteGesamt, richtig: z.ersteRichtig });
   }, [fertig]);
 
   if (!brauchbare.length) {
@@ -128,21 +162,51 @@ export default function Karteikarten({ setId, aufSchliessen }) {
   }
 
   if (fertig) {
-    const werte = Object.values(urteile);
+    const z = zusammenfassung(wv);
+    const mittel = z.mittel[0];
     return (
       <ModusRahmen titel="Karteikarten" symbol="stapel" aufSchliessen={aufSchliessen}>
+        {problemBearbeitet && (
+          <KarteBearbeiten karte={problemBearbeitet} aufSchliessen={() => setProblemBearbeitet(null)} />
+        )}
         <Ergebnis titel="Stapel durchgesehen" setId={setId}
-          richtig={werte.filter(Boolean).length} gesamt={werte.length || reihe.length}
-          aufNochmal={() => { setStelle(0); setGedreht(false); setUrteile({}); setFertig(false); }}
-          aufWeiter={Object.values(urteile).some((x) => !x)
-            ? <Knopf art="gross" symbol="blitz"
+          richtig={z.ersteRichtig} gesamt={z.ersteGesamt || reihe.length}
+          aufNochmal={() => { setWv(neueSitzung()); setStelle(0); setGedreht(false); setFertig(false); }}
+          aufWeiter={z.fehler > 0
+            ? <Knopf art="gross" symbol="ziel"
                 onClick={() => gehe("/stapel/" + setId + "/lernen")}>Schwache üben</Knopf>
-            : null} />
+            : null}>
+          <p className="klein matt oben-8">
+            {anzahl(z.fehler, "Fehler", "Fehler")}
+            {z.wiedervorlagen > 0 && " · " + anzahl(z.wiedervorlagen, "Wiedervorlage", "Wiedervorlagen")}
+            {mittel && " · im Schnitt " + (mittel.ms / 1000).toFixed(1).replace(".", ",") + " s bis zum Umdrehen"}
+          </p>
+          {z.problem.length > 0 && (
+            <div className="rueckmeldung schlecht oben-16" style={{ textAlign: "left" }}>
+              <strong>{z.problem.length === 1 ? "Eine Problemkarte" : z.problem.length + " Problemkarten"}</strong>
+              <div className="klein matt oben-4 unten-8">
+                Viermal falsch in dieser Sitzung. Oft hilft es, sie umzuformulieren oder in zwei Karten
+                zu teilen.
+              </div>
+              <div className="liste">
+                {z.problem.map((id) => nachId.get(id)).filter(Boolean).map((k) => (
+                  <button key={k.id} type="button" className="listenzeile" onClick={() => setProblemBearbeitet(k)}>
+                    <span className="dehnen">{k.term}</span>
+                    <Symbol name="stift" groesse={15} />
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </Ergebnis>
       </ModusRahmen>
     );
   }
 
-  const anteil = reihe.length ? (stelle + 1) / reihe.length : 0;
+  /* Die Folge wächst mit den Wiedervorlagen — der Balken und die Zahl
+     rechnen mit der ganzen Folge, nicht nur mit dem Stapel. */
+  const anteil = wv.folge.length ? (stelle + 1) / wv.folge.length : 0;
+  const offeneWieder = wv.folge.slice(stelle + 1).filter((e) => e.grund !== "erst").length;
 
   return (
     <ModusRahmen titel="Karteikarten" symbol="stapel" aufSchliessen={aufSchliessen} anteil={anteil}
@@ -152,7 +216,10 @@ export default function Karteikarten({ setId, aufSchliessen }) {
           onClick={() => setSelbstlauf((x) => !x)} />
         <SymbolKnopf symbol="mischen" art={gemischt ? "klein voll" : "leer klein"}
           titel="Mischen" onClick={() => { setGemischt((x) => !x); setStelle(0); setGedreht(false); }} />
-        <span className="klein matt mono">{stelle + 1} / {reihe.length}</span>
+        <span className="klein matt mono"
+          title={offeneWieder ? anzahl(offeneWieder, "Wiedervorlage folgt", "Wiedervorlagen folgen") : undefined}>
+          {stelle + 1} / {wv.folge.length}
+        </span>
       </>}>
       {bearbeitet && karte && (
         <KarteBearbeiten karte={karte} aufSchliessen={() => setBearbeitet(false)} />
@@ -190,6 +257,13 @@ export default function Karteikarten({ setId, aufSchliessen }) {
         <div key={karte.id + ":" + stelle} className={"karte-gross" + (gedreht ? " gedreht" : "")}
           onClick={() => setGedreht((g) => !g)}>
           <div className="karte-seite">
+            {eintrag?.grund !== "erst" && (
+              <span className="wieder-marke" title={eintrag.grund === "falsch"
+                ? "Kommt wieder, weil sie eben falsch war" : "Kommt zur Festigung noch einmal"}>
+                <Symbol name="zurueckSetzen" groesse={13} />
+                {eintrag.grund === "falsch" ? "noch einmal" : "zur Festigung"}
+              </span>
+            )}
             <div className="karte-ecke">{aktiv === "dt"
               ? (derStapel.defLabel || "Rückseite") : (derStapel.termLabel || "Vorderseite")}</div>
             <Seite text={seiten.frage} bild={seiten.frageBild} sprache={sprachen.frage}
@@ -231,12 +305,13 @@ export default function Karteikarten({ setId, aufSchliessen }) {
           <Symbol name="haken" groesse={16} /> Weiß ich
         </Knopf>
         <SymbolKnopf symbol="pfeilRechts" titel="Weiter" art="leer" groesse={22}
-          onClick={weiter} />
+          onClick={() => weiter()} />
       </div>
 
       <p className="klein blass" style={{ textAlign: "center", marginTop: 18 }}>
-        {anzahl(Object.values(urteile).filter(Boolean).length, "Karte sitzt", "Karten sitzen")} ·
-        {" " + Object.values(urteile).filter((x) => !x).length} zum Üben
+        {wv.verlauf.filter((v) => v.richtig).length} richtig ·
+        {" " + wv.verlauf.filter((v) => !v.richtig).length} falsch
+        {offeneWieder > 0 && " · " + anzahl(offeneWieder, "kommt noch einmal", "kommen noch einmal")}
       </p>
     </ModusRahmen>
   );

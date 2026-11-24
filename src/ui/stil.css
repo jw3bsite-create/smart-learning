@@ -1455,3 +1455,9 @@ html.zieht { cursor: grabbing; }
 :root[data-sinnbilder="schlicht"] .baum-zeile.aktiv .sinnbild { background: none; }
 :root[data-sinnbilder="schlicht"] .fuss-knopf { --ton: var(--akzent); }
 :root[data-sinnbilder="schlicht"] .glocke-sinnbild { color: var(--schrift-matt); }
+
+/* Wiedervorlage in den Karteikarten: ein leises Zeichen oben links. */
+.wieder-marke {
+  position: absolute; top: 12px; left: 14px; display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--schrift-blass);
+}

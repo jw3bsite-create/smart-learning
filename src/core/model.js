@@ -218,13 +218,16 @@ export const REVIEW_FASSUNG = 2;
 export function neuesReview({
   cardId, richtung = "td", setId = null, subjectId = null,
   bewertung, antwortzeit = 0, konfidenz = null, flag = "normal",
-  modus = "abrufen", zeit = Date.now(), ohneEingabe = false,
+  modus = "abrufen", zeit = Date.now(), ohneEingabe = false, erinnerungszeit = null,
 }) {
   return {
     id: id("r"), cardId, richtung, setId, subjectId,
     zeit, bewertung, antwortzeit, konfidenz, flag, modus,
     fassung: REVIEW_FASSUNG,
     ...(ohneEingabe ? { ohneEingabe: true } : {}),
+    // Vom Erscheinen bis zum Aufdecken, ohne Zeit im Hintergrund, gekappt
+    // (core/wiedervorlage.js). Steht nur da, wo gemessen wurde.
+    ...(erinnerungszeit > 0 ? { erinnerungszeit: Math.round(erinnerungszeit) } : {}),
     updatedAt: zeit, deleted: false,
   };
 }

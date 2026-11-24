@@ -590,7 +590,7 @@ export function erzeugeBestand({ db = dbStandard, jetzt = () => Date.now() } = {
       cardId: karte.id, richtung, setId: karte.setId,
       subjectId: zusatz.subjectId || derStapel?.subjectId || null,
       bewertung: qualitaet >= 2 ? 3 : qualitaet === 1 ? 2 : 1,
-      antwortzeit: zusatz.antwortzeit || 0,
+      antwortzeit: zusatz.antwortzeit || 0, erinnerungszeit: zusatz.erinnerungszeit || null,
       konfidenz: null, flag: "practice", modus: zusatz.modus || "uebung", zeit,
     });
     setze({

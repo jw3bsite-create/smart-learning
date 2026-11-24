@@ -457,6 +457,15 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     rechnen mit `--wechsel` (0 bei „Ruhige Oberfläche“) und fallen bei
     `prefers-reduced-motion` aus. Kein Seiteneffekt per `transform` auf
     `.mitte`: sonst wird sie zum Bezugsrahmen fester Elemente.
+70. **Wiedervorlage nach Erinnerungszeit** (`core/wiedervorlage.js`, seit dem
+    24. November 2026, zuerst in den Karteikarten): falsch → nach A Karten
+    wieder (A = 90 s / Stapel-Median, 3–10), langsam richtig → einmal nach
+    2·A, nach vier Fehlern Problemkarte. Alle Zahlen in `WERTE`. Gemessen wird
+    vom Erscheinen bis zum Umdrehen, ohne Zeit im Hintergrund
+    (`ui/stoppuhr.js`), gespeichert als `reviews.erinnerungszeit` — zusätzlich
+    zu `antwortzeit`, die ihre Bedeutung für die Plausibilität behält.
+    Mediane nur aus richtigen Antworten. Nur die Reihenfolge der Sitzung;
+    Termine bleiben bei FSRS. Simulation: `werkzeug/wiedervorlage-simulation.mjs`.
 69. **Tutoren sind ausgeblendet** (Wunsch des Nutzers, 19. November 2026): nur
     der Eintrag in der Seitenleiste fehlt, der Weg `/tutor` besteht weiter.
 
