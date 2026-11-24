@@ -44,6 +44,7 @@ import {
 } from "../ui/basis.jsx";
 import { ModusRahmen } from "./gemeinsam.jsx";
 import KarteBearbeiten from "../ui/KarteBearbeiten.jsx";
+import { bestaetigen } from "../ui/Rueckfragen.jsx";
 import Formel from "../ui/Formel.jsx";
 import Zeichenleiste from "../ui/Zeichenleiste.jsx";
 import { hatFormel } from "../core/formel.js";
@@ -395,6 +396,35 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
     else setStelle((s) => s + 1);
   };
 
+  /*
+   * „Kommt nicht dran“ direkt im Abrufen (dieselbe Markierung wie in der
+   * Stapelansicht, `nichtRelevant`; CLAUDE.md, Regel 7: Abhaken ist keine
+   * Selbstauswahl). Die Karte verschwindet aus der laufenden Sitzung samt
+   * ihrer Wiedervorlagen; die Rückfrage sagt, wofür der Haken gedacht ist.
+   */
+  const ausnehmen = async () => {
+    if (!aufgabe) return;
+    const k = aufgabe.karte;
+    const name = (k.term || "").length > 60 ? k.term.slice(0, 57) + " …" : k.term;
+    if (!(await bestaetigen({
+      titel: "Kommt nicht dran?", ja: "Herausnehmen",
+      text: "„" + name + "“ kommt dann weder im Abrufen noch in den Übungen dran und zählt nirgends "
+        + "mehr mit. Gedacht für Stoff, der nicht geprüft wird — nicht für „kann ich schon“: Ob eine "
+        + "Karte sitzt, entscheidet das Abrufen. Zurückholen geht in der Stapelansicht über denselben Haken.",
+    }))) return;
+    await karteAendern(k.id, { nichtRelevant: true });
+    const behalten = sitzung.aufgaben.map((a, i) => i < stelle || a.karte.id !== k.id);
+    const aufgaben = sitzung.aufgaben.filter((_, i) => behalten[i]);
+    setSitzung((alt) => ({
+      ...alt, aufgaben,
+      ...(alt.wv ? { wv: { ...alt.wv, folge: alt.wv.folge.filter((_, i) => behalten[i]) } } : {}),
+    }));
+    setLetzte(null);
+    setEingabe(""); setKonfidenz(null); schritteZuruecksetzen();
+    if (stelle >= aufgaben.length) setFertig(true);
+    else setPhase(aufgaben[stelle]?.wiederholung ? "tippen" : "konfidenz");
+  };
+
   /* Die letzte Bewertung zurücknehmen: Karte wieder aufgedeckt vor sich,
      mit derselben Eingabe — man bewertet einfach neu. */
   const rueckgaengig = async () => {
@@ -703,6 +733,7 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
               einstellungen.sprechTempo)} />
           <Stern an={markiert(aufgabe.karte)}
             aufKlick={() => karteAendern(aufgabe.karte.id, { starred: !markiert(aufgabe.karte) })} />
+          <SymbolKnopf symbol="haken" titel="Kommt nicht dran — aus dem Abrufen nehmen" onClick={ausnehmen} />
           {/* Erst nach dem Aufdecken: vorher zeigte das Fenster die Antwort. */}
           {phase === "aufgedeckt" && (
             <SymbolKnopf symbol="stift" titel="Karte bearbeiten (E)" onClick={() => setBearbeitet(true)} />

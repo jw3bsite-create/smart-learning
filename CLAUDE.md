@@ -163,7 +163,9 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
    geprüft —, keine über das eigene Können. Darum heißt der Knopf „kommt nicht
    dran" und nicht „kann ich schon". Ob eine Karte sitzt, entscheidet weiter
    der Planer aus dem, was beim Abrufen geschieht; das Gefühl beim Ansehen der
-   Vorderseite täuscht verlässlich und immer in dieselbe Richtung.
+   Vorderseite täuscht verlässlich und immer in dieselbe Richtung. Den Haken
+   gibt es in der Stapelansicht und (seit 24. November 2026, auf Wunsch)
+   direkt an der Frage im Abrufen, dort mit Rückfrage, die genau das sagt.
 
    **Der Fragemodus** (`mischen.js`, `modes/Fragen.jsx`) stellt auf Zuruf eine
    Runde zusammen. Er verschiebt keine Termine — seine Antworten tragen
