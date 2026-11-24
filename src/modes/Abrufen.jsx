@@ -33,7 +33,10 @@ import { sprich } from "../core/speech.js";
 import { seitenFuerRichtung } from "../core/ton.js";
 import Tonaufnahme from "../ui/Tonaufnahme.jsx";
 import { anzahl } from "../core/util.js";
-import { wiederEinreihen, einreihungZuruecknehmen, ersterVersuch } from "../core/nachlernen.js";
+import {
+  sitzungBeginnen, antworten, zusammenfassung, zeitenAusVerlauf, stapelMedian, referenz, kappen, ersterVersuch,
+} from "../core/wiedervorlage.js";
+import { useStoppuhr } from "../ui/stoppuhr.js";
 import { abrufStapel, OBEN } from "../core/fachordner.js";
 import { gehe } from "../App.jsx";
 import {
@@ -138,7 +141,7 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
   const daten = useDaten();
   const {
     karten, zustaende, stapelVon: alleStapelVon, faecher, fachVon, einstellungen,
-    abrufVerbuchen, abrufZuruecknehmen, karteAendern, sitzungMerken, stapel, ordner,
+    abrufVerbuchen, abrufZuruecknehmen, karteAendern, sitzungMerken, stapel, ordner, reviews,
   } = daten;
 
   /* Nur bestimmte Ordner des Fachs (core/fachordner.js): Der Sitzungsbau
@@ -270,6 +273,24 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
 
   useEffect(() => { beginn.current = Date.now(); bewertet.current = false; }, [stelle, sitzung]);
 
+  /* Die Erinnerungszeit für die Wiedervorlage (core/wiedervorlage.js): vom
+     Erscheinen der Karte bis zum Aufdecken, ohne Zeit im Hintergrund. Die
+     `antwortzeit` daneben misst weiter bis zur Bewertung — für die
+     Plausibilität. */
+  const stoppuhr = useStoppuhr();
+  const erinnert = useRef(null);
+  // Nach „Rückgängig“ gilt die schon gemessene Zeit weiter.
+  const wiederherstellen = useRef(null);
+  useEffect(() => {
+    erinnert.current = wiederherstellen.current;
+    wiederherstellen.current = null;
+    if (erinnert.current === null) stoppuhr.starten();
+  }, [stelle, sitzung?.aufgaben]);
+  useEffect(() => {
+    if (phase === "aufgedeckt" && erinnert.current === null) erinnert.current = stoppuhr.anhalten();
+  }, [phase]);
+  const [problemKarte, setProblemKarte] = useState(null);
+
   /* ------------------------------ Handgriffe ---------------------------- */
 
   const konfidenzWaehlen = (wert) => {
@@ -319,11 +340,24 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
     bewertet.current = true;
     const antwortzeit = alteAntwortzeit.current ?? (Date.now() - beginn.current);
     alteAntwortzeit.current = null;
+    const richtig = note !== NOTEN.NOCHMAL;
+
+    /* Die Erinnerungszeit gemessen am Stapel dieser Karte. */
+    const zeiten = zeitenAusVerlauf(reviews, aufgabe.karte.setId);
+    const stapelMs = stapelMedian(zeiten.stapel);
+    const zeitMs = Math.round(kappen(erinnert.current ?? stoppuhr.anhalten(), stapelMs));
+
+    /* Eine Wiedervorlage, weil die Karte nur langsam gewusst war, zählt als
+       Übung: FSRS hat sie in dieser Sitzung schon als gewusst verbucht, ein
+       zweites Mal verlängerte den Abstand künstlich. Ist sie jetzt falsch,
+       ist das ein echter Fehler und geht an FSRS. */
+    const flag = cram ? "cram"
+      : aufgabe.grund === "langsam" && richtig ? "practice" : "normal";
     const verbucht = await abrufVerbuchen({
       karte: aufgabe.karte, stapel: aufgabe.stapel, richtung: aufgabe.richtung,
-      bewertung: note, konfidenz, antwortzeit,
+      bewertung: note, konfidenz, antwortzeit, erinnerungszeit: zeitMs,
       eingabeLeer: !eingabe.trim(), fach: fachVon(aufgabe.fachId),
-      flag: cram ? "cram" : "normal", modus: cram ? "endspurt" : "abrufen",
+      flag, modus: cram ? "endspurt" : "abrufen",
     });
     setErgebnisse((alt) => [...alt, {
       schluessel: aufgabe.schluessel, note, konfidenz, stimmtGenau,
@@ -332,15 +366,25 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
       loesung: teile.loesung,
     }]);
 
-    /* „Nochmal": ein paar Karten später noch einmal (core/nachlernen.js). */
-    const liste = note === NOTEN.NOCHMAL
-      ? wiederEinreihen(sitzung.aufgaben, stelle, aufgabe) : sitzung.aufgaben;
-    const eingereiht = liste !== sitzung.aufgaben ? (aufgabe.wiederholung || 0) + 1 : null;
-    if (eingereiht) setSitzung((alt) => ({ ...alt, aufgaben: liste }));
+    /* Wiedervorlage (core/wiedervorlage.js): falsch nach A Karten wieder,
+       langsam richtig einmal nach 2 · A, nach vier Fehlern Problemkarte. Die
+       Folge der Sitzung und die Aufgaben bleiben deckungsgleich. */
+    const wv = sitzung.wv || sitzungBeginnen(sitzung.aufgaben.map((a) => a.schluessel));
+    const { sitzung: wvNeu } = antworten(wv, stelle, {
+      richtig, zeitMs, stapelMs, referenzMs: referenz(zeiten.jeKarte.get(aufgabe.karte.id) || [], stapelMs),
+    });
+    const vorlage = new Map();
+    for (const a of sitzung.aufgaben) if (!vorlage.has(a.schluessel)) vorlage.set(a.schluessel, a);
+    const liste = wvNeu.folge.map((e, i) => (i < sitzung.aufgaben.length && sitzung.aufgaben[i].schluessel === e.id
+      && (sitzung.aufgaben[i].grund || "erst") === e.grund
+      ? sitzung.aufgaben[i]
+      : { ...vorlage.get(e.id), grund: e.grund, wiederholung: e.grund === "erst" ? 0 : 1 }));
+    const sitzungVorher = sitzung;
+    setSitzung((alt) => ({ ...alt, aufgaben: liste, wv: wvNeu }));
 
     setLetzte({
       verbucht, aufgabe, stelle, note, konfidenz, eingabe, antwortzeit,
-      schrittErgebnisse, schrittNr, eingereiht,
+      schrittErgebnisse, schrittNr, sitzungVorher, erinnert: erinnert.current,
     });
 
     const naechste = liste[stelle + 1];
@@ -358,10 +402,8 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
     if (!l) return;
     setLetzte(null);
     await abrufZuruecknehmen(l.verbucht);
-    if (l.eingereiht) {
-      setSitzung((alt) => ({ ...alt, aufgaben: einreihungZuruecknehmen(alt.aufgaben, l.stelle,
-        l.aufgabe.schluessel, l.eingereiht) }));
-    }
+    /* Die Sitzung wie vor der Bewertung — samt Wiedervorlagen und Fehlern. */
+    setSitzung(l.sitzungVorher);
     setErgebnisse((alt) => alt.slice(0, -1));
     setFertig(false);
     setStelle(l.stelle);
@@ -370,6 +412,7 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
     setPhase("aufgedeckt");
     alteAntwortzeit.current = l.antwortzeit;
     bewertet.current = false;
+    wiederherstellen.current = l.erinnert;
   };
 
   useTastatur({
@@ -530,6 +573,48 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
           </div>
           <h1 className="oben-8">Sitzung beendet</h1>
           <p className="matt">{kalibrierungInWorten(k)}</p>
+          {sitzung?.wv && (() => {
+            const z = zusammenfassung(sitzung.wv, (schluessel) => schluessel);
+            const jeStapel = new Map();
+            for (const m of z.mittel) {
+              const a = sitzung.aufgaben.find((x) => x.schluessel === m.stapel);
+              const name = a?.stapel?.title || "Ohne Titel";
+              const alt = jeStapel.get(name) || { summe: 0, anzahl: 0 };
+              jeStapel.set(name, { summe: alt.summe + m.ms * m.anzahl, anzahl: alt.anzahl + m.anzahl });
+            }
+            const problem = z.problem.map((s) => sitzung.aufgaben.find((a) => a.schluessel === s)).filter(Boolean);
+            return (
+              <div style={{ maxWidth: 620, margin: "0 auto", textAlign: "left" }}>
+                <p className="klein matt" style={{ textAlign: "center" }}>
+                  {anzahl(z.fehler, "Fehler", "Fehler")}
+                  {z.wiedervorlagen > 0 && " · " + anzahl(z.wiedervorlagen, "Wiedervorlage", "Wiedervorlagen")}
+                </p>
+                {jeStapel.size > 0 && (
+                  <div className="klein blass" style={{ textAlign: "center" }}>
+                    Bis zum Aufdecken im Schnitt:{" "}
+                    {[...jeStapel].map(([name, w]) => name + " " + (w.summe / w.anzahl / 1000).toFixed(1).replace(".", ",") + " s").join(" · ")}
+                  </div>
+                )}
+                {problem.length > 0 && (
+                  <div className="rueckmeldung schlecht oben-16">
+                    <strong>{problem.length === 1 ? "Eine Problemkarte" : problem.length + " Problemkarten"}</strong>
+                    <div className="klein matt oben-4 unten-8">
+                      Viermal falsch in dieser Sitzung. Umformulieren oder in zwei Karten teilen hilft oft.
+                    </div>
+                    <div className="liste">
+                      {problem.map((a) => (
+                        <button key={a.schluessel} type="button" className="listenzeile" onClick={() => setProblemKarte(a.karte)}>
+                          <span className="dehnen">{a.karte.term}</span>
+                          <Symbol name="stift" groesse={15} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          {problemKarte && <KarteBearbeiten karte={problemKarte} aufSchliessen={() => setProblemKarte(null)} />}
 
           <div className="gitter" style={{ maxWidth: 620, margin: "24px auto",
             gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}>
@@ -576,7 +661,7 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
       rechts={<>
         {cram && <span className="marke rot">Endspurt, zählt nicht für den Plan</span>}
         {frisch && !cram && !aufgabe.wiederholung && <span className="marke">neu</span>}
-        {aufgabe.wiederholung > 0 && <span className="marke gelb">noch einmal</span>}
+        {aufgabe.wiederholung > 0 && <span className="marke gelb">{aufgabe.grund === "langsam" ? "zur Festigung" : "noch einmal"}</span>}
         <span className="klein matt mono">{stelle + 1} / {sitzung.aufgaben.length}</span>
       </>}>
 

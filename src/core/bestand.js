@@ -621,7 +621,7 @@ export function erzeugeBestand({ db = dbStandard, jetzt = () => Date.now() } = {
   async function abrufVerbuchen({
     karte, stapel, richtung = "td", bewertung, konfidenz = null,
     antwortzeit = 0, eingabeLeer = false, flag = "normal", modus = "abrufen",
-    fach = null, zeit = jetzt(),
+    fach = null, zeit = jetzt(), erinnerungszeit = null,
   }) {
     const subjectId = fach?.id || stapel?.subjectId || null;
     const schluessel = karte.id + ":" + richtung;
@@ -633,7 +633,7 @@ export function erzeugeBestand({ db = dbStandard, jetzt = () => Date.now() } = {
     const review = model.neuesReview({
       cardId: karte.id, richtung, setId: karte.setId, subjectId,
       bewertung, antwortzeit, konfidenz, flag: wirklichesFlag, modus, zeit,
-      ohneEingabe: eingabeLeer,
+      ohneEingabe: eingabeLeer, erinnerungszeit,
     });
 
     const vorher = zustand.zustaende[schluessel];

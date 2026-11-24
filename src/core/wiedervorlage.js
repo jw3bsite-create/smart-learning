@@ -185,3 +185,6 @@ export function zusammenfassung(sitzung, stapelVonKarte = () => null) {
     ersteGesamt: ersteVersuche.length,
   };
 }
+
+/** Nur erste Versuche zählen für das Ergebnis der Sitzung (Kalibrierung, Quote). */
+export const ersterVersuch = (e) => !e.wiederholung;

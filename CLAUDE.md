@@ -387,10 +387,13 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     `gridTemplateColumns: "minmax(0, 1fr)"`, sonst ragen sie am Telefon hinaus.
 55. **Rückgängig und Nachlernen im Abrufen.** `abrufZuruecknehmen` löscht die
     Bewertung mit Vermerk und stellt den Zustand davor her (zehn Sekunden,
-    Taste Z). „Nochmal" reiht die Karte vier Karten später wieder ein
-    (`core/nachlernen.js`), höchstens zweimal, dann **ohne Selbsteinschätzung**
-    — sonst verfälschte der zweite Versuch die Kalibrierung. Das Ergebnis
-    der Sitzung zählt nur erste Versuche.
+    Taste Z; stellt auch die Folge der Sitzung wieder her). Wiedervorlagen
+    regelt seit dem 24. November 2026 `core/wiedervorlage.js` (siehe 70);
+    sie kommen **ohne Selbsteinschätzung** — sonst verfälschte der zweite
+    Versuch die Kalibrierung. Das Ergebnis der Sitzung zählt nur erste
+    Versuche. Eine Wiedervorlage wegen Langsamkeit wird als Übung verbucht
+    (FSRS hat die Karte schon als gewusst), ist sie dann falsch, als echter
+    Fehler.
 56. **Der Lerntag beginnt um 4 Uhr** (`util.js`: `tagesSchluessel`,
     `lerntagBeginn`). Für Lernzahlen immer diese; für echte Daten
     (Termine, Dateinamen) `kalenderSchluessel`. Wer Tage durchzählt, rechnet
@@ -457,8 +460,10 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     rechnen mit `--wechsel` (0 bei „Ruhige Oberfläche“) und fallen bei
     `prefers-reduced-motion` aus. Kein Seiteneffekt per `transform` auf
     `.mitte`: sonst wird sie zum Bezugsrahmen fester Elemente.
+69. **Tutoren sind ausgeblendet** (Wunsch des Nutzers, 19. November 2026): nur
+    der Eintrag in der Seitenleiste fehlt, der Weg `/tutor` besteht weiter.
 70. **Wiedervorlage nach Erinnerungszeit** (`core/wiedervorlage.js`, seit dem
-    24. November 2026, zuerst in den Karteikarten): falsch → nach A Karten
+    24. November 2026, Karteikarten und Abrufen): falsch → nach A Karten
     wieder (A = 90 s / Stapel-Median, 3–10), langsam richtig → einmal nach
     2·A, nach vier Fehlern Problemkarte. Alle Zahlen in `WERTE`. Gemessen wird
     vom Erscheinen bis zum Umdrehen, ohne Zeit im Hintergrund
@@ -466,8 +471,6 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     zu `antwortzeit`, die ihre Bedeutung für die Plausibilität behält.
     Mediane nur aus richtigen Antworten. Nur die Reihenfolge der Sitzung;
     Termine bleiben bei FSRS. Simulation: `werkzeug/wiedervorlage-simulation.mjs`.
-69. **Tutoren sind ausgeblendet** (Wunsch des Nutzers, 19. November 2026): nur
-    der Eintrag in der Seitenleiste fehlt, der Weg `/tutor` besteht weiter.
 
 ## Stapel aus Lernmaterial (im Chat)
 
