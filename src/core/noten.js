@@ -44,6 +44,22 @@ export const ARTEN = {
 
 export const ART_IDS = Object.keys(ARTEN);
 
+/**
+ * Sorten von Leistungen innerhalb einer Art — Klassenarbeit, Test, GFS …
+ *
+ * Jede Sorte trägt ein Gewicht, das für alle Leistungen dieser Sorte gilt:
+ * Wer einmal festlegt „ein Test zählt halb so viel wie eine Klassenarbeit“,
+ * muss es nicht bei jedem Test neu eintippen. Die Zahlen sind ein Vorschlag
+ * zum Ändern; was an der eigenen Schule gilt, steht in keiner Datei.
+ *
+ * Ein Fach ohne eigene Liste (alle, die vor dem 24.11.2026 angelegt wurden)
+ * bekommt diese hier.
+ */
+export const STANDARD_SORTEN = [
+  { id: "klassenarbeit", name: "Klassenarbeit", art: "schriftlich", gewicht: 1 },
+  { id: "test", name: "Test", art: "schriftlich", gewicht: 0.5 },
+];
+
 /** Punkte liegen zwischen null und fünfzehn. */
 export const PUNKTE_MIN = 0;
 export const PUNKTE_MAX = 15;
@@ -60,7 +76,7 @@ export const PUNKTE_MAX = 15;
  * zwei Geräten kann nicht ein ganzes Schuljahr auf einmal überschreiben, wenn
  * beide am selben Tag etwas eingetragen haben.
  */
-export function neuesNotenfach({ halbjahr, fach, subjectId = null }) {
+export function neuesNotenfach({ halbjahr, fach, subjectId = null, sorten = null, artGewicht = null }) {
   return {
     id: id("n"),
     halbjahr,
@@ -69,21 +85,88 @@ export function neuesNotenfach({ halbjahr, fach, subjectId = null }) {
     leistungen: [],
     /* Wie die drei Arten gegeneinander zählen. Alle gleich, bis der Nutzer es
        ändert — was an einer Schule gilt, steht in keiner Datei, die wir haben. */
-    artGewicht: { schriftlich: 1, muendlich: 1, praktisch: 1 },
+    artGewicht: { schriftlich: 1, muendlich: 1, praktisch: 1, ...(artGewicht || {}) },
+    sorten: (sorten || STANDARD_SORTEN).map((x) => ({ ...x })),
     endpunkte: null,           // von Hand gesetzt, sticht die Rechnung
     createdAt: jetzt(), updatedAt: jetzt(), deleted: false,
   };
 }
 
-export function neueLeistung({ art = "schriftlich", punkte = 0, gewicht = 1, was = "" } = {}) {
+/**
+ * Eine Leistung. Ohne Punkte (`null`) ist sie angelegt, aber noch nicht
+ * eingetragen — sie zählt dann nicht mit, statt mit null Punkten den Schnitt
+ * zu verhageln, bis man die Zahl eingetippt hat.
+ */
+export function neueLeistung({ art = "schriftlich", punkte = null, gewicht = 1, was = "", sorte = null } = {}) {
   return {
     id: id("l"),
     art: ART_IDS.includes(art) ? art : "schriftlich",
-    punkte: begrenze(punkte),
+    punkte: punkte === null || punkte === undefined || punkte === "" ? null : begrenze(punkte),
     gewicht: Math.max(0, zahl(gewicht, 1)),
+    sorte: sorte || null,
     was: String(was || ""),
     zeit: jetzt(),
   };
+}
+
+export function neueSorte({ name = "", art = "schriftlich", gewicht = 1 } = {}) {
+  return {
+    id: id("s"),
+    name: String(name || ""),
+    art: ART_IDS.includes(art) ? art : "schriftlich",
+    gewicht: Math.max(0, zahl(gewicht, 1)),
+  };
+}
+
+/** Die Sorten eines Fachs — ältere Fächer ohne eigene Liste nehmen die üblichen. */
+export function sortenVon(notenfach) {
+  return Array.isArray(notenfach?.sorten) ? notenfach.sorten : STANDARD_SORTEN;
+}
+
+/**
+ * Das Gewicht, mit dem eine Leistung zählt: das ihrer Sorte, wenn sie eine
+ * hat — sonst ihr eigenes. Wird eine Sorte gelöscht, zählt das Gewicht, das
+ * die Leistung beim Zuordnen mitbekommen hat.
+ */
+export function gewichtVon(leistung, sorten = []) {
+  const sorte = leistung?.sorte ? (sorten || []).find((x) => x.id === leistung.sorte) : null;
+  return Math.max(0, zahl(sorte ? sorte.gewicht : leistung?.gewicht, 1));
+}
+
+/**
+ * Die Bezeichnung einer Leistung: was eingetragen ist, sonst durchgezählt —
+ * „Klassenarbeit 1“, „Test 2“, „Mündlich 3“. Gezählt wird in der Reihenfolge
+ * des Eintragens, getrennt nach Sorte; wird eine gelöscht, rücken die
+ * anderen nach.
+ */
+export function leistungsName(notenfach, leistung) {
+  const eigen = String(leistung?.was || "").trim();
+  if (eigen) return eigen;
+  const sorten = sortenVon(notenfach);
+  const sorte = leistung?.sorte ? sorten.find((x) => x.id === leistung.sorte) : null;
+  const ohneSorte = (l) => !sorten.some((x) => x.id === l.sorte);
+  const gleich = (l) => (sorte ? l.sorte === sorte.id : l.art === leistung.art && ohneSorte(l));
+  const reihe = (notenfach?.leistungen || []).filter(gleich);
+  const stelle = reihe.findIndex((l) => l.id === leistung.id);
+  const grund = (sorte && sorte.name.trim()) || ARTEN[leistung?.art]?.name || "Leistung";
+  return grund + " " + ((stelle < 0 ? reihe.length : stelle) + 1);
+}
+
+/**
+ * Eine Zahl, wie sie getippt wird: „0,5“ und „0.5“ gelten gleich. Leer oder
+ * Unfug gibt `null` — das Feld behält dann, was es hatte.
+ */
+export function zahlLesen(text) {
+  const roh = String(text ?? "").trim().replace(",", ".");
+  if (!roh || roh === "." || roh === "-") return null;
+  const n = Number(roh);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Und zurück: 0.5 → „0,5“. */
+export function zahlZeigen(wert) {
+  if (wert === null || wert === undefined || wert === "") return "";
+  return String(wert).replace(".", ",");
 }
 
 /* ===================================================================== */
@@ -100,17 +183,20 @@ export function begrenze(punkte) {
   return Math.min(PUNKTE_MAX, Math.max(PUNKTE_MIN, zahl(punkte, 0)));
 }
 
+/** Eingetragen, nicht nur angelegt. */
+export const hatPunkte = (l) => l?.punkte !== null && l?.punkte !== undefined && l?.punkte !== "";
+
 /**
  * Der Schnitt einer Art — gewichtetes Mittel der einzelnen Leistungen.
  * `null`, wenn es in dieser Art nichts gibt: Eine Art ohne Leistungen soll
  * den Schnitt nicht nach unten ziehen, sondern gar nicht mitzählen.
  */
-export function artSchnitt(leistungen, art) {
-  const eigene = (leistungen || []).filter((l) => l && l.art === art);
+export function artSchnitt(leistungen, art, sorten = []) {
+  const eigene = (leistungen || []).filter((l) => l && l.art === art && hatPunkte(l));
   if (!eigene.length) return null;
   let summe = 0, gewicht = 0;
   for (const l of eigene) {
-    const g = Math.max(0, zahl(l.gewicht, 1));
+    const g = gewichtVon(l, sorten);
     summe += begrenze(l.punkte) * g;
     gewicht += g;
   }
@@ -131,7 +217,8 @@ export function artSchnitt(leistungen, art) {
 export function fachPunkte(notenfach) {
   const leistungen = notenfach?.leistungen || [];
   const proArt = {};
-  for (const art of ART_IDS) proArt[art] = artSchnitt(leistungen, art);
+  const sorten = sortenVon(notenfach);
+  for (const art of ART_IDS) proArt[art] = artSchnitt(leistungen, art, sorten);
 
   let summe = 0, gewicht = 0;
   for (const art of ART_IDS) {
@@ -151,7 +238,7 @@ export function fachPunkte(notenfach) {
     gerechnet,
     vonHand,
     punkte,
-    anzahl: leistungen.length,
+    anzahl: leistungen.filter(hatPunkte).length,
     // Auf dem Zeugnis stehen ganze Punkte.
     gerundet: punkte === null ? null : Math.round(punkte),
   };
@@ -249,6 +336,46 @@ export function bekannteFaecher(alle) {
   for (const f of alle || [])
     if (f && !f.deleted && (f.fach || "").trim()) namen.add(f.fach.trim());
   return [...namen].sort((a, b) => a.localeCompare(b, "de"));
+}
+
+/**
+ * Was sich in ein Halbjahr übernehmen lässt: die Fächer der anderen
+ * Halbjahre (mit Sorten, Gewichten und Verknüpfung, vom nächstgelegenen
+ * Halbjahr) und die Lernfächer, die dort noch fehlen. Was im Halbjahr schon
+ * steht, kommt nicht noch einmal.
+ */
+export function uebernahmeVorschlaege(alle, halbjahr, lernfaecher = []) {
+  const schluessel = (name) => String(name || "").trim().toLowerCase();
+  const schon = new Set(faecherIm(alle, halbjahr).map((f) => schluessel(f.fach)));
+  const ziel = HALBJAHR_IDS.indexOf(halbjahr);
+  /* Näher dran zuerst, bei gleichem Abstand das frühere Halbjahr — es ist
+     das, was man gerade hinter sich hat. */
+  const abstand = (hj) => {
+    const i = HALBJAHR_IDS.indexOf(hj);
+    if (i < 0 || ziel < 0) return 99;
+    return Math.abs(i - ziel) * 2 + (i > ziel ? 1 : 0);
+  };
+  const nachName = new Map();
+  const andere = (alle || [])
+    .filter((f) => f && !f.deleted && f.halbjahr !== halbjahr && (f.fach || "").trim())
+    .sort((a, b) => abstand(a.halbjahr) - abstand(b.halbjahr));
+  for (const f of andere) {
+    const k = schluessel(f.fach);
+    if (schon.has(k) || nachName.has(k)) continue;
+    nachName.set(k, {
+      fach: f.fach.trim(), subjectId: f.subjectId || null, herkunft: f.halbjahr,
+      sorten: sortenVon(f).map((x) => ({ ...x })), artGewicht: { ...(f.artGewicht || {}) },
+    });
+  }
+  for (const lf of lernfaecher || []) {
+    if (!lf || lf.deleted || !(lf.name || "").trim()) continue;
+    const k = schluessel(lf.name);
+    if (schon.has(k)) continue;
+    const da = nachName.get(k);
+    if (da) { if (!da.subjectId) da.subjectId = lf.id; continue; }
+    nachName.set(k, { fach: lf.name.trim(), subjectId: lf.id, herkunft: "lernfach", sorten: null, artGewicht: null });
+  }
+  return [...nachName.values()].sort((a, b) => a.fach.localeCompare(b.fach, "de"));
 }
 
 /**

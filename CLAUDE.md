@@ -473,6 +473,13 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     zu `antwortzeit`, die ihre Bedeutung für die Plausibilität behält.
     Mediane nur aus richtigen Antworten. Nur die Reihenfolge der Sitzung;
     Termine bleiben bei FSRS. Simulation: `werkzeug/wiedervorlage-simulation.mjs`.
+71. **Zahlenfelder mit Komma nie als `type="number"`.** Am iPhone fehlt dort
+    je nach Tastatur das Komma, und aus „0,5“ wird mal nichts, mal eine 5.
+    Stattdessen Textfeld mit `inputMode="decimal"`, das seinen Text beim
+    Tippen behält (`ZahlFeld` in `ui/Noten.jsx`, Lesen mit `zahlLesen`).
+    Punkte: Leistungen haben Sorten (Klassenarbeit, Test …) mit Gewicht,
+    Bezeichnungen zählen sich selbst durch (`leistungsName`), Leistungen ohne
+    Punkte (`null`) zählen nicht mit.
 
 ## Stapel aus Lernmaterial (im Chat)
 

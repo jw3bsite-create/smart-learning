@@ -11,12 +11,13 @@
  * Karte am besten läuft.
  */
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import {
   HALBJAHRE, ARTEN, ART_IDS, PUNKTE_MAX,
-  fachPunkte, halbjahrSchnitt, uebersicht, verlaufVon, bekannteFaecher,
-  faecherIm, punkteText, noteText, punkteStufe, begrenze,
+  fachPunkte, halbjahrSchnitt, uebersicht, verlaufVon,
+  faecherIm, punkteText, noteText, punkteStufe,
+  sortenVon, neueSorte, gewichtVon, leistungsName, zahlLesen, zahlZeigen, uebernahmeVorschlaege,
 } from "../core/noten.js";
 import { SymbolKnopf, Knopf, Leer, Dialog, Rueckfrage } from "./basis.jsx";
 import { anzahl } from "../core/util.js";
@@ -60,6 +61,36 @@ function Leiste({ wert }) {
   );
 }
 
+/**
+ * Ein Zahlenfeld, das Kommazahlen versteht.
+ *
+ * `type="number"` taugt dafür nicht: Am iPhone fehlt je nach Tastatur das
+ * Komma, und wo es da ist, macht der Browser aus „0,5“ mal nichts, mal eine 5.
+ * Darum ein Textfeld mit Dezimaltastatur, das seinen getippten Text behält,
+ * bis man es verlässt — so bleibt „0,“ beim Tippen stehen, statt zur 0 zu
+ * werden.
+ */
+function ZahlFeld({ wert, aufAendern, min = 0, max = Infinity, leerErlaubt = false, ...rest }) {
+  const [text, setText] = useState(zahlZeigen(wert));
+  const [aktiv, setAktiv] = useState(false);
+  useEffect(() => { if (!aktiv) setText(zahlZeigen(wert)); }, [wert, aktiv]);
+  return (
+    <input className="feld" type="text" inputMode="decimal" autoComplete="off" enterKeyHint="done"
+      value={text}
+      onFocus={(e) => { setAktiv(true); e.target.select(); }}
+      onBlur={() => { setAktiv(false); setText(zahlZeigen(wert)); }}
+      onChange={(e) => {
+        const roh = e.target.value.replace(/[^\d.,-]/g, "");
+        setText(roh);
+        if (!roh.trim()) { if (leerErlaubt) aufAendern(null); return; }
+        const n = zahlLesen(roh);
+        if (n !== null) aufAendern(Math.min(max, Math.max(min, n)));
+      }}
+      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
+      {...rest} />
+  );
+}
+
 /* ------------------------- Ein Fach im Halbjahr ------------------------- */
 
 function FachZeile({ notenfach, aufOeffnen }) {
@@ -91,48 +122,167 @@ function FachZeile({ notenfach, aufOeffnen }) {
 
 /* --------------------------- Eine Leistung ----------------------------- */
 
-function LeistungZeile({ leistung, aufAendern, aufLoeschen }) {
-  const [offen, setOffen] = useState(false);
+/**
+ * Eine Leistung. Frisch eingetragen steht sie gleich offen, mit dem Finger
+ * im Punktefeld. Die Sorte (Klassenarbeit, Test …) bringt das Gewicht mit;
+ * nur ohne Sorte gibt es ein eigenes Gewichtsfeld. Die Bezeichnung zählt
+ * sich selbst durch, solange man keine eigene einträgt.
+ */
+function LeistungZeile({ notenfach, leistung, anfangsOffen = false, aufAendern, aufLoeschen }) {
+  const [offen, setOffen] = useState(anfangsOffen);
+  /* Die Zeile erscheint oft, bevor sie als neu markiert ist — dann erst jetzt öffnen. */
+  const zeile = useRef(null);
+  useEffect(() => {
+    if (!anfangsOffen) return;
+    setOffen(true);
+    requestAnimationFrame(() => zeile.current?.scrollIntoView?.({ block: "center", behavior: "smooth" }));
+  }, [anfangsOffen]);
+  const sorten = sortenVon(notenfach);
+  const passend = sorten.filter((x) => x.art === leistung.art);
+  const sorte = sorten.find((x) => x.id === leistung.sorte) || null;
+  const gewicht = gewichtVon(leistung, sorten);
+  const name = leistungsName(notenfach, leistung);
+  const vorschlag = leistungsName(notenfach, { ...leistung, was: "" });
+
   return (
-    <div className="karten-zeile" style={{ display: "block", padding: "10px 14px" }}>
-      <div className="reihe">
+    <div ref={zeile} className="karten-zeile" style={{ display: "block", padding: "10px 14px" }}>
+      <div className="reihe" onClick={() => setOffen((w) => !w)} style={{ cursor: "pointer" }}>
         <span className="marke">{ARTEN[leistung.art]?.kurz || "?"}</span>
         <div className="dehnen klein">
-          {leistung.was || ARTEN[leistung.art]?.name || "Leistung"}
-          {Number(leistung.gewicht) !== 1 && (
-            <span className="blass"> · Gewicht {punkteText(leistung.gewicht)}</span>
-          )}
+          {name}
+          {gewicht !== 1 && <span className="blass"> · Gewicht {zahlZeigen(gewicht)}</span>}
         </div>
-        <Punkte wert={leistung.punkte} />
-        <SymbolKnopf symbol="stift" titel="Ändern" art="leer klein"
-          onClick={() => setOffen((w) => !w)} />
+        {leistung.punkte === null || leistung.punkte === undefined
+          ? <span className="klein blass">offen</span>
+          : <Punkte wert={leistung.punkte} />}
+        <SymbolKnopf symbol={offen ? "haken" : "stift"} titel={offen ? "Fertig" : "Ändern"} art="leer klein"
+          onClick={(e) => { e.stopPropagation(); setOffen((w) => !w); }} />
         <SymbolKnopf symbol="muell" titel="Entfernen" art="leer klein"
-          onClick={aufLoeschen} />
+          onClick={(e) => { e.stopPropagation(); aufLoeschen(); }} />
       </div>
       {offen && (
-        <div className="gitter" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", marginTop: 10 }}>
-          <label className="beschriftung">Bezeichnung
-            <input className="feld" value={leistung.was}
-              onChange={(e) => aufAendern({ was: e.target.value })} />
-          </label>
-          <label className="beschriftung">Art
-            <select className="feld" value={leistung.art}
-              onChange={(e) => aufAendern({ art: e.target.value })}>
-              {ART_IDS.map((a) => <option key={a} value={a}>{ARTEN[a].name}</option>)}
-            </select>
-          </label>
-          <label className="beschriftung">Punkte
-            <input className="feld" type="number" min="0" max="15" step="0.5"
-              value={leistung.punkte}
-              onChange={(e) => aufAendern({ punkte: begrenze(e.target.value) })} />
-          </label>
-          <label className="beschriftung">Gewicht
-            <input className="feld" type="number" min="0" step="0.5" value={leistung.gewicht}
-              onChange={(e) => aufAendern({ gewicht: Math.max(0, Number(e.target.value) || 0) })} />
-          </label>
+        <div className="oben-12">
+          <div className="reihe umbruch unten-12" style={{ gap: 6 }}>
+            {passend.map((x) => (
+              <button key={x.id} type="button"
+                className={"knopf klein" + (sorte?.id === x.id ? " voll" : "")}
+                onClick={() => aufAendern({ sorte: x.id, gewicht: x.gewicht })}>
+                {x.name || "Ohne Namen"}
+                <span style={{ opacity: 0.7 }}> · {zahlZeigen(x.gewicht)}</span>
+              </button>
+            ))}
+            <button type="button" className={"knopf klein" + (!sorte ? " voll" : "")}
+              onClick={() => aufAendern({ sorte: null })}>
+              {passend.length ? "Andere" : ARTEN[leistung.art]?.name}
+            </button>
+          </div>
+          <div className="gitter" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))" }}>
+            <label className="beschriftung">Punkte (0–15)
+              <ZahlFeld wert={leistung.punkte} min={0} max={PUNKTE_MAX} leerErlaubt
+                placeholder="—" autoFocus={anfangsOffen}
+                aufAendern={(p) => aufAendern({ punkte: p })} />
+            </label>
+            {!sorte && (
+              <label className="beschriftung">Gewicht
+                <ZahlFeld wert={leistung.gewicht} min={0}
+                  aufAendern={(g) => aufAendern({ gewicht: g })} />
+              </label>
+            )}
+            <label className="beschriftung">Bezeichnung
+              <input className="feld" value={leistung.was} placeholder={vorschlag}
+                onChange={(e) => aufAendern({ was: e.target.value })} />
+            </label>
+            <label className="beschriftung">Art
+              <select className="feld" value={leistung.art}
+                onChange={(e) => {
+                  const art = e.target.value;
+                  const erste = sorten.find((x) => x.art === art);
+                  aufAendern(erste ? { art, sorte: erste.id, gewicht: erste.gewicht } : { art, sorte: null });
+                }}>
+                {ART_IDS.map((a) => <option key={a} value={a}>{ARTEN[a].name}</option>)}
+              </select>
+            </label>
+          </div>
         </div>
       )}
     </div>
+  );
+}
+
+/* ------------------- Klassenarbeit, Test & Co. ------------------------ */
+
+/**
+ * Die Sorten eines Fachs mit ihren Gewichten. Ein geändertes Gewicht wirkt
+ * auf alle Leistungen dieser Sorte. Wird eine Sorte gelöscht, behalten ihre
+ * Leistungen Gewicht und Namen.
+ */
+function SortenTeil({ notenfach }) {
+  const { notenfaecher, notenfachAendern } = useDaten();
+  const [verteilt, setVerteilt] = useState(null);
+  const sorten = sortenVon(notenfach);
+  const andere = faecherIm(notenfaecher, notenfach.halbjahr).filter((f) => f.id !== notenfach.id);
+
+  const setzen = (neu) => notenfachAendern(notenfach.id, { sorten: neu });
+  const aendern = (sid, aend) => setzen(sorten.map((x) => (x.id === sid ? { ...x, ...aend } : x)));
+  const loeschen = (sid) => {
+    const weg = sorten.find((x) => x.id === sid);
+    notenfachAendern(notenfach.id, {
+      sorten: sorten.filter((x) => x.id !== sid),
+      leistungen: (notenfach.leistungen || []).map((l) => (l.sorte === sid
+        ? { ...l, sorte: null, gewicht: weg.gewicht, was: leistungsName(notenfach, l) }
+        : l)),
+    });
+  };
+  const fuerAlle = async () => {
+    for (const f of andere) await notenfachAendern(f.id, { sorten: sorten.map((x) => ({ ...x })) });
+    setVerteilt(andere.length);
+  };
+
+  return (
+    <>
+      <h3 className="unten-4">Klassenarbeit, Test &amp; Co.</h3>
+      <p className="klein matt oben-0">
+        Jede Sorte hat ein Gewicht innerhalb ihrer Art. Klassenarbeit 1 und
+        Test 0,5 heißt: Zwei Tests zählen so viel wie eine Klassenarbeit.
+        Ändern wirkt auf alle Leistungen dieser Sorte.
+      </p>
+      {ART_IDS.map((art) => {
+        const eigene = sorten.filter((x) => x.art === art);
+        return (
+          <div key={art} className="unten-12">
+            <div className="reihe unten-4">
+              <span className="dehnen klein matt">{ARTEN[art].name}</span>
+              {eigene.length > 0 && <span className="klein blass" style={{ width: 76 }}>Gewicht</span>}
+              <SymbolKnopf symbol="plus" titel={"Sorte für " + ARTEN[art].name} art="leer klein"
+                onClick={() => setzen([...sorten, neueSorte({ art })])} />
+            </div>
+            <div style={{ display: "grid", gap: 6 }}>
+              {eigene.map((x) => (
+                <div key={x.id} className="reihe" style={{ gap: 8 }}>
+                  <input className="feld dehnen" style={{ minWidth: 0 }} value={x.name}
+                    placeholder="z. B. GFS" aria-label="Name der Sorte"
+                    onChange={(e) => aendern(x.id, { name: e.target.value })} />
+                  <div style={{ flex: "0 0 76px" }}>
+                    <ZahlFeld wert={x.gewicht} min={0} aria-label={"Gewicht " + (x.name || "der Sorte")}
+                      aufAendern={(g) => aendern(x.id, { gewicht: g })} />
+                  </div>
+                  <SymbolKnopf symbol="muell" titel="Sorte entfernen" art="leer klein"
+                    onClick={() => loeschen(x.id)} />
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+      <div className="reihe umbruch unten-24" style={{ gap: 8 }}>
+        {andere.length > 0 && (
+          <Knopf art="klein leer" onClick={fuerAlle}>
+            {verteilt !== null ? "Für " + anzahl(verteilt, "Fach", "Fächer") + " übernommen"
+              : "Für alle Fächer dieses Halbjahres übernehmen"}
+          </Knopf>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -144,6 +294,15 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
     leistungAnlegen, leistungAendern, leistungLoeschen,
   } = useDaten();
   const [loeschen, setLoeschen] = useState(false);
+  const [neu, setNeu] = useState(null);
+
+  /* Neu eintragen: mit der ersten passenden Sorte (schriftlich also
+     Klassenarbeit), ohne Punkte, und gleich offen zum Eintippen. */
+  const eintragen = async (art) => {
+    const erste = sortenVon(notenfach).find((x) => x.art === art);
+    const l = await leistungAnlegen(notenfach.id, erste ? { art, sorte: erste.id, gewicht: erste.gewicht } : { art });
+    setNeu(l.id);
+  };
 
   const stand = fachPunkte(notenfach);
   const verlauf = useMemo(
@@ -186,8 +345,7 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
             <div className="reihe unten-8">
               <h3 className="dehnen">{ARTEN[art].name}</h3>
               {stand.proArt[art] !== null && <Punkte wert={stand.proArt[art]} />}
-              <Knopf art="klein" symbol="plus"
-                onClick={() => leistungAnlegen(notenfach.id, { art })}>
+              <Knopf art="klein" symbol="plus" onClick={() => eintragen(art)}>
                 Eintragen
               </Knopf>
             </div>
@@ -196,7 +354,8 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
             ) : (
               <div style={{ display: "grid", gap: 6 }}>
                 {eigene.map((l) => (
-                  <LeistungZeile key={l.id} leistung={l}
+                  <LeistungZeile key={l.id} leistung={l} notenfach={notenfach}
+                    anfangsOffen={l.id === neu}
                     aufAendern={(aend) => leistungAendern(notenfach.id, l.id, aend)}
                     aufLoeschen={() => leistungLoeschen(notenfach.id, l.id)} />
                 ))}
@@ -205,6 +364,8 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
           </div>
         );
       })}
+
+      <SortenTeil notenfach={notenfach} />
 
       {/* -------------------------- Gewichtung --------------------------- */}
       <h3 className="unten-4">Wie die Arten zählen</h3>
@@ -218,13 +379,9 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
         {ART_IDS.map((art) => (
           <label key={art} className="beschriftung" style={{ minWidth: 110 }}>
             {ARTEN[art].name}
-            <input className="feld" type="number" min="0" step="0.5"
-              value={notenfach.artGewicht?.[art] ?? 1}
-              onChange={(e) => notenfachAendern(notenfach.id, {
-                artGewicht: {
-                  ...notenfach.artGewicht,
-                  [art]: Math.max(0, Number(e.target.value) || 0),
-                },
+            <ZahlFeld wert={notenfach.artGewicht?.[art] ?? 1} min={0}
+              aufAendern={(g) => notenfachAendern(notenfach.id, {
+                artGewicht: { ...notenfach.artGewicht, [art]: g },
               })} />
           </label>
         ))}
@@ -240,13 +397,11 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
         )}
       </p>
       <div className="reihe unten-24">
-        <input className="feld" type="number" min="0" max="15" step="1"
-          style={{ width: 120 }}
-          placeholder="—"
-          value={notenfach.endpunkte ?? ""}
-          onChange={(e) => notenfachAendern(notenfach.id, {
-            endpunkte: e.target.value === "" ? null : begrenze(e.target.value),
-          })} />
+        <div style={{ width: 120 }}>
+          <ZahlFeld wert={notenfach.endpunkte ?? null} min={0} max={PUNKTE_MAX} leerErlaubt
+            placeholder="—"
+            aufAendern={(p) => notenfachAendern(notenfach.id, { endpunkte: p })} />
+        </div>
         {notenfach.endpunkte !== null && notenfach.endpunkte !== undefined && (
           <Knopf art="klein leer"
             onClick={() => notenfachAendern(notenfach.id, { endpunkte: null })}>
@@ -294,13 +449,16 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
 /* ------------------------------ Übersicht ------------------------------ */
 
 export default function Noten() {
-  const { notenfaecher, notenfachAnlegen } = useDaten();
+  const { notenfaecher, notenfachAnlegen, faecher } = useDaten();
   const [halbjahr, setHalbjahr] = useState(HALBJAHRE[0].id);
   const [offen, setOffen] = useState(null);
   const [anlegen, setAnlegen] = useState(false);
   const [neuerName, setNeuerName] = useState("");
+  const [uebernahme, setUebernahme] = useState(null);   // Set der gewählten Namen, offen = nicht null
 
   const alles = useMemo(() => uebersicht(notenfaecher), [notenfaecher]);
+  const vorschlaege = useMemo(() => uebernahmeVorschlaege(notenfaecher, halbjahr, faecher),
+    [notenfaecher, halbjahr, faecher]);
   const dasFach = offen ? notenfaecher.find((n) => n.id === offen) : null;
 
   if (dasFach) {
@@ -308,23 +466,39 @@ export default function Noten() {
   }
 
   const gewaehlt = alles.halbjahre.find((h) => h.id === halbjahr);
-  const vorschlaege = bekannteFaecher(notenfaecher)
-    .filter((n) => !faecherIm(notenfaecher, halbjahr)
-      .some((f) => f.fach.toLowerCase() === n.toLowerCase()));
+  const herkunftText = (v) => (v.herkunft === "lernfach" ? "aus deinen Lernfächern"
+    : "aus " + (HALBJAHRE.find((h) => h.id === v.herkunft)?.name || v.herkunft));
 
+  /* Ein Fach anlegen — aus einem Vorschlag samt Sorten und Gewichten, oder
+     nur mit Namen; dann wird es mit dem gleichnamigen Lernfach verknüpft. */
+  const ausVorlage = (v) => notenfachAnlegen({
+    halbjahr, fach: v.fach, subjectId: v.subjectId, sorten: v.sorten, artGewicht: v.artGewicht,
+  });
   const anlegenAusfuehren = async (name) => {
     const sauber = String(name || "").trim();
     if (!sauber) return;
-    const n = await notenfachAnlegen({ halbjahr, fach: sauber });
+    const vorlage = vorschlaege.find((v) => v.fach.toLowerCase() === sauber.toLowerCase());
+    const n = vorlage ? await ausVorlage(vorlage) : await notenfachAnlegen({ halbjahr, fach: sauber,
+      subjectId: faecher.find((f) => !f.deleted && (f.name || "").trim().toLowerCase() === sauber.toLowerCase())?.id || null });
     setAnlegen(false); setNeuerName("");
     setOffen(n.id);
   };
+  const uebernehmenAusfuehren = async () => {
+    for (const v of vorschlaege) if (uebernahme.has(v.fach)) await ausVorlage(v);
+    setUebernahme(null);
+  };
+  const uebernahmeOeffnen = () => setUebernahme(new Set(
+    vorschlaege.filter((v) => v.herkunft !== "lernfach" || !vorschlaege.some((w) => w.herkunft !== "lernfach"))
+      .map((v) => v.fach)));
 
   return (
     <div className="mitte">
       <div className="kopfzeile">
         <h1>Punkte</h1>
         <div className="kopf-werkzeuge">
+          {vorschlaege.length > 0 && (
+            <Knopf symbol="herunter" onClick={uebernahmeOeffnen}>Übernehmen</Knopf>
+          )}
           <Knopf art="voll" symbol="plus" onClick={() => setAnlegen(true)}>Fach</Knopf>
         </div>
       </div>
@@ -378,10 +552,19 @@ export default function Noten() {
 
       {!gewaehlt || gewaehlt.faecher.length === 0 ? (
         <Leer symbol="statistik" titel="Noch keine Fächer in diesem Halbjahr"
-          text="Trag deine Fächer ein und dann die einzelnen Leistungen, schriftlich, mündlich, praktisch, jede mit eigenem Gewicht.">
-          <Knopf art="voll gross" symbol="plus" onClick={() => setAnlegen(true)}>
-            Erstes Fach anlegen
-          </Knopf>
+          text={vorschlaege.length
+            ? "Übernimm die Fächer aus einem anderen Halbjahr oder aus deinen Lernfächern, samt Sorten und Gewichten."
+            : "Trag deine Fächer ein und dann die einzelnen Leistungen, schriftlich, mündlich, praktisch, jede mit eigenem Gewicht."}>
+          <div className="reihe umbruch" style={{ justifyContent: "center", gap: 8 }}>
+            {vorschlaege.length > 0 && (
+              <Knopf art="voll gross" symbol="herunter" onClick={uebernahmeOeffnen}>
+                Fächer übernehmen
+              </Knopf>
+            )}
+            <Knopf art={vorschlaege.length ? "gross" : "voll gross"} symbol="plus" onClick={() => setAnlegen(true)}>
+              {vorschlaege.length ? "Einzeln anlegen" : "Erstes Fach anlegen"}
+            </Knopf>
+          </div>
         </Leer>
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
@@ -416,15 +599,48 @@ export default function Noten() {
           {vorschlaege.length > 0 && (
             <>
               <div className="klein matt" style={{ margin: "14px 0 6px" }}>
-                Schon in anderen Halbjahren:
+                Oder antippen:
               </div>
               <div className="reihe umbruch">
-                {vorschlaege.map((n) => (
-                  <Knopf key={n} art="klein" onClick={() => anlegenAusfuehren(n)}>{n}</Knopf>
+                {vorschlaege.map((v) => (
+                  <Knopf key={v.fach} art="klein" onClick={() => anlegenAusfuehren(v.fach)}>{v.fach}</Knopf>
                 ))}
               </div>
             </>
           )}
+        </Dialog>
+      )}
+
+      {uebernahme && (
+        <Dialog titel={"Fächer übernehmen in " + (gewaehlt?.name || "")}
+          aufSchliessen={() => setUebernahme(null)}
+          fuss={<>
+            <Knopf onClick={() => setUebernahme(null)}>Abbrechen</Knopf>
+            <Knopf art="voll" disabled={!uebernahme.size} onClick={uebernehmenAusfuehren}>
+              {uebernahme.size ? anzahl(uebernahme.size, "Fach", "Fächer") + " übernehmen" : "Übernehmen"}
+            </Knopf>
+          </>}>
+          <p className="klein matt oben-0">
+            Übernommen werden Name, Sorten mit ihren Gewichten und die
+            Verknüpfung zum Lernfach, keine Punkte.
+          </p>
+          <div className="reihe unten-8" style={{ gap: 8 }}>
+            <Knopf art="klein leer" onClick={() => setUebernahme(new Set(vorschlaege.map((v) => v.fach)))}>Alle</Knopf>
+            <Knopf art="klein leer" onClick={() => setUebernahme(new Set())}>Keines</Knopf>
+          </div>
+          <div style={{ display: "grid", gap: 2 }}>
+            {vorschlaege.map((v) => (
+              <label key={v.fach} className="schalter">
+                <input type="checkbox" checked={uebernahme.has(v.fach)}
+                  onChange={(e) => setUebernahme((alt) => {
+                    const neu = new Set(alt);
+                    if (e.target.checked) neu.add(v.fach); else neu.delete(v.fach);
+                    return neu;
+                  })} />
+                <span>{v.fach} <span className="klein blass">· {herkunftText(v)}</span></span>
+              </label>
+            ))}
+          </div>
         </Dialog>
       )}
     </div>

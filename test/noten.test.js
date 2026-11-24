@@ -18,6 +18,8 @@ import {
   artSchnitt, fachPunkte, halbjahrSchnitt, gesamtSchnitt,
   alsNote, noteText, punkteText, punkteStufe,
   faecherIm, bekannteFaecher, verlaufVon, uebersicht,
+  STANDARD_SORTEN, neueSorte, sortenVon, gewichtVon, leistungsName, zahlLesen, zahlZeigen,
+  uebernahmeVorschlaege,
 } from "../src/core/noten.js";
 
 /** Ein Fach mit Leistungen, kurz geschrieben. */
@@ -263,4 +265,82 @@ test("eine neue Leistung nimmt nur, was sie kennt", () => {
   assert.equal(l.art, "schriftlich", "eine unbekannte Art fällt auf die häufigste zurück");
   assert.equal(l.punkte, PUNKTE_MAX);
   assert.equal(l.gewicht, 0);
+});
+
+/* ------------------- Sorten, Namen, Kommazahlen (24.11.) ----------------- */
+
+test("Kommazahlen gelten mit Komma wie mit Punkt", () => {
+  assert.equal(zahlLesen("0,5"), 0.5);
+  assert.equal(zahlLesen("0.5"), 0.5);
+  assert.equal(zahlLesen(" 2 "), 2);
+  assert.equal(zahlLesen("0,"), 0, "mitten im Tippen ist „0,“ schon null");
+  assert.equal(zahlLesen(""), null);
+  assert.equal(zahlLesen(","), null);
+  assert.equal(zahlLesen("Unfug"), null);
+  assert.equal(zahlZeigen(0.5), "0,5");
+  assert.equal(zahlZeigen(null), "");
+});
+
+test("eine Sorte gibt allen ihren Leistungen das Gewicht", () => {
+  const f = fach("12.1", "Deutsch");
+  const [ka, tst] = sortenVon(f);
+  f.leistungen = [
+    neueLeistung({ art: "schriftlich", punkte: 12, sorte: ka.id }),
+    neueLeistung({ art: "schriftlich", punkte: 6, sorte: tst.id }),
+  ];
+  // Klassenarbeit 1, Test 0,5: (12·1 + 6·0,5) / 1,5 = 10
+  assert.equal(fachPunkte(f).proArt.schriftlich, 10);
+  f.sorten = f.sorten.map((x) => (x.id === tst.id ? { ...x, gewicht: 1 } : x));
+  assert.equal(fachPunkte(f).proArt.schriftlich, 9, "Gewicht der Sorte geändert, alle Tests ziehen mit");
+});
+
+test("ohne Sorte zählt das eigene Gewicht, auch wenn die Sorte gelöscht wurde", () => {
+  assert.equal(gewichtVon({ gewicht: 2 }, STANDARD_SORTEN), 2);
+  assert.equal(gewichtVon({ gewicht: 0.5, sorte: "weg" }, STANDARD_SORTEN), 0.5);
+  assert.equal(gewichtVon({ gewicht: 3, sorte: "test" }, STANDARD_SORTEN), 0.5);
+});
+
+test("ältere Fächer ohne eigene Sorten bekommen Klassenarbeit und Test", () => {
+  const alt = fach("12.1", "Mathe");
+  delete alt.sorten;
+  assert.deepEqual(sortenVon(alt).map((x) => x.name), ["Klassenarbeit", "Test"]);
+  assert.equal(neuesNotenfach({ halbjahr: "12.1", fach: "X" }).sorten.length, 2);
+});
+
+test("eine angelegte Leistung ohne Punkte zieht den Schnitt nicht herunter", () => {
+  const f = fach("12.1", "Bio", [{ art: "schriftlich", punkte: 12 }]);
+  f.leistungen.push(neueLeistung({ art: "schriftlich" }));
+  assert.equal(f.leistungen[1].punkte, null);
+  assert.equal(fachPunkte(f).punkte, 12);
+  assert.equal(fachPunkte(f).anzahl, 1);
+});
+
+test("Leistungen ohne Bezeichnung werden je Sorte durchgezählt", () => {
+  const f = fach("12.1", "Deutsch");
+  const a = neueLeistung({ art: "schriftlich", sorte: "klassenarbeit" });
+  const b = neueLeistung({ art: "schriftlich", sorte: "test" });
+  const c = neueLeistung({ art: "schriftlich", sorte: "klassenarbeit" });
+  const d = neueLeistung({ art: "muendlich" });
+  const e = neueLeistung({ art: "schriftlich", sorte: "test", was: "Gedichtanalyse" });
+  f.leistungen = [a, b, c, d, e];
+  assert.equal(leistungsName(f, a), "Klassenarbeit 1");
+  assert.equal(leistungsName(f, b), "Test 1");
+  assert.equal(leistungsName(f, c), "Klassenarbeit 2");
+  assert.equal(leistungsName(f, d), "Mündlich 1");
+  assert.equal(leistungsName(f, e), "Gedichtanalyse");
+  f.leistungen = [b, c, d, e];
+  assert.equal(leistungsName(f, c), "Klassenarbeit 1", "nach dem Löschen rückt die Zählung nach");
+});
+
+test("Übernehmen bringt die Fächer des vorigen Halbjahres samt Sorten mit", () => {
+  const deutsch = fach("12.1", "Deutsch", [], { subjectId: "lf-d",
+    sorten: [neueSorte({ name: "Aufsatz", gewicht: 2 })], artGewicht: { schriftlich: 2, muendlich: 1, praktisch: 1 } });
+  const alle = [deutsch, fach("12.1", "Mathe"), fach("12.2", "Mathe"), fach("13.2", "Deutsch")];
+  const v = uebernahmeVorschlaege(alle, "12.2", [{ id: "lf-s", name: "Spanisch" }, { id: "lf-d", name: "deutsch" }]);
+  assert.deepEqual(v.map((x) => x.fach), ["Deutsch", "Spanisch"], "Mathe steht schon da");
+  assert.equal(v[0].herkunft, "12.1", "das frühere Halbjahr vor dem späteren");
+  assert.equal(v[0].sorten[0].name, "Aufsatz");
+  assert.equal(v[0].artGewicht.schriftlich, 2);
+  assert.equal(v[1].subjectId, "lf-s");
+  assert.equal(v[1].herkunft, "lernfach");
 });
