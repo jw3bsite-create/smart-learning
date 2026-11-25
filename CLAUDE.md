@@ -505,6 +505,12 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
 75. **„Oben im Stapel“** (`stapelOben`: abrufen | karteikarten): Die
     Karteikarten-Vorschau wie bei Quizlet (`ui/KartenVorschau.jsx`) verbucht
     nichts. Vom Nutzer zum Ausprobieren gewünscht; Vorgabe bleibt Abrufen.
+    Mit „Abrufen“ steht oben gleich die erste Frage des Stapels mit der
+    Einschätzung (`ui/AbrufEinstieg.jsx`); ein Tipp führt nach
+    `/abrufen/<fach>/stapel/<id>/start/<karte:richtung>/<konfidenz>`, und das
+    Abrufen setzt diese Karte vorn ein, die Einschätzung gesetzt, ohne
+    Größenwahl. Der Aufbau dort ist wiederholbar (kein „schon erledigt“-Ref):
+    React führt Effekte beim Entwickeln doppelt aus.
 
 ## Stapel aus Lernmaterial (im Chat)
 
@@ -527,6 +533,14 @@ Kein offenes Chatfenster · kein „Lösung anzeigen" im Tutormodus · kein Mult
 Choice im Abrufweg · kein „Alle KI-Karten übernehmen" · kein Wiederlese- oder
 Zusammenfassungsmodus · keine Notenvorhersage · keine Strähne für das Öffnen ·
 keine Selbstauswahl der Wiederholung · keine Erklärvideos.
+
+**Ausnahme, vom Nutzer entschieden (25. November 2026): Ziele und
+Vorhersage bei den Punkten.** Ein Abi-Ziel (0–900) und Ziele je Halbjahr,
+ein Balken, der sich füllt, die Hochrechnung und „was ab jetzt nötig ist“
+(`abiStand`, `halbjahrBedarf`, `naechsteArbeit` in `core/noten.js`,
+`ui/Ziele.jsx`, auch ganz oben auf der Startseite). Ausdrücklich ein grobes
+Gerüst — alle Halbjahre gleich, Prüfungen mit dem Schnitt geschätzt — und so
+beschriftet. Die Notenvorhersage *für Karten* bleibt ausgeschlossen.
 
 **Ausnahme, vom Nutzer entschieden (28. Oktober 2026):** Innerhalb eines Fachs
 lassen sich Ordner zum Abrufen auswählen (`abrufStapel` in

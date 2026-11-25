@@ -344,3 +344,51 @@ test("Übernehmen bringt die Fächer des vorigen Halbjahres samt Sorten mit", ()
   assert.equal(v[1].subjectId, "lf-s");
   assert.equal(v[1].herkunft, "lernfach");
 });
+
+/* ---------------------- Ziele und Bedarf (25.11.) ----------------------- */
+
+import { abiNote, abiPunkteFuer, punkteFuerNote, abiStand, halbjahrBedarf, naechsteArbeit } from "../src/core/noten.js";
+
+test("Abiturnote und Gesamtpunkte nach N = 17/3 − P/180", () => {
+  assert.equal(abiNote(900), 1);
+  assert.equal(abiNote(300).toFixed(1), "4.0");
+  assert.equal(abiPunkteFuer(1.8), 696);
+  assert.equal(abiPunkteFuer(4), 300);
+  assert.equal(punkteFuerNote(2), 11);
+  assert.equal(punkteFuerNote(1), 14, "1,0 entspricht 14 Punkten nach der Tabelle 17 − 3N");
+});
+
+test("der Abi-Balken füllt sich je Halbjahr und rechnet den Rest mit dem Schnitt hoch", () => {
+  const alle = [
+    fach("12.1", "Deutsch", [{ art: "schriftlich", punkte: 12 }]),
+    fach("12.1", "Mathe", [{ art: "schriftlich", punkte: 10 }]),
+  ];
+  const s = abiStand(alle, 700);
+  assert.equal(s.erreicht, 110, "Schnitt 11 × 10");
+  assert.equal(s.rest, 3 * 10 + 20);
+  assert.equal(s.hochgerechnet, 110 + 11 * 50);
+  assert.equal(s.noetig, (700 - 110) / 50);
+  assert.equal(abiStand([], null).hochgerechnet, null);
+});
+
+test("Fächer ohne Note gleichen aus, was die anderen unter dem Ziel liegen", () => {
+  const faecher = [
+    fach("12.1", "Deutsch", [{ art: "schriftlich", punkte: 11 }]),
+    fach("12.1", "Mathe", [{ art: "schriftlich", punkte: 12 }]),
+    fach("12.1", "GGK"),
+  ];
+  const b = halbjahrBedarf(faecher, 12);
+  assert.equal(b.offen, 1);
+  assert.equal(b.offeneBrauchen, 13, "36 − 23");
+  assert.equal(halbjahrBedarf(faecher, null), null);
+});
+
+test("die nächste Klassenarbeit: welche Punktzahl bringt das Fach aufs Ziel", () => {
+  const f = fach("12.1", "Deutsch", [{ art: "schriftlich", punkte: 9, sorte: "klassenarbeit" }]);
+  // (9 + x) / 2 ≥ 12 → x = 15
+  assert.deepEqual(naechsteArbeit(f, 12), { punkte: 15, name: "Klassenarbeit" });
+  assert.equal(naechsteArbeit(f, 13).unerreichbar, true);
+  assert.equal(naechsteArbeit(f, 4).sicher, true);
+  assert.equal(naechsteArbeit(fach("12.1", "Leer"), 12), null, "ohne Punkte zählt der Ausgleich im Halbjahr");
+  assert.equal(naechsteArbeit({ ...f, endpunkte: 10 }, 12), null, "Zeugnis steht fest");
+});

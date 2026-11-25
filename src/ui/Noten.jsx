@@ -17,9 +17,11 @@ import {
   HALBJAHRE, ARTEN, ART_IDS, PUNKTE_MAX,
   fachPunkte, halbjahrSchnitt, uebersicht, verlaufVon,
   faecherIm, punkteText, noteText, punkteStufe,
-  sortenVon, neueSorte, gewichtVon, leistungsName, zahlLesen, zahlZeigen, uebernahmeVorschlaege,
+  sortenVon, neueSorte, gewichtVon, leistungsName, naechsteArbeit, halbjahrBedarf, zahlZeigen, uebernahmeVorschlaege,
 } from "../core/noten.js";
 import { SymbolKnopf, Knopf, Leer, Dialog, Rueckfrage, HilfeLink } from "./basis.jsx";
+import ZahlFeld from "./ZahlFeld.jsx";
+import { AbiZiel, HalbjahrZiel, useZiele } from "./Ziele.jsx";
 import { anzahl } from "../core/util.js";
 
 /* ----------------------------- Kleinteile ------------------------------ */
@@ -61,39 +63,33 @@ function Leiste({ wert }) {
   );
 }
 
-/**
- * Ein Zahlenfeld, das Kommazahlen versteht.
- *
- * `type="number"` taugt dafür nicht: Am iPhone fehlt je nach Tastatur das
- * Komma, und wo es da ist, macht der Browser aus „0,5“ mal nichts, mal eine 5.
- * Darum ein Textfeld mit Dezimaltastatur, das seinen getippten Text behält,
- * bis man es verlässt — so bleibt „0,“ beim Tippen stehen, statt zur 0 zu
- * werden.
- */
-function ZahlFeld({ wert, aufAendern, min = 0, max = Infinity, leerErlaubt = false, ...rest }) {
-  const [text, setText] = useState(zahlZeigen(wert));
-  const [aktiv, setAktiv] = useState(false);
-  useEffect(() => { if (!aktiv) setText(zahlZeigen(wert)); }, [wert, aktiv]);
-  return (
-    <input className="feld" type="text" inputMode="decimal" autoComplete="off" enterKeyHint="done"
-      value={text}
-      onFocus={(e) => { setAktiv(true); e.target.select(); }}
-      onBlur={() => { setAktiv(false); setText(zahlZeigen(wert)); }}
-      onChange={(e) => {
-        const roh = e.target.value.replace(/[^\d.,-]/g, "");
-        setText(roh);
-        if (!roh.trim()) { if (leerErlaubt) aufAendern(null); return; }
-        const n = zahlLesen(roh);
-        if (n !== null) aufAendern(Math.min(max, Math.max(min, n)));
-      }}
-      onKeyDown={(e) => { if (e.key === "Enter") e.currentTarget.blur(); }}
-      {...rest} />
-  );
-}
-
 /* ------------------------- Ein Fach im Halbjahr ------------------------- */
 
-function FachZeile({ notenfach, aufOeffnen }) {
+/**
+ * Was das Fach fürs Halbjahresziel braucht: ohne Note den Ausgleich, den das
+ * Halbjahr verlangt; mit Note die Punktzahl der nächsten Klassenarbeit.
+ */
+function Bedarf({ notenfach, ziel, offeneBrauchen }) {
+  if (ziel === null || ziel === undefined) return null;
+  const stand = fachPunkte(notenfach);
+  if (stand.punkte === null) {
+    if (offeneBrauchen === null || offeneBrauchen === undefined) return null;
+    return (
+      <span className="bedarf">
+        {offeneBrauchen > PUNKTE_MAX ? "braucht mehr als 15 P"
+          : offeneBrauchen <= 0 ? "Ziel auch ohne dieses Fach"
+            : "braucht etwa " + punkteText(Math.ceil(offeneBrauchen * 2) / 2) + " P"}
+      </span>
+    );
+  }
+  const n = naechsteArbeit(notenfach, ziel);
+  if (!n) return null;
+  if (n.sicher || stand.punkte >= ziel) return <span className="bedarf gut">auf Kurs</span>;
+  if (n.unerreichbar) return <span className="bedarf">Ziel mit einer {n.name} nicht mehr erreichbar</span>;
+  return <span className="bedarf">nächste {n.name}: {n.punkte} P</span>;
+}
+
+function FachZeile({ notenfach, aufOeffnen, ziel = null, offeneBrauchen = null }) {
   const stand = fachPunkte(notenfach);
   return (
     <div className="karten-zeile" style={{ display: "block", padding: 14, cursor: "pointer" }}
@@ -115,6 +111,7 @@ function FachZeile({ notenfach, aufOeffnen }) {
           <span key={a}>{ARTEN[a].name}: {punkteText(stand.proArt[a])}</span>
         ))}
         {stand.anzahl === 0 && <span>noch keine Leistung eingetragen</span>}
+        <Bedarf notenfach={notenfach} ziel={ziel} offeneBrauchen={offeneBrauchen} />
       </div>
     </div>
   );
@@ -450,7 +447,11 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
 
 export default function Noten() {
   const { notenfaecher, notenfachAnlegen, faecher } = useDaten();
-  const [halbjahr, setHalbjahr] = useState(HALBJAHRE[0].id);
+  /* Beginnt beim jüngsten Halbjahr, in dem schon Fächer stehen — dem, das
+     gerade läuft —, nicht immer beim ersten. */
+  const [halbjahr, setHalbjahr] = useState(() =>
+    [...HALBJAHRE].reverse().find((h) => faecherIm(notenfaecher, h.id).length)?.id || HALBJAHRE[0].id);
+  const [ziele] = useZiele();
   const [offen, setOffen] = useState(null);
   const [anlegen, setAnlegen] = useState(false);
   const [neuerName, setNeuerName] = useState("");
@@ -466,6 +467,8 @@ export default function Noten() {
   }
 
   const gewaehlt = alles.halbjahre.find((h) => h.id === halbjahr);
+  const halbjahrZiel = ziele[halbjahr] ?? null;
+  const bedarf = gewaehlt ? halbjahrBedarf(gewaehlt.faecher, halbjahrZiel) : null;
   const herkunftText = (v) => (v.herkunft === "lernfach" ? "aus deinen Lernfächern"
     : "aus " + (HALBJAHRE.find((h) => h.id === v.herkunft)?.name || v.herkunft));
 
@@ -502,6 +505,9 @@ export default function Noten() {
           <Knopf art="voll" symbol="plus" onClick={() => setAnlegen(true)}>Fach</Knopf>
         </div>
       </div>
+
+      {/* ------------------------ Das große Ziel ------------------------- */}
+      <AbiZiel />
 
       {/* --------------------------- Der Schnitt -------------------------- */}
       {alles.gesamt && (
@@ -547,6 +553,7 @@ export default function Noten() {
             <Punkte wert={gewaehlt.schnitt} />
             <span className="klein blass">≙ {noteText(gewaehlt.schnitt)}</span>
           </div>
+          <HalbjahrZiel halbjahr={gewaehlt.id} schnitt={gewaehlt.schnitt} />
         </div>
       )}
 
@@ -567,7 +574,8 @@ export default function Noten() {
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
           {gewaehlt.faecher.map((f) => (
-            <FachZeile key={f.id} notenfach={f} aufOeffnen={() => setOffen(f.id)} />
+            <FachZeile key={f.id} notenfach={f} aufOeffnen={() => setOffen(f.id)}
+              ziel={halbjahrZiel} offeneBrauchen={bedarf?.offeneBrauchen ?? null} />
           ))}
         </div>
       )}

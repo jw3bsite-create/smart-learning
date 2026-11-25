@@ -1530,3 +1530,24 @@ html.zieht { cursor: grabbing; }
 .frage-kopf { display: flex; align-items: flex-start; gap: 8px; margin: -4px -6px 6px 0; }
 .frage-kopf .dehnen { min-width: 0; padding-top: 8px; }
 .frage-symbole { display: flex; flex: none; align-items: center; }
+
+/* Ziele (ui/Ziele.jsx): erreicht voll, hochgerechnet blass, Ziel als Strich. */
+.ziel-balken { position: relative; border-radius: 999px; background: var(--grund-3); overflow: visible; }
+.ziel-balken > span { position: absolute; top: 0; bottom: 0; border-radius: 999px; }
+.ziel-voll { left: 0; background: var(--akzent); transition: width calc(var(--wechsel) * 4) ease-out; }
+.ziel-hoch { background: var(--akzent); opacity: 0.28; }
+.ziel-balken.auf-kurs .ziel-voll, .ziel-balken.auf-kurs .ziel-hoch { background: var(--gruen); }
+.ziel-strich { width: 3px; top: -4px !important; bottom: -4px !important; margin-left: -1.5px;
+  background: var(--schrift); border-radius: 2px !important; }
+.ziel-zahl { font-family: var(--schrift-karten); font-size: 26px; font-weight: 600; line-height: 1.1; }
+.ziel-streifen { display: block; width: 100%; padding: 12px 14px; text-align: left; font: inherit; color: var(--schrift);
+  background: var(--grund-2); border: 1px solid var(--rand); border-radius: var(--rund); cursor: pointer; }
+.ziel-streifen:hover { border-color: var(--akzent); }
+.bedarf { color: var(--schrift-matt); }
+.bedarf.gut { color: var(--gruen); }
+
+/* Abrufen oben im Stapel (ui/AbrufEinstieg.jsx). */
+.abruf-einstieg { margin-bottom: 20px; border-color: var(--akzent); min-height: 0; cursor: default; }
+.abruf-einstieg-frage { text-align: center; padding: 10px 4px 6px; }
+.abruf-einstieg-frage .frage-text { font-size: 24px; }
+.abruf-einstieg-frage .frage-text.lang { font-size: 18px; }

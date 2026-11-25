@@ -21,6 +21,7 @@ import { FlammeZeichen } from "./Flamme.jsx";
 import { useLernzeiten } from "./Lernzeit.jsx";
 import { summe, tagesBeginn, dauerText } from "../core/lernzeit.js";
 import { UmzugNeu, UmzugHinweis } from "./Umzug.jsx";
+import { ZielStreifen } from "./Ziele.jsx";
 
 function gruss(stunde) {
   if (stunde < 5) return "Gute Nacht";
@@ -81,6 +82,8 @@ export default function Startseite() {
 
   return (
     <div className="mitte">
+      {/* Ganz oben, über allem: das Abi-Ziel (Wunsch des Nutzers, 25.11.2026). */}
+      <ZielStreifen aufOeffnen={() => gehe("/punkte")} />
       <div className="kopfzeile unten-8">
         <div style={{ flex: 1 }}>
           <div className="klein matt">

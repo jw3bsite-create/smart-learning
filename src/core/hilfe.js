@@ -160,6 +160,17 @@ export const FRAGEN = [
     ],
   },
   {
+    id: "ziele", gruppe: "punkte",
+    frage: "Wie werden das Abi-Ziel und „was ich noch brauche“ gerechnet?",
+    antwort: [
+      "Das Abi hat höchstens 900 Punkte. Anchor rechnet grob: Jedes Halbjahr bringt seinen Schnitt × 10 ein (höchstens 150), die Prüfungen deinen Schnitt × 20 (höchstens 300). Einbringungspflichten und doppelt zählende Kurse kennt die Rechnung nicht.",
+      "Der volle Teil des Balkens ist, was deine Halbjahre schon einbringen. Der blasse Teil ist die Hochrechnung, wenn es mit deinem jetzigen Schnitt weitergeht. Der Strich ist dein Ziel.",
+      "„Ab jetzt im Schnitt“ heißt: So viele Punkte brauchst du im Mittel in den offenen Halbjahren und Prüfungen, um aufs Ziel zu kommen. Die Note dazu: 17/3 − Punkte/180.",
+      "Im Halbjahr: Fächer ohne Note zeigen, wie viel sie im Schnitt bringen müssen, damit das Halbjahr aufs Ziel kommt. Fächer, die darüber liegen, gleichen aus. Fächer mit Noten zeigen, welche Punktzahl die nächste Klassenarbeit braucht, damit das Fach selbst aufs Ziel kommt.",
+      "Alles ist ein Richtwert zur Orientierung, nicht die Abiturnote.",
+    ],
+  },
+  {
     id: "sorten", gruppe: "punkte",
     frage: "Wie lege ich Test, Klassenarbeit oder GFS an?",
     antwort: [

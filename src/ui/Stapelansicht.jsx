@@ -20,6 +20,7 @@ import {
 } from "./basis.jsx";
 import Formel from "./Formel.jsx";
 import KartenVorschau from "./KartenVorschau.jsx";
+import AbrufEinstieg from "./AbrufEinstieg.jsx";
 import Auswahlleiste from "./Kartenauswahl.jsx";
 import { useZiehen } from "./ziehen.js";
 import { karteMitRueckfrageLoeschen } from "./Rueckfragen.jsx";
@@ -218,19 +219,8 @@ export default function Stapelansicht({ setId }) {
           )}
 
           {/* ------------------------- Der Lernweg ---------------------- */}
-          <div {...KLICKBAR} className="kachel lernweg-kachel"
-            onClick={() => gehe(derStapel.subjectId
-              ? "/abrufen/" + derStapel.subjectId : "/faecher")}>
-            <div className="lernweg-raster">
-              <Sinnbild name="blitz" ton="blau" groesse={18} className="gross" />
-              <div>
-                <div className="titel">Abrufen</div>
-                <div className={"klein matt" + (derStapel.subjectId ? " erklaerung" : "")}>
-                  {derStapel.subjectId
-                    ? "Tippen, einschätzen, bewerten: Hier entscheidet sich, wann diese Karten wiederkommen."
-                    : "Noch keinem Fach zugeordnet. Ohne Fach kann der Plan nicht rechnen."}
-                </div>
-              </div>
+          {(() => {
+            const fachWahl = (
               <select className="feld" style={{ width: "auto" }} value={derStapel.subjectId || ""}
                 aria-label="Fach dieses Stapels"
                 onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}
@@ -238,8 +228,31 @@ export default function Stapelansicht({ setId }) {
                 <option value="">(ohne Fach)</option>
                 {faecher.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
-            </div>
-          </div>
+            );
+            /* „Oben im Stapel: Abrufen“ (Vorgabe): gleich die erste Frage mit
+               der Einschätzung (ui/AbrufEinstieg.jsx, seit dem 25.11.2026). */
+            if (derStapel.subjectId && einstellungen.stapelOben !== "karteikarten") {
+              return <AbrufEinstieg setId={setId} derStapel={derStapel} auswahlFach={fachWahl} />;
+            }
+            return (
+              <div {...KLICKBAR} className="kachel lernweg-kachel"
+                onClick={() => gehe(derStapel.subjectId
+                  ? "/abrufen/" + derStapel.subjectId + "/stapel/" + setId : "/faecher")}>
+                <div className="lernweg-raster">
+                  <Sinnbild name="blitz" ton="blau" groesse={18} className="gross" />
+                  <div>
+                    <div className="titel">Abrufen</div>
+                    <div className={"klein matt" + (derStapel.subjectId ? " erklaerung" : "")}>
+                      {derStapel.subjectId
+                        ? "Tippen, einschätzen, bewerten: Hier entscheidet sich, wann diese Karten wiederkommen."
+                        : "Noch keinem Fach zugeordnet. Ohne Fach kann der Plan nicht rechnen."}
+                    </div>
+                  </div>
+                  {fachWahl}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* --------------------------- Übungsmodi --------------------- */}
           <div className="klein blass unten-8">

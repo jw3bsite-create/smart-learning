@@ -19,6 +19,10 @@
  * nicht. Was sie liefert, ist der schlichte Durchschnitt aller erfassten
  * Halbjahresleistungen — nützlich als Richtwert, und in der Oberfläche auch
  * genau so bezeichnet.
+ *
+ * Seit dem 25. November 2026 (Wunsch des Nutzers) gibt es dazu Ziele mit
+ * einer groben Hochrechnung auf 900 Punkte — ganz unten in dieser Datei,
+ * mit ihren Annahmen. Auch das ist keine Abiturnote, nur ein Gerüst.
  */
 
 import { id, jetzt } from "./model.js";
@@ -405,3 +409,116 @@ export function uebersicht(alle) {
   });
   return { halbjahre, gesamt: gesamtSchnitt(alle) };
 }
+
+/* ===================================================================== */
+/*  Ziele und was dafür noch nötig ist (seit dem 25. November 2026)      */
+/* ===================================================================== */
+
+/*
+ * Vom Nutzer ausdrücklich gewünscht, obwohl „keine Notenvorhersage“ auf der
+ * Liste dessen stand, was nicht gebaut wird (CLAUDE.md, Ausnahme vom
+ * 25.11.2026): ein Ziel fürs Abi und je Halbjahr, ein Balken, der sich
+ * füllt, und was ab jetzt nötig ist.
+ *
+ * **Ein grobes Gerüst, kein Abiturrechner.** Angenommen wird:
+ *   - Block I (höchstens 600): jedes Halbjahr zählt gleich, sein Schnitt × 10
+ *     (15 Punkte → 150). Einbringungspflichten und doppelt zählende Kurse
+ *     kennt die Rechnung nicht.
+ *   - Block II (höchstens 300): die Prüfungen, geschätzt mit dem Schnitt × 20.
+ * Gesamtpunkte in die Abiturnote nach der üblichen Formel N = 17/3 − P/180.
+ * Die Oberfläche sagt das dazu.
+ */
+
+export const ABI_MAX = 900;
+const JE_HALBJAHR = 10;      // Schnitt × 10 → höchstens 150 je Halbjahr
+const PRUEFUNGEN = 20;       // Schnitt × 20 → höchstens 300 für Block II
+
+/** Gesamtpunkte (0–900) in die Abiturnote, zwischen 1,0 und 6,0. */
+export function abiNote(punkte) {
+  if (punkte === null || punkte === undefined) return null;
+  return Math.min(6, Math.max(1, 17 / 3 - punkte / 180));
+}
+
+/** Die Gesamtpunkte, die zu einer Abiturnote gehören (Richtwert). */
+export function abiPunkteFuer(note) {
+  const n = zahl(note, NaN);
+  if (!Number.isFinite(n)) return null;
+  return Math.round(Math.min(ABI_MAX, Math.max(0, (17 / 3 - n) * 180)));
+}
+
+/** Halbjahrespunkte (0–15) aus einer Note, umgekehrt zu `alsNote`. */
+export function punkteFuerNote(note) {
+  const n = zahl(note, NaN);
+  if (!Number.isFinite(n)) return null;
+  return Math.min(PUNKTE_MAX, Math.max(PUNKTE_MIN, 17 - 3 * n));
+}
+
+export const noteKomma = (n) => (n === null || n === undefined ? "—" : n.toFixed(1).replace(".", ","));
+
+/**
+ * Wo das Abi steht: was die Halbjahre schon eingebracht haben, was
+ * hochgerechnet herauskäme und was ab jetzt im Schnitt nötig ist.
+ */
+export function abiStand(alle, ziel = null) {
+  const halbjahre = HALBJAHRE.map((h) => ({ id: h.id, schnitt: halbjahrSchnitt(faecherIm(alle, h.id)) }));
+  const mit = halbjahre.filter((h) => h.schnitt !== null);
+  const erreicht = mit.reduce((a, h) => a + h.schnitt * JE_HALBJAHR, 0);
+  const gesamt = gesamtSchnitt(alle);
+  const schnitt = gesamt ? gesamt.punkte : null;
+  const offeneHalbjahre = HALBJAHRE.length - mit.length;
+  /* Was noch kommt, in „Schnitt-Einheiten“: offene Halbjahre und die Prüfungen. */
+  const rest = offeneHalbjahre * JE_HALBJAHR + PRUEFUNGEN;
+  const hochgerechnet = schnitt === null ? null : erreicht + schnitt * rest;
+  const zielPunkte = ziel === null || ziel === undefined ? null : Number(ziel);
+  const noetig = zielPunkte === null ? null : (zielPunkte - erreicht) / rest;
+  return {
+    halbjahre, erreicht, schnitt, hochgerechnet, rest, offeneHalbjahre,
+    ziel: zielPunkte, noetig,
+    note: abiNote(hochgerechnet), zielNote: abiNote(zielPunkte),
+  };
+}
+
+/**
+ * Was ein Halbjahr für sein Ziel noch braucht: Fächer ohne Punkte im
+ * Schnitt so viel, dass das Halbjahr aufs Ziel kommt — die Fächer, die
+ * schon darüber liegen, gleichen aus.
+ */
+export function halbjahrBedarf(faecher, ziel) {
+  const alle = (faecher || []).filter((f) => f && !f.deleted);
+  if (ziel === null || ziel === undefined || !alle.length) return null;
+  const punkte = alle.map((f) => fachPunkte(f).punkte);
+  const bekannt = punkte.filter((p) => p !== null);
+  const offen = punkte.length - bekannt.length;
+  const summe = bekannt.reduce((a, b) => a + b, 0);
+  return {
+    offen,
+    /* Im Schnitt nötig für die Fächer ohne Punkte. */
+    offeneBrauchen: offen ? (Number(ziel) * alle.length - summe) / offen : null,
+    schnitt: bekannt.length ? summe / bekannt.length : null,
+  };
+}
+
+/**
+ * Welche Punktzahl die nächste Klassenarbeit (die erste schriftliche Sorte)
+ * braucht, damit das Fach aufs Ziel kommt. Ganze Punkte, wie sie unter
+ * einer Arbeit stehen. `null`, wenn das Fach noch nichts hat oder die
+ * Zeugnispunkte schon feststehen.
+ */
+export function naechsteArbeit(notenfach, ziel) {
+  if (ziel === null || ziel === undefined || !notenfach) return null;
+  if (notenfach.endpunkte !== null && notenfach.endpunkte !== undefined) return null;
+  if (fachPunkte(notenfach).punkte === null) return null;
+  const sorte = sortenVon(notenfach).find((x) => x.art === "schriftlich") || null;
+  const mit = (x) => fachPunkte({
+    ...notenfach,
+    leistungen: [...(notenfach.leistungen || []),
+      { id: "probe", art: "schriftlich", punkte: x, sorte: sorte?.id || null, gewicht: sorte?.gewicht ?? 1 }],
+  }).punkte;
+  const z = Number(ziel) - 1e-9;
+  const name = sorte?.name || "Arbeit";
+  if (mit(PUNKTE_MIN) >= z) return { sicher: true, name };
+  if (mit(PUNKTE_MAX) < z) return { unerreichbar: true, name };
+  for (let x = PUNKTE_MIN; x <= PUNKTE_MAX; x += 1) if (mit(x) >= z) return { punkte: x, name };
+  return { unerreichbar: true, name };
+}
+

@@ -213,7 +213,10 @@ function Antwortvorschau({ eingabe }) {
 
 /* --------------------------------- Modus -------------------------------- */
 
-export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAuswahl = null, aufSchliessen }) {
+export default function Abrufen({
+  fachId = null, ordnerAuswahl = null, stapelAuswahl = null, startSchluessel = null, startKonfidenz = null,
+  aufSchliessen,
+}) {
   const daten = useDaten();
   const {
     karten, zustaende, stapelVon: alleStapelVon, faecher, fachVon, einstellungen,
@@ -283,8 +286,10 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
   /* Endspurt: in den letzten Tagen vor dem Termin lässt sich der ganze Stoff
      durchgehen, ohne dass es den Plan verstellt. */
   const [cram, setCram] = useState(false);
-  const [groesse, setGroesse] = useState(null);
   const [vorgabeGroesse, setVorgabeGroesse] = useMerker("abrufGroesse", "mittel");
+  /* Aus dem Stapel mit schon gewählter Einschätzung: keine Größenwahl
+     dazwischen, die zuletzt gewählte gilt. */
+  const [groesse, setGroesse] = useState(() => (startSchluessel ? vorgabeGroesse : null));
   const restTage = tageBisPruefung(fach);
   const cramMoeglich = restTage !== null && restTage >= 0 && restTage <= CRAM_AB_TAGEN;
 
@@ -328,8 +333,31 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
      Sitzung fällig wird, kommt erst beim nächsten Mal dran. */
   useEffect(() => {
     if (!gestartet || !groesse) return;
-    setSitzung(sitzungBauen());
-    setStelle(0); setPhase("konfidenz"); setKonfidenz(null); setEingabe("");
+    let neu = sitzungBauen();
+    /* Aus dem Stapel: die Karte, deren Frage dort stand, zuerst — mit der
+       Einschätzung, die dort schon gewählt wurde. */
+    let vorgewaehlt = false;
+    /* Wiederholbar gebaut (kein „schon erledigt“-Merker): React führt den
+       Effekt beim Entwickeln zweimal aus, und der zweite Lauf verlor sonst
+       die Startkarte. Später läuft er nur bei neuem Fach/neuer Auswahl. */
+    if (startSchluessel) {
+      const i = neu.aufgaben.findIndex((a) => a.schluessel === startSchluessel);
+      if (i >= 0) {
+        neu = { ...neu, aufgaben: [neu.aufgaben[i], ...neu.aufgaben.filter((_, j) => j !== i)] };
+        vorgewaehlt = true;
+      } else {
+        const ganz = baueSitzung({ karten, zustaende, stapelVon, faecherVon, fach, umfang: 100000 });
+        const a = ganz.aufgaben.find((x) => x.schluessel === startSchluessel);
+        if (a) {
+          neu = { ...neu, aufgaben: [a, ...neu.aufgaben.slice(0, Math.max(0, neu.aufgaben.length - 1))] };
+          vorgewaehlt = true;
+        }
+      }
+    }
+    setSitzung(neu);
+    setStelle(0); setEingabe("");
+    if (vorgewaehlt && startKonfidenz) { setKonfidenz(startKonfidenz); setPhase("tippen"); }
+    else { setPhase("konfidenz"); setKonfidenz(null); }
     setErgebnisse([]); setFertig(false);
     beginn.current = Date.now();
   }, [fachId, gestartet, auswahlSchluessel, groesse]);

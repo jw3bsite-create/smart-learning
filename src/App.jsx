@@ -349,6 +349,9 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
     return gefangen(<Abrufen fachId={teile[1] || null}
       ordnerAuswahl={teile[2] === "ordner" && teile[3] ? teile[3].split(",") : null}
       stapelAuswahl={teile[2] === "stapel" && teile[3] ? teile[3].split(",") : null}
+      // …/start/<karte:richtung>/<konfidenz>: aus dem Stapel, Einschätzung schon gesetzt
+      startSchluessel={teile[4] === "start" && teile[5] ? decodeURIComponent(teile[5]) : null}
+      startKonfidenz={teile[4] === "start" && teile[6] ? Number(teile[6]) : null}
       aufSchliessen={() => zurueck("/faecher")} />);
   }
 
