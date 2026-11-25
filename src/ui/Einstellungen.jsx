@@ -1802,6 +1802,17 @@ export default function Einstellungen({ aufAbgleich, teil = null }) {
                   );
                 })}
               </div>
+              {(einstellungen.verlaufPfeile || "unten") !== "aus" && (
+                <>
+                  <label className="beschriftung oben-12">
+                    Größe der Pfeile: {Math.round((Number(einstellungen.verlaufPfeileGroesse) || 1) * 100)} %
+                  </label>
+                  <input type="range" min="0.7" max="1.8" step="0.05"
+                    value={Number(einstellungen.verlaufPfeileGroesse) || 1}
+                    style={{ width: "100%", maxWidth: 320 }}
+                    onChange={(e) => setzeEinstellung("verlaufPfeileGroesse", Number(e.target.value))} />
+                </>
+              )}
             </section>
           <Abschnitt titel="Aussehen"
             hinweis="Jede Änderung greift sofort.">

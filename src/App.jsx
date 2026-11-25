@@ -164,13 +164,16 @@ function useWeg() {
  * einstellbar (Einstellungen → Aussehen): klein unten mittig über der
  * Leiste, unter dem Logo, oder gar nicht. Neben dem Logo quetschten sie es.
  */
-function VerlaufKnoepfe({ art }) {
+function VerlaufKnoepfe({ art, skala = 1 }) {
+  /* Die Größe stellt der Nutzer selbst ein (Einstellungen → Aussehen).
+     Symbol, Tippfläche und bei „unten“ die Wölbung wachsen gemeinsam. */
+  const s = Math.min(1.8, Math.max(0.7, Number(skala) || 1));
   const knoepfe = (
-    <div className={"verlauf-knoepfe " + art}>
-      <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer klein" groesse={16}
+    <div className={"verlauf-knoepfe " + art} style={{ "--pfeil-skala": s }}>
+      <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer klein" groesse={Math.round(16 * s)}
         disabled={!(window.history.state?.slTiefe > 0)}
         onClick={() => window.history.back()} />
-      <SymbolKnopf symbol="weiter" titel="Vor" art="leer klein" groesse={16}
+      <SymbolKnopf symbol="weiter" titel="Vor" art="leer klein" groesse={Math.round(16 * s)}
         disabled={!naechsterWeg()}
         onClick={() => window.history.forward()} />
     </div>
@@ -181,7 +184,7 @@ function VerlaufKnoepfe({ art }) {
      gerade (nach einer Skizze des Nutzers, 25.11.2026). Darin die Pfeile.
      Fläche und Rand in den Farben der Leiste. */
   return (
-    <div className="fuss-welle">
+    <div className="fuss-welle" style={{ "--pfeil-skala": s }}>
       <svg className="fuss-welle-form" viewBox="0 0 140 30" preserveAspectRatio="none" aria-hidden="true">
         <path d="M0 30 C 8 30, 13 28, 15 22 L 18 9 C 20 3, 25 1, 32 1 L 108 1 C 115 1, 120 3, 122 9 L 125 22 C 127 28, 132 30, 140 30 Z" fill="var(--grund)" />
         <path d="M0 30 C 8 30, 13 28, 15 22 L 18 9 C 20 3, 25 1, 32 1 L 108 1 C 115 1, 120 3, 122 9 L 125 22 C 127 28, 132 30, 140 30" fill="none"
@@ -192,7 +195,7 @@ function VerlaufKnoepfe({ art }) {
   );
 }
 
-function Fussleiste({ weg, faellig, aufMehr, welle = false }) {
+function Fussleiste({ weg, faellig, aufMehr, welle = false, skala = 1 }) {
   const erster = weg[0] || "";
   const punkte = [
     ["start", "Start", "haus", START, erster === "start", "blau"],
@@ -203,7 +206,7 @@ function Fussleiste({ weg, faellig, aufMehr, welle = false }) {
   ];
   return (
     <nav className="fussleiste nur-schmal" aria-label="Hauptwege">
-      {welle && <VerlaufKnoepfe art="unten" />}
+      {welle && <VerlaufKnoepfe art="unten" skala={skala} />}
       {punkte.map(([schluessel, name, symbol, ziel, aktiv, ton]) => (
         <button key={schluessel} type="button"
           className={"fuss-knopf ton-" + ton + (aktiv ? " aktiv" : "") + (schluessel === "abrufen" ? " haupt" : "")}
@@ -481,7 +484,7 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
             <img src="./logo-96.png" className="logo-bild klein" alt="" />
             <span>Anchor</span>
           </button>
-            {pfeile === "logo" && <VerlaufKnoepfe art="unter-logo" />}
+            {pfeile === "logo" && <VerlaufKnoepfe art="unter-logo" skala={einstellungen.verlaufPfeileGroesse} />}
           </div>
           <span className="dehnen" />
           <Glocke />
@@ -489,6 +492,7 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
         {gefangen(inhalt)}
       </main>
       <Fussleiste weg={teile} faellig={offen?.faellig || 0} welle={pfeile === "unten"}
+        skala={einstellungen.verlaufPfeileGroesse}
         aufMehr={() => setLeisteOffen(true)} />
     </div>
   );

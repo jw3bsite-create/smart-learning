@@ -1565,12 +1565,14 @@ html.zieht { cursor: grabbing; }
 .logo-spalte { display: flex; flex-direction: column; align-items: flex-start; }
 /* Unter dem Logo: eine schmale Zeile, die kaum Höhe kostet. */
 .verlauf-knoepfe.unter-logo { margin: -2px 0 -6px -8px; }
-.verlauf-knoepfe.unter-logo .knopf { min-height: 30px; min-width: 36px; padding: 3px 8px; }
+.verlauf-knoepfe.unter-logo .knopf { min-height: calc(30px * var(--pfeil-skala, 1));
+  min-width: calc(36px * var(--pfeil-skala, 1)); padding: 3px 8px; }
 /* Unten: eine sanfte Wölbung der Leiste über „Abrufen“. Sie sitzt auf der
    Oberkante der Leiste und deckt deren Randlinie ab, damit beides verschmilzt. */
-.fuss-welle { position: absolute; left: 50%; bottom: calc(100% - 1px); width: 140px; height: 30px;
+.fuss-welle { position: absolute; left: 50%; bottom: calc(100% - 1px); width: calc(140px * var(--pfeil-skala, 1)); height: calc(30px * var(--pfeil-skala, 1));
   transform: translateX(-50%); pointer-events: none; }
 .fuss-welle-form { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .verlauf-knoepfe.unten { position: absolute; left: 50%; bottom: 2px; transform: translateX(-50%);
   gap: 18px; pointer-events: auto; }
-.verlauf-knoepfe.unten .knopf { min-height: 28px; min-width: 36px; padding: 2px 8px; }
+.verlauf-knoepfe.unten .knopf { min-height: calc(28px * var(--pfeil-skala, 1));
+  min-width: calc(36px * var(--pfeil-skala, 1)); padding: 2px 8px; }
