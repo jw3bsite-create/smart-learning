@@ -11,6 +11,7 @@
  * werden.
  */
 
+import { mitKlausurTermin } from "./klausuren.js";
 import React, {
   createContext, useContext, useEffect, useMemo, useRef, useSyncExternalStore,
 } from "react";
@@ -29,7 +30,13 @@ export function DatenSpeicher({ children }) {
 
   useEffect(() => { aktionen.laden(); }, []);
 
-  const { karten, stapel, faecher, zustaende } = zustand;
+  const { karten, stapel, zustaende } = zustand;
+
+  /* Fächer mit Klausuren: ihr Prüfungstermin ist die nächste kommende
+     Klausur (core/klausuren.js). Neu gerechnet, wenn sich die Fächer
+     ändern oder ein neuer Tag beginnt. */
+  const heute = new Date().toDateString();
+  const faecher = useMemo(() => zustand.faecher.map((f) => mitKlausurTermin(f)), [zustand.faecher, heute]);
 
   /* ------------------------------ Ableitungen ------------------------- */
   const kartenNachStapel = useMemo(() => {
@@ -73,8 +80,8 @@ export function DatenSpeicher({ children }) {
   }, [karten, zustaende, stapelNachId, fachNachId]);
 
   const wert = useMemo(() => ({
-    ...zustand, ...aktionen, ...nachschlagen, kartenNachStapel, offen,
-  }), [zustand, nachschlagen, kartenNachStapel, offen]);
+    ...zustand, faecher, ...aktionen, ...nachschlagen, kartenNachStapel, offen,
+  }), [zustand, faecher, nachschlagen, kartenNachStapel, offen]);
 
   return <Zusammenhang.Provider value={wert}>{children}</Zusammenhang.Provider>;
 }

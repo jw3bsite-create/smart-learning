@@ -23,6 +23,8 @@
  * jeden seiner Ordner.
  */
 
+import { klausurJeStapel } from "../core/klausuren.js";
+import KlausurenTeil from "./Klausuren.jsx";
 import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { fachZaehlung, stapelStand } from "../core/warteschlange.js";
@@ -99,6 +101,8 @@ export default function FachSeite({ fachId, ordnerId = null }) {
   const zOrdner = derOrdner
     ? fachZaehlung(karten, zustaende, (id) => (imOrdner.has(id) ? stapelVon(id) : null), fach.id) : z;
   const offen = z.faellig + z.neu;
+  /* Die Marke „Klausur in 6 Tagen“ an den Stapeln (core/klausuren.js). */
+  const klausurJe = klausurJeStapel([fach], stapel, ordner);
   const punkte = punkteZuLernfach(notenfaecher, fach.id);
   const fachName = (id) => faecher.find((f) => f.id === id)?.name;
   const ordnerName = (id) => ordner.find((o) => o.id === id)?.name;
@@ -244,6 +248,9 @@ export default function FachSeite({ fachId, ordnerId = null }) {
         </div>
       )}
 
+      {/* ----------------------------- Klausuren --------------------------- */}
+      {!derOrdner && <KlausurenTeil fach={fach} />}
+
       {/* ------------------------------ Material --------------------------- */}
       {/* Solange hier nichts liegt, stehen dieselben Knoepfe gross in der Mitte. */}
       {!leer && (
@@ -298,7 +305,7 @@ export default function FachSeite({ fachId, ordnerId = null }) {
             <div className="gitter">
               {eigene.map((s) => (
                 <StapelKachel key={s.id} stapel={s} karten={kartenNachStapel.get(s.id) || []}
-                  zustaende={zustaende} aufMenue={menue} />
+                  zustaende={zustaende} aufMenue={menue} klausur={klausurJe.get(s.id) || null} />
               ))}
             </div>
           )}

@@ -13,9 +13,11 @@ import { anzahl, datumKurz } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import { erfragen } from "./Rueckfragen.jsx";
 import {
-  Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Leer, Dialog, Rueckfrage, KLICKBAR,
+  Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Leer, Dialog, Rueckfrage, KLICKBAR, useMerker,
 } from "./basis.jsx";
 import Formel from "./Formel.jsx";
+import { klausurJeStapel, stapelSortieren, SORTIERUNGEN, FLACH, tageBis, tageText } from "../core/klausuren.js";
+import { klausurMarke } from "./Klausuren.jsx";
 import StapeldateiEinfuhr from "./Stapeldatei.jsx";
 
 /* ---------------------------- Eine Stapelkachel ------------------------ */
@@ -26,7 +28,7 @@ import StapeldateiEinfuhr from "./Stapeldatei.jsx";
  * dieselben Karten längst geplant hat. Dieselbe Karte darf nicht an zwei
  * Stellen zwei Wahrheiten haben.
  */
-export function StapelKachel({ stapel, karten, zustaende, aufMenue }) {
+export function StapelKachel({ stapel, karten, zustaende, aufMenue, klausur = null }) {
   const stand = stapelStand(karten, zustaende, stapel);
   const anteile = anteileNachStufe(stand.zustaende);
   const { faellig: faellige, neu } = stand;
@@ -40,6 +42,17 @@ export function StapelKachel({ stapel, karten, zustaende, aufMenue }) {
           {aufMenue(stapel)}
         </Menue>
       </div>
+      {/* Die nächste Klausur, zu der der Stapel gehört (core/klausuren.js). */}
+      {klausur && (() => {
+        const tage = tageBis(klausur.klausur);
+        return (
+          <div>
+            <span className={klausurMarke(tage)} title={klausur.fach.name + " · " + datumKurz(klausur.klausur.datum)}>
+              {(klausur.klausur.name || "Klausur") + " " + tageText(tage)}
+            </span>
+          </div>
+        );
+      })()}
       {stapel.description && (
         <div className="klein matt" style={{
           display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
@@ -158,13 +171,26 @@ function BeispielKnopf() {
 export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
   const daten = useDaten();
   const {
-    ordner, stapel, kartenNachStapel, zustaende, faecher,
+    ordner, stapel, kartenNachStapel, zustaende, faecher, reviews,
     ordnerAnlegen, ordnerAendern, ordnerLoeschen,
     stapelAnlegen, stapelAendern, stapelLoeschen, stapelVervielfaeltigen,
   } = daten;
   const [verschiebt, setVerschiebt] = useState(null);
   const [liestEin, setLiestEin] = useState(false);
   const [loescht, setLoescht] = useState(null);
+  /* Sortierung, gemerkt pro Gerät (Wunsch des Nutzers, 25.11.2026). */
+  const [sortierung, setSortierung] = useMerker("stapelSortierung", "geaendert");
+
+  /* Für Sortierung und Marken: nächste Klausur je Stapel, wann zuletzt gelernt. */
+  const klausuren = useMemo(() => klausurJeStapel(faecher, stapel, ordner), [faecher, stapel, ordner]);
+  const zuletzt = useMemo(() => {
+    const m = new Map();
+    for (const r of reviews || []) {
+      if (r.deleted || !r.setId) continue;
+      if ((m.get(r.setId) || 0) < r.zeit) m.set(r.setId, r.zeit);
+    }
+    return m;
+  }, [reviews]);
 
   if (suchbegriff) return <Suchergebnis begriff={suchbegriff} />;
 
@@ -173,10 +199,25 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
   const unterordner = (ordnerId ? ordner : allgemeineOrdner(ordner, faecher))
     .filter((o) => o.parentId === (ordnerId || null))
     .sort((a, b) => a.name.localeCompare(b.name, "de"));
-  const sichtbareStapel = (ordnerId
-    ? stapel.filter((s) => s.folderId === ordnerId)
-    : stapel)
-    .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  /* Bei „Fällig“ und „Klausur“ zählt, was oben steht: dann auch die Stapel
+     aus Unterordnern, als eine Liste. */
+  const flach = FLACH.has(sortierung);
+  const zweig = ordnerId ? ordnerZweig(ordner, ordnerId) : null;
+  const info = (s) => {
+    const k = kartenNachStapel.get(s.id) || [];
+    return {
+      karten: k.length,
+      faellig: sortierung === "faellig" ? stapelStand(k, zustaende, s).faellig : 0,
+      gelernt: zuletzt.get(s.id) ?? null,
+      klausurDatum: klausuren.get(s.id)?.klausur.datum ?? null,
+    };
+  };
+  const auswahl = (ordnerId
+    ? stapel.filter((s) => (flach ? zweig.has(s.folderId) : s.folderId === ordnerId))
+    : stapel).filter((s) => !s.deleted);
+  /* Einmal je Stapel rechnen, nicht bei jedem Vergleich. */
+  const infos = new Map(auswahl.map((s) => [s.id, info(s)]));
+  const sichtbareStapel = stapelSortieren(auswahl, sortierung, (s) => infos.get(s.id));
 
   /* Pfad vom obersten Ordner herunter. */
   const pfad = [];
@@ -315,6 +356,16 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
         </div>
       )}
 
+      {sichtbareStapel.length > 0 && (
+        <div className="reihe unten-12" style={{ gap: 8 }}>
+          <h3 className="dehnen" style={{ margin: 0 }}>{anzahl(sichtbareStapel.length, "Stapel", "Stapel")}</h3>
+          <select className="feld" style={{ width: "auto" }} value={sortierung} aria-label="Sortieren nach"
+            onChange={(e) => setSortierung(e.target.value)}>
+            {SORTIERUNGEN.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+          </select>
+        </div>
+      )}
+
       {sichtbareStapel.length === 0 ? (
         <Leer titel="Noch nichts hier"
           text="Leg einen Stapel an: von Hand, aus einer Liste oder aus einem Foto.">
@@ -327,7 +378,7 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
         <div className="gitter">
           {sichtbareStapel.map((s) => (
             <StapelKachel key={s.id} stapel={s} karten={kartenNachStapel.get(s.id) || []}
-              zustaende={zustaende} aufMenue={menuePunkte} />
+              zustaende={zustaende} aufMenue={menuePunkte} klausur={klausuren.get(s.id) || null} />
           ))}
         </div>
       )}

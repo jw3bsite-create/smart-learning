@@ -158,7 +158,9 @@ export default function Startseite() {
                   <button type="button" key={fach.id} className="listenzeile"
                     onClick={() => gehe("/fach/" + fach.id)}>
                     <FachPunkt farbe={fach.farbe} />
-                    <span className="dehnen">{fach.name}</span>
+                    <span className="dehnen">{fach.name}
+                      {fach.naechsteKlausur?.name && <span className="klein blass"> · {fach.naechsteKlausur.name}</span>}
+                    </span>
                     <span className="klein" style={{ color: tage < 30 ? "var(--gelb)" : "var(--schrift-matt)" }}>
                       {tage === 0 ? "heute" : tage === 1 ? "morgen" : "in " + tage + " Tagen"}
                     </span>

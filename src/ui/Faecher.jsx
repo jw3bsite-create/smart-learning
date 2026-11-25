@@ -7,6 +7,7 @@
  * was hängt.
  */
 
+import KlausurenTeil from "./Klausuren.jsx";
 import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { anteileNachStufe } from "../core/fsrs.js";
@@ -111,8 +112,6 @@ function NeuesFach({ aufSchliessen }) {
 export function FachEinstellungen({ fach, aufSchliessen }) {
   const { fachAendern, notenfaecher } = useDaten();
   const punkte = punkteZuLernfach(notenfaecher, fach.id);
-  const termin = fach.pruefungsdatum
-    ? new Date(fach.pruefungsdatum).toISOString().slice(0, 10) : "";
 
   return (
     <Dialog titel={fach.name} aufSchliessen={aufSchliessen}
@@ -147,14 +146,12 @@ export function FachEinstellungen({ fach, aufSchliessen }) {
         mehrfach zurück. Null heißt: nur wiederholen, nichts Neues.
       </p>
 
-      <label className="beschriftung oben-16">Prüfungstermin</label>
-      <input className="feld" type="date" value={termin}
-        onChange={(e) => fachAendern(fach.id, {
-          pruefungsdatum: e.target.value ? new Date(e.target.value).getTime() : null,
-        })} />
-      <p className="klein matt oben-4">
-        Je näher er rückt, desto dichter rücken die Wiederholungen zusammen,
-        und desto häufiger kommt das Fach im Fragemodus dran.
+      <div className="oben-16">
+        <KlausurenTeil fach={fach} knapp />
+      </div>
+      <p className="klein matt oben-4 erklaerung">
+        Je näher die nächste Klausur rückt, desto dichter rücken die Wiederholungen
+        zusammen, und desto häufiger kommt das Fach im Fragemodus dran.
       </p>
 
       <label className="beschriftung oben-16">Dringlichkeit</label>

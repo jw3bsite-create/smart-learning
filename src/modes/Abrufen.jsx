@@ -38,6 +38,7 @@ import {
   sitzungBeginnen, antworten, zusammenfassung, zeitenAusVerlauf, stapelMedian, referenz, kappen, ersterVersuch,
 } from "../core/wiedervorlage.js";
 import { useStoppuhr } from "../ui/stoppuhr.js";
+import { ganzesFach, stapelDerKlausur } from "../core/klausuren.js";
 import { abrufStapel, OBEN } from "../core/fachordner.js";
 import { gehe } from "../App.jsx";
 import {
@@ -292,9 +293,17 @@ export default function Abrufen({
   const [groesse, setGroesse] = useState(() => (startSchluessel ? vorgabeGroesse : null));
   const restTage = tageBisPruefung(fach);
   const cramMoeglich = restTage !== null && restTage >= 0 && restTage <= CRAM_AB_TAGEN;
+  /* Der Endspurt vor einer Klausur nimmt nur deren Stapel (core/klausuren.js),
+     nicht das ganze Fach — sonst mischte sich die Klausur aus der 12 in die
+     aus der 13. Ohne Zuordnung bleibt es das ganze Fach. */
+  const klausur = fach?.naechsteKlausur || null;
+  const klausurStapel = useMemo(() => (klausur && !ganzesFach(klausur)
+    ? stapelDerKlausur(klausur, fach, stapel, ordner) : null), [klausur, fach, stapel, ordner]);
+  const cramStapelVon = useCallback((id) => (!klausurStapel || klausurStapel.has(id) ? stapelVon(id) : null),
+    [klausurStapel, stapelVon]);
 
   const sitzungBauen = useCallback(() => (cram && fach
-    ? baueCramSitzung({ karten, zustaende, stapelVon, fach, umfang: 40 })
+    ? baueCramSitzung({ karten, zustaende, stapelVon: cramStapelVon, fach, umfang: 40 })
     : baueSitzung({
       karten, zustaende, stapelVon, faecherVon, fach,
       faecherIds: fachId ? null : gewaehlteFaecher,
@@ -323,7 +332,7 @@ export default function Abrufen({
   const endspurt = () => {
     if (!fach) return;
     setCram(true);
-    setSitzung(baueCramSitzung({ karten, zustaende, stapelVon, fach, umfang: 40 }));
+    setSitzung(baueCramSitzung({ karten, zustaende, stapelVon: cramStapelVon, fach, umfang: 40 }));
     setStelle(0); setPhase("konfidenz"); setKonfidenz(null); setEingabe("");
     setErgebnisse([]); setFertig(false); schritteZuruecksetzen();
     beginn.current = Date.now();
@@ -696,7 +705,7 @@ export default function Abrufen({
             <Knopf onClick={() => gehe("/faecher")}>Zur Übersicht</Knopf>
             {cramMoeglich && (
               <Knopf art="voll" symbol="uhr" onClick={endspurt}>
-                Endspurt, alles durchgehen
+                {klausur?.name ? "Endspurt für " + klausur.name : "Endspurt, alles durchgehen"}
               </Knopf>
             )}
           </div>

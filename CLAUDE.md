@@ -511,6 +511,16 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     Abrufen setzt diese Karte vorn ein, die Einschätzung gesetzt, ohne
     Größenwahl. Der Aufbau dort ist wiederholbar (kein „schon erledigt“-Ref):
     React führt Effekte beim Entwickeln doppelt aus.
+76. **Klausuren** (`core/klausuren.js`, seit 25. November 2026): mehrere je
+    Fach (`subjects.klausuren`: name, datum, ordnerIds, stapelIds; nichts
+    zugeordnet = ganzes Fach). `pruefungsdatum` wird im Datenspeicher
+    (`store.jsx`, `mitKlausurTermin`) aus der nächsten kommenden Klausur
+    abgeleitet — wer Fächer liest, bekommt es fertig; wer schreibt, schreibt
+    `klausuren`. Ein Fach ohne Liste behält seinen alten Termin (erscheint als
+    Klausur „Prüfung“, Kennung `termin`, bekommt beim ersten Speichern eine
+    echte). Endspurt nimmt nur die Stapel der nächsten Klausur.
+    Stapel sortieren: `SORTIERUNGEN`/`stapelSortieren`, gemerkt als
+    `stapelSortierung`.
 
 ## Stapel aus Lernmaterial (im Chat)
 

@@ -128,6 +128,24 @@ export const FRAGEN = [
     ],
   },
   {
+    id: "klausuren", gruppe: "karten",
+    frage: "Wie lege ich Klausuren an und ordne ihnen Stapel zu?",
+    antwort: [
+      "Im Fach unter „Klausuren“ auf „+ Klausur“: Name, Datum und was drankommt. Kreuzt du nichts an, gehört das ganze Fach dazu.",
+      "Du kannst Ordner ankreuzen (sie bringen ihre Unterordner mit) und einzelne Stapel. Ein Ordner darf zu mehreren Klausuren gehören.",
+      "Die nächste Klausur ist der Prüfungstermin des Fachs: Startseite, „Reicht die Zeit?“ und der Endspurt richten sich danach. Der Endspurt nimmt dann nur die Stapel dieser Klausur.",
+      "An den Stapeln steht „Klausur in 6 Tagen“. Nach dem Klausurtag verschwindet die Marke, die Stapel bleiben ganz normal im Plan.",
+    ],
+  },
+  {
+    id: "sortieren", gruppe: "karten",
+    frage: "Wie sortiere ich meine Stapel?",
+    antwort: [
+      "Im Reiter „Stapel“ über der Liste: zuletzt geändert, Name, Anzahl Karten, zuletzt gelernt, erstellt, fällig oder Klausur. Die Wahl merkt sich das Gerät.",
+      "Bei „Fällig“ und „Klausur“ kommen alle Stapel als eine Liste, auch aus Unterordnern, damit das Dringende wirklich oben steht.",
+    ],
+  },
+  {
     id: "quizlet", gruppe: "karten",
     frage: "Wie hole ich einen Stapel aus Quizlet?",
     antwort: [
