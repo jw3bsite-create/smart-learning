@@ -91,6 +91,23 @@ function abiNoetigText(noetig) {
   return "Fürs Abi-Ziel ab jetzt im Schnitt " + punkteText(noetig) + " P (≈ " + noteKomma(alsNote(noetig)) + ")";
 }
 
+/**
+ * Was die Fächer ohne Note fürs Halbjahresziel bringen müssen — ehrlich:
+ * Liegt das über 15 P, steht da, was mit 15 P überall höchstens geht
+ * (statt „mehr als 15 P“, Wunsch des Nutzers vom 25.11.2026).
+ */
+export function offeneText(bedarf) {
+  if (!bedarf || !bedarf.offen) return null;
+  const eins = bedarf.offen === 1;
+  const wer = eins ? "Das Fach ohne Note" : "Die " + bedarf.offen + " Fächer ohne Note";
+  if (bedarf.offeneBrauchen <= 0) return <>Ziel schon erreicht, egal was in {eins ? "dem Fach ohne Note" : "den Fächern ohne Note"} kommt.</>;
+  if (bedarf.offeneBrauchen > PUNKTE_MAX) {
+    return <>Auch mit 15 P in {eins ? "dem Fach ohne Note" : "allen " + bedarf.offen + " Fächern ohne Note"} kommst du
+      höchstens auf <strong>{punkteText(bedarf.bestfall)} P</strong>.</>;
+  }
+  return <>{wer} {eins ? "braucht" : "brauchen im Schnitt"} <strong>{punkteText(bedarf.offeneBrauchen)} P</strong>.</>;
+}
+
 /** Das Halbjahr, das gerade läuft: das jüngste mit Fächern, sonst das erste. */
 export function laufendesHalbjahr(alle, gewaehlt = null) {
   /* Selbst gewählt (Tipp auf das Halbjahr bei den Punkten, 25.11.2026) —
@@ -114,7 +131,8 @@ function BrauchstDu({ alle, ziele, klasse = "klein oben-4" }) {
   const schnitt = halbjahrSchnitt(faecherIm(alle, h.id));
   if (ziel > PUNKTE_MAX) {
     return <div className={klasse} style={{ color: "var(--rot)" }}>
-      In {h.name} wären über 15 P nötig, das Ziel ist mit dieser Rechnung nicht mehr erreichbar.</div>;
+      Fürs Abi-Ziel bräuchtest du ab {h.name} im Schnitt mehr als 15 P, das geht nicht mehr. Ein
+      niedrigeres Ziel passt besser.</div>;
   }
   return (
     <div className={klasse}>
@@ -154,10 +172,15 @@ function HalbjahrReihe({ alle, ziele }) {
 
 /** Die große Kachel auf der Punkte-Seite. */
 export function AbiZiel() {
-  const { notenfaecher } = useDaten();
+  const { notenfaecher, einstellungen } = useDaten();
   const [ziele, setzen] = useZiele();
   const [dialog, setDialog] = useState(false);
-  const stand = useMemo(() => abiStand(notenfaecher, ziele.abi ?? null), [notenfaecher, ziele.abi]);
+  const laufend = laufendesHalbjahr(notenfaecher, einstellungen.aktuellesHalbjahr).id;
+  const stand = useMemo(() => abiStand(notenfaecher, ziele.abi ?? null, laufend),
+    [notenfaecher, ziele.abi, laufend]);
+  /* Ist das Halbjahresziel aus dem Abi-Ziel gerechnet, sagen beide Sätze
+     dasselbe — dann nur einer. */
+  const halbjahrEigen = ziele[laufend] !== null && ziele[laufend] !== undefined;
 
   return (
     <div className="zahl-kachel unten-16 ziel-kachel">
@@ -181,7 +204,7 @@ export function AbiZiel() {
       {(stand.ziel !== null || Object.keys(ziele).some((k) => k !== "abi" && ziele[k] !== null)) && (
         <>
           <BrauchstDu alle={notenfaecher} ziele={ziele} klasse="oben-8" />
-          {stand.ziel !== null && <div className="klein matt oben-4">{abiNoetigText(stand.noetig)}</div>}
+          {stand.ziel !== null && halbjahrEigen && <div className="klein matt oben-4">{abiNoetigText(stand.noetig)}</div>}
           <HalbjahrReihe alle={notenfaecher} ziele={ziele} />
         </>
       )}
@@ -224,12 +247,7 @@ export function HalbjahrZiel({ halbjahr, schnitt }) {
         </span>
         <Knopf art="klein leer" onClick={() => setDialog(true)}>{ziel === null ? "Ziel setzen" : "Ändern"}</Knopf>
       </div>
-      {bedarf?.offen > 0 && (
-        <div className="klein oben-4">
-          {bedarf.offen === 1 ? "Das Fach ohne Note braucht " : "Die " + bedarf.offen + " Fächer ohne Note brauchen im Schnitt "}
-          <strong>{bedarf.offeneBrauchen > PUNKTE_MAX ? "mehr als 15 P" : bedarf.offeneBrauchen <= 0 ? "nichts mehr" : punkteText(Math.max(0, bedarf.offeneBrauchen)) + " P"}</strong>.
-        </div>
-      )}
+      {bedarf?.offen > 0 && <div className="klein oben-4">{offeneText(bedarf)}</div>}
       {dialog && (
         <ZielDialog titel={"Ziel für " + name} art="halbjahr" wert={eigenes ?? ziel} automatisch={ausAbi}
           aufSpeichern={(p) => setzen(halbjahr, p)} aufSchliessen={() => setDialog(false)} />
@@ -246,9 +264,11 @@ export function HalbjahrZiel({ halbjahr, schnitt }) {
  * steht hier nichts.
  */
 export function ZielStreifen({ aufOeffnen }) {
-  const { notenfaecher } = useDaten();
+  const { notenfaecher, einstellungen } = useDaten();
   const [ziele] = useZiele();
-  const stand = useMemo(() => abiStand(notenfaecher, ziele.abi ?? null), [notenfaecher, ziele.abi]);
+  const laufend = laufendesHalbjahr(notenfaecher, einstellungen.aktuellesHalbjahr).id;
+  const stand = useMemo(() => abiStand(notenfaecher, ziele.abi ?? null, laufend),
+    [notenfaecher, ziele.abi, laufend]);
   if (stand.schnitt === null && stand.ziel === null) return null;
   return (
     <button type="button" className="ziel-streifen unten-16" onClick={aufOeffnen}>
@@ -295,12 +315,12 @@ function LaufendesHalbjahr({ ziele }) {
         {schnitt !== null && <strong>{punkteText(schnitt)} P</strong>}
       </div>
       <ZielBalken erreicht={schnitt ?? 0} ziel={ziel} max={PUNKTE_MAX} hoehe={6} titel={"Schnitt " + h.name} />
-      <div style={{ textAlign: "left" }}><BrauchstDu alle={notenfaecher} ziele={ziele} klasse="klein matt oben-4" /></div>
-      {bedarf?.offen > 0 && bedarf.offeneBrauchen > 0 && (
-        <div className="klein blass oben-4" style={{ textAlign: "left" }}>
-          {bedarf.offen === 1 ? "Fach ohne Note braucht " : bedarf.offen + " Fächer ohne Note brauchen je "}
-          {bedarf.offeneBrauchen > PUNKTE_MAX ? "mehr als 15 P" : punkteText(bedarf.offeneBrauchen) + " P"}
-        </div>
+      {/* Der Satz zum Halbjahr gilt als Erklärtext: „Minimal“ blendet ihn aus. */}
+      <div className="erklaerung" style={{ textAlign: "left" }}>
+        <BrauchstDu alle={notenfaecher} ziele={ziele} klasse="klein matt oben-4" />
+      </div>
+      {bedarf?.offen > 0 && (
+        <div className="klein blass oben-4" style={{ textAlign: "left" }}>{offeneText(bedarf)}</div>
       )}
     </div>
   );

@@ -76,7 +76,7 @@ function Bedarf({ notenfach, ziel, offeneBrauchen }) {
     if (offeneBrauchen === null || offeneBrauchen === undefined) return null;
     return (
       <span className="bedarf">
-        {offeneBrauchen > PUNKTE_MAX ? "braucht mehr als 15 P"
+        {offeneBrauchen > PUNKTE_MAX ? "15 P reichen hier nicht ganz"
           : offeneBrauchen <= 0 ? "Ziel auch ohne dieses Fach"
             : "braucht etwa " + punkteText(Math.ceil(offeneBrauchen * 2) / 2) + " P"}
       </span>

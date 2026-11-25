@@ -459,7 +459,7 @@ export const noteKomma = (n) => (n === null || n === undefined ? "—" : n.toFix
  * Wo das Abi steht: was die Halbjahre schon eingebracht haben, was
  * hochgerechnet herauskäme und was ab jetzt im Schnitt nötig ist.
  */
-export function abiStand(alle, ziel = null) {
+export function abiStand(alle, ziel = null, laufend = null) {
   const halbjahre = HALBJAHRE.map((h) => ({ id: h.id, schnitt: halbjahrSchnitt(faecherIm(alle, h.id)) }));
   const mit = halbjahre.filter((h) => h.schnitt !== null);
   const erreicht = mit.reduce((a, h) => a + h.schnitt * JE_HALBJAHR, 0);
@@ -470,7 +470,14 @@ export function abiStand(alle, ziel = null) {
   const rest = offeneHalbjahre * JE_HALBJAHR + PRUEFUNGEN;
   const hochgerechnet = schnitt === null ? null : erreicht + schnitt * rest;
   const zielPunkte = ziel === null || ziel === undefined ? null : Number(ziel);
-  const noetig = zielPunkte === null ? null : (zielPunkte - erreicht) / rest;
+  /* Was ab jetzt im Schnitt nötig ist. Mit bekanntem laufendem Halbjahr
+     zählt es als offen, auch wenn schon Noten darin stehen (25.11.2026):
+     Vorher galt es als fertig, und mit zwei Noten in 12.1 stand dort
+     „ab jetzt 14,9 P“ — als wäre 12.1 schon vorbei. Gemeint ist der Schnitt
+     über alle offenen Halbjahre und die Prüfungen, nicht je Arbeit. */
+  const noetig = zielPunkte === null ? null
+    : laufend ? halbjahrZielAusAbi(alle, laufend, zielPunkte)
+      : (zielPunkte - erreicht) / rest;
   return {
     halbjahre, erreicht, schnitt, hochgerechnet, rest, offeneHalbjahre,
     ziel: zielPunkte, noetig,
@@ -495,6 +502,8 @@ export function halbjahrBedarf(faecher, ziel) {
     /* Im Schnitt nötig für die Fächer ohne Punkte. */
     offeneBrauchen: offen ? (Number(ziel) * alle.length - summe) / offen : null,
     schnitt: bekannt.length ? summe / bekannt.length : null,
+    /* Das Beste, was noch geht: 15 Punkte in jedem offenen Fach. */
+    bestfall: (summe + PUNKTE_MAX * offen) / alle.length,
   };
 }
 

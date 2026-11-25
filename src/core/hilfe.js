@@ -183,7 +183,9 @@ export const FRAGEN = [
     antwort: [
       "Das Abi hat höchstens 900 Punkte. Anchor rechnet grob: Jedes Halbjahr bringt seinen Schnitt × 10 ein (höchstens 150), die Prüfungen deinen Schnitt × 20 (höchstens 300). Einbringungspflichten und doppelt zählende Kurse kennt die Rechnung nicht.",
       "Der volle Teil des Balkens ist, was deine Halbjahre schon einbringen. Der blasse Teil ist die Hochrechnung, wenn es mit deinem jetzigen Schnitt weitergeht. Der Strich ist dein Ziel.",
-      "„In diesem Halbjahr brauchst du …“ ist das Halbjahresziel des laufenden Halbjahres: der Schnitt, mit dem du – wenn es so weitergeht – aufs Abi-Ziel kommst. Darunter stehen alle vier Halbjahre mit ihrem Ziel. Die Abiturnote zu Punkten: 17/3 − Punkte/180.",
+      "„Ab jetzt im Schnitt“ ist kein Wert je Arbeit, sondern der Schnitt über alles, was noch offen ist: das laufende Halbjahr (auch wenn schon Noten darin stehen), die Halbjahre danach und die Abiprüfungen. Die Prüfungen gehen mit demselben Schnitt ein, als zählten sie wie zwei Halbjahre.",
+      "„In diesem Halbjahr brauchst du …“ ist das Ziel des laufenden Halbjahres. Folgt es deinem Abi-Ziel, ist es derselbe Wert. Darunter stehen alle vier Halbjahre mit ihrem Ziel. Die Abiturnote zu Punkten: 17/3 − Punkte/180.",
+      "Bei Fächern ohne Note steht, was sie im Schnitt bringen müssen. Reichen selbst 15 P nicht, steht da, welchen Halbjahresschnitt du mit 15 P überall höchstens erreichst.",
       "Die Halbjahresziele folgen von selbst deinem Abi-Ziel: Jedes Halbjahr bekommt den Schnitt, den du ab dort bis zum Abi brauchst, die früheren Halbjahre eingerechnet. Ein eigenes Ziel kannst du trotzdem setzen; „Automatisch“ im Dialog holt die Rechnung zurück.",
       "Im Halbjahr: Fächer ohne Note zeigen, wie viel sie im Schnitt bringen müssen, damit das Halbjahr aufs Ziel kommt. Fächer, die darüber liegen, gleichen aus. Fächer mit Noten zeigen, welche Punktzahl die nächste Klassenarbeit braucht, damit das Fach selbst aufs Ziel kommt.",
       "Alles ist ein Richtwert zur Orientierung, nicht die Abiturnote.",

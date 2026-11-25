@@ -103,6 +103,9 @@
 * { box-sizing: border-box; }
 
 html, body, #wurzel { height: 100%; }
+/* Kein Nachwippen am Rand: Auf dem iPhone zog es bei kurzen Seiten (etwa der
+   Übersicht der Einstellungen) die feste Fußleiste mit nach oben. */
+html, body { overscroll-behavior-y: none; }
 
 /*
  * Kein seitliches Wegwischen.

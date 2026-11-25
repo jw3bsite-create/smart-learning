@@ -407,3 +407,20 @@ test("Halbjahresziele folgen dem Abi-Ziel und rechnen frühere Halbjahre ein", (
     "ein eigenes Ziel hat Vorrang");
   assert.equal(halbjahrZiel(gut, "12.2", { abi: 720 }).automatisch, true);
 });
+
+test("ab jetzt im Schnitt: das laufende Halbjahr zählt als offen, nicht als fertig", () => {
+  const alle = [fach("12.1", "Deutsch", [{ art: "schriftlich", punkte: 11 }])];
+  // 12.1 läuft: alles bis zum Abi ist offen → 720 / 60 = 12
+  assert.equal(abiStand(alle, 720, "12.1").noetig, 12);
+  // Ohne Angabe wie früher: 12.1 gilt als fertig, (720 − 110) / 50
+  assert.equal(abiStand(alle, 720).noetig, 12.2);
+});
+
+test("der Bestfall: 15 Punkte in jedem offenen Fach", () => {
+  const b = halbjahrBedarf([
+    fach("12.1", "Deutsch", [{ art: "schriftlich", punkte: 9 }]),
+    fach("12.1", "GGK"), fach("12.1", "Bio"),
+  ], 14);
+  assert.equal(b.offeneBrauchen, 16.5);
+  assert.equal(b.bestfall, 13);
+});

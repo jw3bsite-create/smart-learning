@@ -29,6 +29,22 @@ const ausLink = wolke.zugangAusLink(window.location.search);
 if (ausLink) wolke.zugangUebernehmen(ausLink);
 else if (umzugSoll) window.history.replaceState(window.history.state, "", window.location.pathname + "#/einstellungen");
 
+/*
+ * iPhone: Nach dem Schließen der Tastatur bleibt die sichtbare Fläche manchmal
+ * verschoben, und feste Leisten (unten die Fußleiste) stehen zu hoch, bis man
+ * scrollt. Ein Schubs ohne Bewegung rückt sie zurück (25.11.2026, gemeldet
+ * aus den Einstellungen).
+ */
+document.addEventListener("focusout", (e) => {
+  const t = e.target;
+  if (!t || !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+  setTimeout(() => {
+    const aktiv = document.activeElement;
+    if (aktiv && /^(INPUT|TEXTAREA|SELECT)$/.test(aktiv.tagName)) return;   // nächstes Feld
+    window.scrollTo(window.scrollX, window.scrollY);
+  }, 120);
+});
+
 createRoot(document.getElementById("wurzel")).render(
   <React.StrictMode>
     <Auffanglinie>
