@@ -83,6 +83,14 @@ export function ZielDialog({ titel, art, wert, automatisch = null, aufSpeichern,
   );
 }
 
+/** Fürs ganze Abi: welcher Schnitt ab jetzt im Mittel nötig ist. */
+function abiNoetigText(noetig) {
+  if (noetig === null) return null;
+  if (noetig <= 0) return "Abi-Ziel schon sicher";
+  if (noetig > PUNKTE_MAX) return "Abi-Ziel mit dieser Rechnung nicht mehr erreichbar";
+  return "Fürs Abi-Ziel ab jetzt im Schnitt " + punkteText(noetig) + " P (≈ " + noteKomma(alsNote(noetig)) + ")";
+}
+
 /** Das Halbjahr, das gerade läuft: das jüngste mit Fächern, sonst das erste. */
 function laufendesHalbjahr(alle) {
   return [...HALBJAHRE].reverse().find((x) => faecherIm(alle, x.id).length) || HALBJAHRE[0];
@@ -166,6 +174,7 @@ export function AbiZiel() {
       {(stand.ziel !== null || Object.keys(ziele).some((k) => k !== "abi" && ziele[k] !== null)) && (
         <>
           <BrauchstDu alle={notenfaecher} ziele={ziele} klasse="oben-8" />
+          {stand.ziel !== null && <div className="klein matt oben-4">{abiNoetigText(stand.noetig)}</div>}
           <HalbjahrReihe alle={notenfaecher} ziele={ziele} />
         </>
       )}
@@ -237,9 +246,10 @@ export function ZielStreifen({ aufOeffnen }) {
   return (
     <button type="button" className="ziel-streifen unten-16" onClick={aufOeffnen}>
       <div className="reihe" style={{ gap: 10, marginBottom: 8 }}>
-        <span className="klein matt dehnen" style={{ textAlign: "left" }}>
-          Abi {Math.round(stand.erreicht)} / {ABI_MAX}
-          {stand.ziel !== null && <> · Ziel {stand.ziel}</>}
+        <span className="klein dehnen" style={{ textAlign: "left" }}>
+          <span className="matt">Abi {Math.round(stand.erreicht)} / {ABI_MAX}</span>
+          {stand.ziel !== null && <> · Ziel <strong>{stand.ziel}</strong>
+            <span className="matt"> (≈ {noteKomma(stand.zielNote)})</span></>}
         </span>
         {stand.schnitt !== null && (
           <span className="klein">
@@ -250,6 +260,11 @@ export function ZielStreifen({ aufOeffnen }) {
       </div>
       <ZielBalken erreicht={stand.erreicht} hochgerechnet={stand.hochgerechnet} ziel={stand.ziel}
         max={ABI_MAX} hoehe={8} titel="Abiturpunkte" />
+      <div className="klein matt oben-4" style={{ textAlign: "left" }}>
+        {stand.hochgerechnet !== null && <>Hochgerechnet {Math.round(stand.hochgerechnet)} (≈ {noteKomma(stand.note)})</>}
+        {stand.hochgerechnet !== null && stand.ziel !== null && " · "}
+        {stand.ziel !== null && abiNoetigText(stand.noetig)}
+      </div>
       <LaufendesHalbjahr ziele={ziele} />
     </button>
   );
