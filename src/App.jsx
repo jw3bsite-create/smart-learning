@@ -165,19 +165,33 @@ function useWeg() {
  * Leiste, unter dem Logo, oder gar nicht. Neben dem Logo quetschten sie es.
  */
 function VerlaufKnoepfe({ art }) {
-  return (
-    <div className={"verlauf-knoepfe " + art + " nur-schmal"}>
-      <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer klein" groesse={art === "unten" ? 16 : 14}
+  const knoepfe = (
+    <div className={"verlauf-knoepfe " + art}>
+      <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer klein" groesse={16}
         disabled={!(window.history.state?.slTiefe > 0)}
         onClick={() => window.history.back()} />
-      <SymbolKnopf symbol="weiter" titel="Vor" art="leer klein" groesse={art === "unten" ? 16 : 14}
+      <SymbolKnopf symbol="weiter" titel="Vor" art="leer klein" groesse={16}
         disabled={!naechsterWeg()}
         onClick={() => window.history.forward()} />
     </div>
   );
+  if (art !== "unten") return knoepfe;
+  /* Unten: Die Leiste wölbt sich über „Abrufen“ sanft nach oben — eine
+     flache, umgedrehte Parabel, die weich in die Kante übergeht. Darin die
+     Pfeile. Fläche und Rand in den Farben der Leiste. */
+  return (
+    <div className="fuss-welle">
+      <svg className="fuss-welle-form" viewBox="0 0 200 32" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 32 C 46 32, 52 1, 100 1 C 148 1, 154 32, 200 32 Z" fill="var(--grund)" />
+        <path d="M0 32 C 46 32, 52 1, 100 1 C 148 1, 154 32, 200 32" fill="none"
+          stroke="var(--rand)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+      </svg>
+      {knoepfe}
+    </div>
+  );
 }
 
-function Fussleiste({ weg, faellig, aufMehr }) {
+function Fussleiste({ weg, faellig, aufMehr, welle = false }) {
   const erster = weg[0] || "";
   const punkte = [
     ["start", "Start", "haus", START, erster === "start", "blau"],
@@ -188,6 +202,7 @@ function Fussleiste({ weg, faellig, aufMehr }) {
   ];
   return (
     <nav className="fussleiste nur-schmal" aria-label="Hauptwege">
+      {welle && <VerlaufKnoepfe art="unten" />}
       {punkte.map(([schluessel, name, symbol, ziel, aktiv, ton]) => (
         <button key={schluessel} type="button"
           className={"fuss-knopf ton-" + ton + (aktiv ? " aktiv" : "") + (schluessel === "abrufen" ? " haupt" : "")}
@@ -472,8 +487,7 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
         </div>
         {gefangen(inhalt)}
       </main>
-      {pfeile === "unten" && <VerlaufKnoepfe art="unten" />}
-      <Fussleiste weg={teile} faellig={offen?.faellig || 0}
+      <Fussleiste weg={teile} faellig={offen?.faellig || 0} welle={pfeile === "unten"}
         aufMehr={() => setLeisteOffen(true)} />
     </div>
   );
