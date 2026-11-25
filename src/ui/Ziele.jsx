@@ -92,8 +92,13 @@ function abiNoetigText(noetig) {
 }
 
 /** Das Halbjahr, das gerade läuft: das jüngste mit Fächern, sonst das erste. */
-function laufendesHalbjahr(alle) {
-  return [...HALBJAHRE].reverse().find((x) => faecherIm(alle, x.id).length) || HALBJAHRE[0];
+export function laufendesHalbjahr(alle, gewaehlt = null) {
+  /* Selbst gewählt (Tipp auf das Halbjahr bei den Punkten, 25.11.2026) —
+     sonst das jüngste mit eingetragenen Punkten, sonst das erste mit Fächern. */
+  const selbst = HALBJAHRE.find((x) => x.id === gewaehlt);
+  if (selbst) return selbst;
+  return [...HALBJAHRE].reverse().find((x) => halbjahrSchnitt(faecherIm(alle, x.id)) !== null)
+    || HALBJAHRE.find((x) => faecherIm(alle, x.id).length) || HALBJAHRE[0];
 }
 
 /**
@@ -102,7 +107,8 @@ function laufendesHalbjahr(alle) {
  * ab jetzt“, der sich mit den Halbjahreszielen ohnehin auflöst.
  */
 function BrauchstDu({ alle, ziele, klasse = "klein oben-4" }) {
-  const h = laufendesHalbjahr(alle);
+  const { einstellungen } = useDaten();
+  const h = laufendesHalbjahr(alle, einstellungen.aktuellesHalbjahr);
   const ziel = halbjahrZiel(alle, h.id, ziele).wert;
   if (ziel === null) return null;
   const schnitt = halbjahrSchnitt(faecherIm(alle, h.id));
@@ -122,7 +128,8 @@ function BrauchstDu({ alle, ziele, klasse = "klein oben-4" }) {
 
 /** Alle vier Halbjahre auf einen Blick: Ziel und, wo es ihn gibt, der Schnitt. */
 function HalbjahrReihe({ alle, ziele }) {
-  const jetzt = laufendesHalbjahr(alle).id;
+  const { einstellungen } = useDaten();
+  const jetzt = laufendesHalbjahr(alle, einstellungen.aktuellesHalbjahr).id;
   return (
     <div className="halbjahr-reihe oben-12">
       {HALBJAHRE.map((h) => {
@@ -272,9 +279,8 @@ export function ZielStreifen({ aufOeffnen }) {
 
 /* Das jüngste Halbjahr mit Fächern — das, das gerade läuft — mit seinem Ziel. */
 function LaufendesHalbjahr({ ziele }) {
-  const { notenfaecher } = useDaten();
-  const h = [...HALBJAHRE].reverse().find((x) => faecherIm(notenfaecher, x.id).length);
-  if (!h) return null;
+  const { notenfaecher, einstellungen } = useDaten();
+  const h = laufendesHalbjahr(notenfaecher, einstellungen.aktuellesHalbjahr);
   const faecher = faecherIm(notenfaecher, h.id);
   const schnitt = halbjahrSchnitt(faecher);
   const ziel = halbjahrZiel(notenfaecher, h.id, ziele).wert;

@@ -21,7 +21,7 @@ import {
 } from "../core/noten.js";
 import { SymbolKnopf, Knopf, Leer, Dialog, Rueckfrage, HilfeLink } from "./basis.jsx";
 import ZahlFeld from "./ZahlFeld.jsx";
-import { AbiZiel, HalbjahrZiel, useZiele } from "./Ziele.jsx";
+import { AbiZiel, HalbjahrZiel, useZiele, laufendesHalbjahr } from "./Ziele.jsx";
 import { anzahl } from "../core/util.js";
 
 /* ----------------------------- Kleinteile ------------------------------ */
@@ -447,10 +447,12 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
 
 export default function Noten() {
   const { notenfaecher, notenfachAnlegen, faecher } = useDaten();
-  /* Beginnt beim jüngsten Halbjahr, in dem schon Fächer stehen — dem, das
-     gerade läuft —, nicht immer beim ersten. */
-  const [halbjahr, setHalbjahr] = useState(() =>
-    [...HALBJAHRE].reverse().find((h) => faecherIm(notenfaecher, h.id).length)?.id || HALBJAHRE[0].id);
+  const { einstellungen, setzeEinstellung } = useDaten();
+  /* Öffnet beim laufenden Halbjahr. Ein Tipp auf ein Halbjahr legt es als
+     laufendes fest — für Ziele, Startseite und das nächste Öffnen. */
+  const [halbjahr, setHalbjahrLokal] = useState(() =>
+    laufendesHalbjahr(notenfaecher, einstellungen.aktuellesHalbjahr).id);
+  const setHalbjahr = (id) => { setHalbjahrLokal(id); setzeEinstellung("aktuellesHalbjahr", id); };
   const [ziele] = useZiele();
   const [offen, setOffen] = useState(null);
   const [anlegen, setAnlegen] = useState(false);
