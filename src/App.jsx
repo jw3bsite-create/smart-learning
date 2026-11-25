@@ -176,14 +176,15 @@ function VerlaufKnoepfe({ art }) {
     </div>
   );
   if (art !== "unten") return knoepfe;
-  /* Unten: Die Leiste wölbt sich über „Abrufen“ sanft nach oben — eine
-     flache, umgedrehte Parabel, die weich in die Kante übergeht. Darin die
-     Pfeile. Fläche und Rand in den Farben der Leiste. */
+  /* Unten: Die Leiste hebt sich über „Abrufen“ zu einem flachen Buckel —
+     unten ein weicher Übergang in die Kante, steile Seiten, oben breit und
+     gerade (nach einer Skizze des Nutzers, 25.11.2026). Darin die Pfeile.
+     Fläche und Rand in den Farben der Leiste. */
   return (
     <div className="fuss-welle">
-      <svg className="fuss-welle-form" viewBox="0 0 200 32" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M0 32 C 46 32, 52 1, 100 1 C 148 1, 154 32, 200 32 Z" fill="var(--grund)" />
-        <path d="M0 32 C 46 32, 52 1, 100 1 C 148 1, 154 32, 200 32" fill="none"
+      <svg className="fuss-welle-form" viewBox="0 0 140 30" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 30 C 8 30, 13 28, 15 22 L 18 9 C 20 3, 25 1, 32 1 L 108 1 C 115 1, 120 3, 122 9 L 125 22 C 127 28, 132 30, 140 30 Z" fill="var(--grund)" />
+        <path d="M0 30 C 8 30, 13 28, 15 22 L 18 9 C 20 3, 25 1, 32 1 L 108 1 C 115 1, 120 3, 122 9 L 125 22 C 127 28, 132 30, 140 30" fill="none"
           stroke="var(--rand)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
       </svg>
       {knoepfe}
