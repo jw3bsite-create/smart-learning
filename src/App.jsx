@@ -14,8 +14,8 @@ import { tagesplan } from "./core/pushplan.js";
 import { zustaendeImPlan } from "./core/warteschlange.js";
 import { tagesLage } from "./core/straehne.js";
 import { anwenden as gestaltungAnwenden } from "./core/gestaltung.js";
-import { fortschreiben, vorheriger } from "./core/verlauf.js";
-import { Symbol } from "./ui/basis.jsx";
+import { fortschreiben, vorheriger, naechster } from "./core/verlauf.js";
+import { Symbol, SymbolKnopf } from "./ui/basis.jsx";
 import Seitenleiste from "./ui/Seitenleiste.jsx";
 import Bibliothek from "./ui/Bibliothek.jsx";
 import Stapelansicht from "./ui/Stapelansicht.jsx";
@@ -107,6 +107,11 @@ function stelleFest() {
 /** Der Weg vor dem jetzigen, oder null. */
 export function vorigerWeg() {
   return vorheriger(wege, window.history.state?.slTiefe);
+}
+
+/** Der Weg nach dem jetzigen (nach einem Zurück), oder null. */
+export function naechsterWeg() {
+  return naechster(wege, window.history.state?.slTiefe);
 }
 
 /** Den jetzigen Eintrag ersetzen, statt einen neuen anzulegen. */
@@ -434,6 +439,16 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
             oben die Statusleiste ausgeglichen werden, und ein fest
             eingetragener Wert kann das nicht. */}
         <div className="menue-streifen nur-schmal">
+          {/* Zurück und vor wie im Browser — die App vom Startbildschirm hat
+              keine Browserknöpfe (Wunsch des Nutzers, 25.11.2026). */}
+          <div className="verlauf-knoepfe">
+            <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer"
+              disabled={!(window.history.state?.slTiefe > 0)}
+              onClick={() => window.history.back()} />
+            <SymbolKnopf symbol="weiter" titel="Vor" art="leer"
+              disabled={!naechsterWeg()}
+              onClick={() => window.history.forward()} />
+          </div>
           <button type="button" className="logo-knopf" title="Zur Startseite"
             onClick={() => gehe(START)}>
             <img src="./logo-96.png" className="logo-bild klein" alt="" />

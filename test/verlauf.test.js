@@ -49,3 +49,17 @@ test("Wege heißen so, wie man sie kennt", () => {
   assert.equal(wegName("/stapel/s/karten", namen), null, "ein Lernmodus ist kein Ziel");
   assert.equal(wegName(null, namen), null);
 });
+
+import { naechster } from "../src/core/verlauf.js";
+
+test("nach dem Zurückgehen bleibt der Weg nach vorn erhalten", () => {
+  let wege = ["/start", "/fach/m", "/stapel/s1"];
+  wege = fortschreiben(wege, 1, "/fach/m");           // zurück
+  assert.equal(naechster(wege, 1), "/stapel/s1");
+  wege = fortschreiben(wege, 2, "/stapel/s1");        // vor
+  assert.equal(naechster(wege, 2), null);
+  wege = fortschreiben(wege, 1, "/fach/m");           // wieder zurück …
+  wege = fortschreiben(wege, 2, "/fehler", { neu: true }); // … und woandershin
+  assert.equal(naechster(wege, 1), "/fehler", "ein neuer Schritt ersetzt das Vor");
+  assert.equal(naechster(wege, 2), null);
+});

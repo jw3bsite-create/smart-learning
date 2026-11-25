@@ -1558,3 +1558,7 @@ html.zieht { cursor: grabbing; }
 .halbjahr-zelle.jetzt { border-color: var(--akzent); }
 .halbjahr-ziel { font-family: var(--schrift-karten); font-size: 19px; font-weight: 600; line-height: 1.2; }
 .halbjahr-ziel.gut { color: var(--gruen); }
+
+/* Zurück und vor am Handy, oben links vor dem Logo. */
+.verlauf-knoepfe { display: flex; align-items: center; margin-left: -8px; margin-right: 2px; }
+.verlauf-knoepfe .knopf:disabled { opacity: 0.3; }

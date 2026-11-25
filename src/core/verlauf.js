@@ -22,9 +22,17 @@
  * ein neuer Schritt das „Vorwärts" verwirft.
  */
 export function fortschreiben(wege, tiefe, weg, { neu = false } = {}) {
-  const liste = (wege || []).slice(0, neu ? tiefe : Math.max(tiefe + 1, 0));
+  /* Zurück, vor oder neu geladen: Was dahinter liegt, bleibt — sonst gäbe
+     es nach dem Zurückgehen kein „Vor“ (seit dem 25.11.2026). */
+  const liste = neu ? (wege || []).slice(0, tiefe) : [...(wege || [])];
   liste[tiefe] = weg;
   return liste;
+}
+
+/** Der Weg nach dem jetzigen (für „Vor“) — oder null. */
+export function naechster(wege, tiefe) {
+  if (!Number.isFinite(tiefe)) return null;
+  return (wege || [])[tiefe + 1] ?? null;
 }
 
 /** Der Weg vor dem jetzigen — oder null. */
