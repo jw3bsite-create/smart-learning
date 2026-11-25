@@ -169,7 +169,7 @@ export default function Entwuerfe({ setId }) {
 
       {meine.length === 0 ? (
         <Leer symbol="papier" titel="Keine Entwürfe"
-          text="Entwürfe entstehen, wenn du Karten aus einer Vorlage erzeugen lässt. Sie warten hier, bis du ihnen eine Rückseite gegeben hast.">
+          text="Hier warten Karten aus einer Vorlage, bis sie eine Rückseite haben.">
           <Knopf art="voll" onClick={() => gehe("/stapel/" + setId + "/bearbeiten")}>
             Zum Bearbeiten
           </Knopf>

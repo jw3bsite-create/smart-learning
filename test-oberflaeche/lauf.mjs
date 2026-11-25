@@ -63,7 +63,7 @@ try {
   });
 
   await schritt("Beispieldaten lassen sich anlegen", async () => {
-    await gehe("/einstellungen");
+    await gehe("/einstellungen/erweitert");
     await seite.getByRole("button", { name: "Beispieldaten anlegen" }).click();
     for (let i = 0; i < 40 && (await ausDb("sets")).length === 0; i++) await warte(250);
     soll((await ausDb("sets")).length > 0, "keine Stapel angelegt");
@@ -80,6 +80,10 @@ try {
     let gefunden = false;
     for (const f of faecher) {
       await gehe("/abrufen/" + f.id);
+      // Seit dem 25.11.2026 zuerst die Rundengröße: „Mittel“ (Taste 2).
+      if (await seite.locator(".runden-gitter").waitFor({ timeout: 2500 }).then(() => true, () => false)) {
+        await seite.keyboard.press("2");
+      }
       if (!await seite.locator(".konfidenz-gitter").waitFor({ timeout: 2500 }).then(() => true, () => false)) continue;
       await seite.keyboard.press("1");
       await warte(300);
@@ -132,7 +136,10 @@ try {
 
   await schritt("am Handy ragt keine Seite über den Rand", async () => {
     const stapel = (await ausDb("sets"))[0];
-    const wege = ["/start", "/", "/faecher", "/einstellungen", "/statistik", "/fehler", "/punkte",
+    const wege = ["/start", "/", "/faecher", "/einstellungen", "/einstellungen/lernen",
+      "/einstellungen/stimme", "/einstellungen/erinnerung", "/einstellungen/aussehen",
+      "/einstellungen/cloud", "/einstellungen/daten", "/einstellungen/erweitert", "/hilfe",
+      "/statistik", "/fehler", "/punkte",
       "/kalibrierung", "/pruefung", "/erklaeren", "/tutor", "/papierkorb",
       "/stapel/" + stapel.id, "/stapel/" + stapel.id + "/bearbeiten"];
     const zu = [];

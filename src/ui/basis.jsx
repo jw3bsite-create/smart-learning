@@ -248,6 +248,21 @@ export function Tipp({ kennung, children }) {
   );
 }
 
+/*
+ * Ein kleines „?“, das zur passenden Frage unter „Fragen zur App“ springt
+ * (core/hilfe.js, seit dem 25. November 2026). Steht dort, wo früher ein
+ * Erklärtext stand.
+ */
+export function HilfeLink({ frage, titel = "Fragen zur App", className = "" }) {
+  return (
+    <button type="button" className={"hilfe-link" + (className ? " " + className : "")}
+      title={titel} aria-label={titel}
+      onClick={(e) => { e.stopPropagation(); window.location.hash = "/hilfe/" + frage; }}>
+      ?
+    </button>
+  );
+}
+
 /** Rückfrage vor unwiderruflichen Schritten. */
 export function Rueckfrage({ titel, text, bestaetigung = "Löschen", aufJa, aufNein }) {
   return (

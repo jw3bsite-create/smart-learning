@@ -267,8 +267,8 @@ export default function FachSeite({ fachId, ordnerId = null }) {
         <Leer symbol={derOrdner ? "ordner" : "stapel"}
           titel={derOrdner ? "Dieser Ordner ist leer" : "Noch kein Material in " + fach.name}
           text={derOrdner
-            ? "Leg hier einen Stapel an, oder verschiebe einen über sein Menü „···“ hierher."
-            : "Leg einen Stapel an, er gehört dann automatisch zu diesem Fach. Oder nimm einen vorhandenen dazu."}>
+            ? "Leg hier einen Stapel an oder verschieb einen hierher."
+            : "Leg einen Stapel an oder nimm einen vorhandenen dazu."}>
           <div className="reihe" style={{ justifyContent: "center", flexWrap: "wrap" }}>
             <Knopf art="voll gross" symbol="plus" onClick={neuerStapel}>Neuer Stapel</Knopf>
             {andere.length > 0 && (

@@ -166,6 +166,13 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
               <span className="name dehnen">{f.name}</span>
             </div>
           ))}
+        {/* Punkte vor Erklären und Prüfungen — die nutzt der Nutzer kaum (25.11.2026). */}
+        <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/punkte") ? " aktiv" : "")}
+          onClick={() => gehe("/punkte")}>
+          <span className="pfeil" />
+          <Sinnbild name="medaille" ton="gruen" />
+          <span className="name">Punkte</span>
+        </div>
         <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/erklaeren") ? " aktiv" : "")}
           onClick={() => gehe("/erklaeren")}>
           <span className="pfeil" />
@@ -198,12 +205,6 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
           <span className="pfeil" />
           <Sinnbild name="wuerfel" ton="gelb" />
           <span className="name">Fragen</span>
-        </div>
-        <div {...KLICKBAR} className={"baum-zeile" + (weg.startsWith("/punkte") ? " aktiv" : "")}
-          onClick={() => gehe("/punkte")}>
-          <span className="pfeil" />
-          <Sinnbild name="medaille" ton="gruen" />
-          <span className="name">Punkte</span>
         </div>
 
         <Flamme knapp />

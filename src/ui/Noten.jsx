@@ -19,7 +19,7 @@ import {
   faecherIm, punkteText, noteText, punkteStufe,
   sortenVon, neueSorte, gewichtVon, leistungsName, zahlLesen, zahlZeigen, uebernahmeVorschlaege,
 } from "../core/noten.js";
-import { SymbolKnopf, Knopf, Leer, Dialog, Rueckfrage } from "./basis.jsx";
+import { SymbolKnopf, Knopf, Leer, Dialog, Rueckfrage, HilfeLink } from "./basis.jsx";
 import { anzahl } from "../core/util.js";
 
 /* ----------------------------- Kleinteile ------------------------------ */
@@ -240,8 +240,8 @@ function SortenTeil({ notenfach }) {
 
   return (
     <>
-      <h3 className="unten-4">Klassenarbeit, Test &amp; Co.</h3>
-      <p className="klein matt oben-0">
+      <h3 className="unten-4">Klassenarbeit, Test &amp; Co. <HilfeLink frage="sorten" /></h3>
+      <p className="klein matt oben-0 erklaerung">
         Jede Sorte hat ein Gewicht innerhalb ihrer Art. Klassenarbeit 1 und
         Test 0,5 heißt: Zwei Tests zählen so viel wie eine Klassenarbeit.
         Ändern wirkt auf alle Leistungen dieser Sorte.
@@ -368,8 +368,8 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
       <SortenTeil notenfach={notenfach} />
 
       {/* -------------------------- Gewichtung --------------------------- */}
-      <h3 className="unten-4">Wie die Arten zählen</h3>
-      <p className="klein matt oben-0">
+      <h3 className="unten-4">Wie die Arten zählen <HilfeLink frage="punkte-schnitt" /></h3>
+      <p className="klein matt oben-0 erklaerung">
         Erst wird je Art gemittelt, dann werden die Arten nach diesen Zahlen
         zusammengefasst. Was an deiner Schule gilt, weiß die App nicht, darum
         stehen alle drei auf eins, bis du es änderst. Eine Art ohne Leistungen
@@ -389,7 +389,7 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
 
       {/* ------------------------- Zeugnispunkte ------------------------- */}
       <h3 className="unten-4">Punkte auf dem Zeugnis</h3>
-      <p className="klein matt oben-0">
+      <p className="klein matt oben-0 erklaerung">
         Steht hier eine Zahl, gilt sie statt der Rechnung, am Ende zählt, was
         der Lehrer eingetragen hat, nicht was wir uns ausgerechnet haben.
         {stand.gerechnet !== null && (
@@ -414,7 +414,7 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
       {faecher.length > 0 && (
         <>
           <h3 className="unten-4">Zugehöriges Lernfach</h3>
-          <p className="klein matt oben-0">
+          <p className="klein matt oben-0 erklaerung">
             Verknüpft, erscheinen die Punkte auch beim Fortschritt neben dem
             Lernstand, dort sieht man, ob das Üben ankommt.
           </p>
@@ -552,9 +552,7 @@ export default function Noten() {
 
       {!gewaehlt || gewaehlt.faecher.length === 0 ? (
         <Leer symbol="statistik" titel="Noch keine Fächer in diesem Halbjahr"
-          text={vorschlaege.length
-            ? "Übernimm die Fächer aus einem anderen Halbjahr oder aus deinen Lernfächern, samt Sorten und Gewichten."
-            : "Trag deine Fächer ein und dann die einzelnen Leistungen, schriftlich, mündlich, praktisch, jede mit eigenem Gewicht."}>
+          text={vorschlaege.length ? "Übernimm deine Fächer oder leg sie einzeln an." : "Leg deine Fächer an."}>
           <div className="reihe umbruch" style={{ justifyContent: "center", gap: 8 }}>
             {vorschlaege.length > 0 && (
               <Knopf art="voll gross" symbol="herunter" onClick={uebernahmeOeffnen}>
@@ -575,13 +573,9 @@ export default function Noten() {
       )}
 
       {/* ---------------------------- Der Hinweis ------------------------- */}
-      <p className="klein blass" style={{ marginTop: 28, maxWidth: "60ch" }}>
-        Der Schnitt hier ist der schlichte Durchschnitt deiner
-        Halbjahresleistungen, <strong>nicht</strong> die Abiturnote. Die
-        entsteht in Baden-Württemberg aus Block I und Block II, mit
-        Einbringungspflichten und doppelt gewichteten Kursen. Welche Kurse in
-        welcher Zahl zählen, steht in der Verordnung für deinen Jahrgang; die
-        kennt diese App nicht und rät sie auch nicht.
+      <p className="klein blass" style={{ marginTop: 28 }}>
+        Ein Richtwert, <strong>nicht</strong> die Abiturnote.
+        <HilfeLink frage="punkte-schnitt" titel="Wie werden die Punkte gerechnet?" />
       </p>
 
       {anlegen && (

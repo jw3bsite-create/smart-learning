@@ -26,7 +26,8 @@ import {
   NOTEN, NOTEN_NAMEN, KONFIDENZ, vorschau, abstandLang, neuerZustand, istNeu,
 } from "../core/fsrs.js";
 import {
-  baueSitzung, baueCramSitzung, wirksameRetention, tageBisPruefung, CRAM_AB_TAGEN,
+  baueSitzung, baueCramSitzung, baueWeitere, weitereZaehlung,
+  wirksameRetention, tageBisPruefung, CRAM_AB_TAGEN,
 } from "../core/warteschlange.js";
 import { kalibrierung, kalibrierungInWorten } from "../core/kalibrierung.js";
 import { sprich } from "../core/speech.js";
@@ -40,7 +41,7 @@ import { useStoppuhr } from "../ui/stoppuhr.js";
 import { abrufStapel, OBEN } from "../core/fachordner.js";
 import { gehe } from "../App.jsx";
 import {
-  Knopf, SymbolKnopf, Symbol, Bild, Stern, Leer, useTastatur, useMerker,
+  Knopf, SymbolKnopf, Symbol, Bild, Stern, Leer, useTastatur, useMerker, HilfeLink,
 } from "../ui/basis.jsx";
 import { ModusRahmen } from "./gemeinsam.jsx";
 import KarteBearbeiten from "../ui/KarteBearbeiten.jsx";
@@ -48,6 +49,80 @@ import { bestaetigen } from "../ui/Rueckfragen.jsx";
 import Formel from "../ui/Formel.jsx";
 import Zeichenleiste from "../ui/Zeichenleiste.jsx";
 import { hatFormel } from "../core/formel.js";
+
+/* ------------------------------ Rundengröße ----------------------------- */
+
+/**
+ * Wie viele Karten eine Runde hat (seit dem 25. November 2026, jedes Mal
+ * gefragt). Gezählt werden verschiedene Aufgaben; Wiedervorlagen kommen
+ * obendrauf. „Frei“ nimmt alles, was ansteht, und fragt am Ende, ob es mit
+ * anderen Karten weitergehen soll.
+ */
+export const GROESSEN = [
+  { id: "klein", name: "Klein", zahl: 5 },
+  { id: "mittel", name: "Mittel", zahl: 10 },
+  { id: "gross", name: "Groß", zahl: 20 },
+  { id: "frei", name: "Frei", zahl: Infinity },
+];
+const umfangVon = (id) => {
+  const z = (GROESSEN.find((g) => g.id === id) || GROESSEN[1]).zahl;
+  return Number.isFinite(z) ? z : 100000;
+};
+
+function RundenWahl({ anstehend, vorgabe, aufWahl }) {
+  useTastatur(Object.fromEntries(GROESSEN.map((g, i) => [String(i + 1), () => aufWahl(g.id)])));
+  return (
+    <div className="runden-wahl">
+      <p className="matt" style={{ textAlign: "center" }}>
+        {anzahl(anstehend, "Karte steht an", "Karten stehen an")}. Wie viel jetzt?
+      </p>
+      <div className="runden-gitter">
+        {GROESSEN.map((g, i) => (
+          <button key={g.id} type="button" autoFocus={g.id === vorgabe}
+            className={"antwort runden-knopf" + (g.id === vorgabe ? " vorgabe" : "")}
+            onClick={() => aufWahl(g.id)}>
+            <span className="runden-zahl">{Number.isFinite(g.zahl) ? g.zahl : "∞"}</span>
+            <span className="runden-name">{g.name}</span>
+            <span className="tasten-hinweis">{i + 1}</span>
+          </button>
+        ))}
+      </div>
+      <p className="klein blass" style={{ textAlign: "center" }}>
+        Falsche Karten kommen obendrauf.
+        <HilfeLink frage="rundengroesse" titel="Wie groß ist eine Runde?" />
+      </p>
+    </div>
+  );
+}
+
+/**
+ * Wenn alles Fällige durch ist: weitermachen? Der Nutzer entscheidet nur,
+ * ob, nicht welche Karten — die nimmt der Plan (core/warteschlange.js,
+ * `baueWeitere`).
+ */
+function WeiterFrage({ zahlen, aufWeiter }) {
+  if (!zahlen.neu && !zahlen.vorziehen) return null;
+  return (
+    <div className="weiter-frage">
+      <div className="matt unten-12">Alles Fällige ist durch. Mit anderen Karten weitermachen?</div>
+      <div className="reihe" style={{ justifyContent: "center", flexWrap: "wrap", gap: 8 }}>
+        {zahlen.neu > 0 && (
+          <Knopf art="voll" symbol="plus" onClick={() => aufWeiter("neu")}>
+            {Math.min(10, zahlen.neu)} neue Karten
+          </Knopf>
+        )}
+        {zahlen.vorziehen > 0 && (
+          <Knopf symbol="uhr" onClick={() => aufWeiter("vorziehen")}>
+            {Math.min(10, zahlen.vorziehen)} vorziehen
+          </Knopf>
+        )}
+      </div>
+      {zahlen.vorziehen > 0 && (
+        <div className="klein blass oben-8">Vorgezogene Karten zählen als Übung und verschieben keinen Termin.</div>
+      )}
+    </div>
+  );
+}
 
 /* ------------------------- Was gefragt, was gesucht --------------------- */
 
@@ -208,6 +283,8 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
   /* Endspurt: in den letzten Tagen vor dem Termin lässt sich der ganze Stoff
      durchgehen, ohne dass es den Plan verstellt. */
   const [cram, setCram] = useState(false);
+  const [groesse, setGroesse] = useState(null);
+  const [vorgabeGroesse, setVorgabeGroesse] = useMerker("abrufGroesse", "mittel");
   const restTage = tageBisPruefung(fach);
   const cramMoeglich = restTage !== null && restTage >= 0 && restTage <= CRAM_AB_TAGEN;
 
@@ -216,9 +293,25 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
     : baueSitzung({
       karten, zustaende, stapelVon, faecherVon, fach,
       faecherIds: fachId ? null : gewaehlteFaecher,
-      umfang: Number(einstellungen.sitzungsUmfang) || 30,
-    })), [karten, zustaende, stapelVon, faecherVon, fach, fachId, gewaehlteFaecher,
-    einstellungen.sitzungsUmfang, cram]);
+      umfang: umfangVon(groesse),
+    })), [karten, zustaende, stapelVon, faecherVon, fach, fachId, gewaehlteFaecher, groesse, cram]);
+
+  /* Was ansteht, bevor die Größe gewählt ist — für die Zahl über der Wahl.
+     Steht nichts an, gibt es nichts zu wählen. */
+  const anstehend = useMemo(() => (gestartet && !groesse && !cram ? baueSitzung({
+    karten, zustaende, stapelVon, faecherVon, fach,
+    faecherIds: fachId ? null : gewaehlteFaecher, umfang: 100000,
+  }).aufgaben.length : null), [gestartet, groesse, cram, fachId, auswahlSchluessel]);
+  useEffect(() => { if (anstehend === 0) setGroesse(vorgabeGroesse); }, [anstehend]);
+
+  /* Weitermachen, wenn alles durch ist. */
+  const weitereEingaben = { karten, zustaende, stapelVon, fach, faecherIds: fachId ? null : gewaehlteFaecher };
+  const neuBeginnen = (s) => {
+    setSitzung(s); setStelle(0); setPhase("konfidenz"); setKonfidenz(null); setEingabe("");
+    setErgebnisse([]); setFertig(false); schritteZuruecksetzen();
+    beginn.current = Date.now();
+  };
+  const weiterMit = (art) => { setCram(false); neuBeginnen(baueWeitere({ ...weitereEingaben, art, umfang: 10 })); };
 
   /* Endspurt: Die Sitzung wird sofort neu zusammengestellt. Vorher stellte
      der Knopf nur den Schalter um, und die leere Seite blieb stehen. */
@@ -234,12 +327,12 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
   /* Die Warteschlange wird einmal beim Betreten gebaut — was während der
      Sitzung fällig wird, kommt erst beim nächsten Mal dran. */
   useEffect(() => {
-    if (!gestartet) return;
+    if (!gestartet || !groesse) return;
     setSitzung(sitzungBauen());
     setStelle(0); setPhase("konfidenz"); setKonfidenz(null); setEingabe("");
     setErgebnisse([]); setFertig(false);
     beginn.current = Date.now();
-  }, [fachId, gestartet, auswahlSchluessel]);
+  }, [fachId, gestartet, auswahlSchluessel, groesse]);
 
   const aufgabe = sitzung?.aufgaben?.[stelle] || null;
 
@@ -353,7 +446,8 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
        zweites Mal verlängerte den Abstand künstlich. Ist sie jetzt falsch,
        ist das ein echter Fehler und geht an FSRS. */
     const flag = cram ? "cram"
-      : aufgabe.grund === "langsam" && richtig ? "practice" : "normal";
+      : sitzung.zusatz === "vorziehen" ? "practice"
+        : aufgabe.grund === "langsam" && richtig ? "practice" : "normal";
     const verbucht = await abrufVerbuchen({
       karte: aufgabe.karte, stapel: aufgabe.stapel, richtung: aufgabe.richtung,
       bewertung: note, konfidenz, antwortzeit, erinnerungszeit: zeitMs,
@@ -488,8 +582,8 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
 
     return (
       <ModusRahmen titel="Abrufen" symbol="blitz" aufSchliessen={aufSchliessen}>
-        <h1>Verschachtelt abrufen</h1>
-        <p className="matt">
+        <h1>Verschachtelt abrufen <HilfeLink frage="abrufen" titel="Was macht das Abrufen besonders?" /></h1>
+        <p className="matt erklaerung">
           Mehrere Fächer in einer Sitzung, gemischt und ohne Ankündigung, woher
           eine Frage kommt. Das ist mühsamer als ein Fach am Stück, und genau
           darum wirksamer: In der Prüfung steht auch nicht dabei, welches
@@ -545,6 +639,17 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
     );
   }
 
+  if (!groesse && !cram) {
+    return (
+      <ModusRahmen titel={titel} symbol="blitz" aufSchliessen={aufSchliessen}>
+        {anstehend > 0 ? (
+          <RundenWahl anstehend={anstehend} vorgabe={vorgabeGroesse}
+            aufWahl={(g) => { setVorgabeGroesse(g); setGroesse(g); }} />
+        ) : <div className="leerer-zustand">Stelle die Sitzung zusammen …</div>}
+      </ModusRahmen>
+    );
+  }
+
   if (!sitzung) {
     return <ModusRahmen titel={titel} symbol="blitz" aufSchliessen={aufSchliessen}>
       <div className="leerer-zustand">Stelle die Sitzung zusammen …</div>
@@ -557,8 +662,8 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
       <ModusRahmen titel={titel} symbol="blitz" aufSchliessen={aufSchliessen}>
         <Leer symbol="haken" titel={nichtsFaellig ? "Für heute genug Neues" : "Nichts fällig"}
           text={nichtsFaellig
-            ? `Das Tageslimit für neue Karten ist erreicht. ${anzahl(sitzung.neu, "Karte wartet", "Karten warten")} auf später, so bleibt die Menge tragbar.`
-            : "Alle Karten sitzen im Plan. Komm wieder, wenn etwas fällig wird."}>
+            ? `Tageslimit erreicht, ${anzahl(sitzung.neu, "neue Karte wartet", "neue Karten warten")}.`
+            : "Alles sitzt im Plan."}>
           <div className="reihe" style={{ justifyContent: "center", flexWrap: "wrap" }}>
             <Knopf onClick={() => gehe("/faecher")}>Zur Übersicht</Knopf>
             {cramMoeglich && (
@@ -575,6 +680,7 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
               als Wiederholung.
             </p>
           )}
+          <div className="oben-24"><WeiterFrage zahlen={weitereZaehlung(weitereEingaben)} aufWeiter={weiterMit} /></div>
         </Leer>
       </ModusRahmen>
     );
@@ -646,6 +752,26 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
           })()}
           {problemKarte && <KarteBearbeiten karte={problemKarte} aufSchliessen={() => setProblemKarte(null)} />}
 
+          {(() => {
+            /* „Noch eine Runde“ in derselben Größe. Ist nichts mehr fällig,
+               die Frage, ob es mit anderen Karten weitergeht. */
+            const naechste = cram ? null : sitzungBauen();
+            const leer = naechste && !naechste.aufgaben.length;
+            return (
+              <>
+                {leer && <WeiterFrage zahlen={weitereZaehlung(weitereEingaben)} aufWeiter={weiterMit} />}
+                <div className="reihe oben-16" style={{ justifyContent: "center", flexWrap: "wrap" }}>
+                  {!leer && (
+                    <Knopf art="voll gross" symbol="blitz" onClick={() => neuBeginnen(naechste || sitzungBauen())}>
+                      Noch eine Runde
+                    </Knopf>
+                  )}
+                  <Knopf art="gross" onClick={() => gehe("/kalibrierung")}>Kalibrierung ansehen</Knopf>
+                  <Knopf art="gross" onClick={() => gehe("/faecher")}>Zur Übersicht</Knopf>
+                </div>
+              </>
+            );
+          })()}
           <div className="gitter" style={{ maxWidth: 620, margin: "24px auto",
             gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}>
             {[[KONFIDENZ.SICHER, "sicher"], [KONFIDENZ.UNSICHER, "unsicher"],
@@ -661,14 +787,6 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
             })}
           </div>
 
-          <div className="reihe" style={{ justifyContent: "center", flexWrap: "wrap" }}>
-            <Knopf art="voll gross" symbol="blitz" onClick={() => {
-              setSitzung(sitzungBauen()); setStelle(0); setPhase("konfidenz");
-              setKonfidenz(null); setEingabe(""); setErgebnisse([]); setFertig(false);
-            }}>Weiter abrufen</Knopf>
-            <Knopf art="gross" onClick={() => gehe("/kalibrierung")}>Kalibrierung ansehen</Knopf>
-            <Knopf art="gross" onClick={() => gehe("/faecher")}>Zur Übersicht</Knopf>
-          </div>
         </div>
         {rueckgaengigLeiste}
       </ModusRahmen>
@@ -690,6 +808,7 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
       anteil={stelle / sitzung.aufgaben.length}
       rechts={<>
         {cram && <span className="marke rot">Endspurt, zählt nicht für den Plan</span>}
+        {sitzung.zusatz === "vorziehen" && <span className="marke">vorgezogen, zählt als Übung</span>}
         {frisch && !cram && !aufgabe.wiederholung && <span className="marke">neu</span>}
         {aufgabe.wiederholung > 0 && <span className="marke gelb">{aufgabe.grund === "langsam" ? "zur Festigung" : "noch einmal"}</span>}
         <span className="klein matt mono">{stelle + 1} / {sitzung.aufgaben.length}</span>
@@ -697,7 +816,8 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
 
       {/* ------------------------------ Frage ------------------------------ */}
       <div className="frage-block" style={{ position: "relative" }}>
-        <div className="klein blass">
+        <div className="frage-kopf">
+        <div className="klein blass dehnen">
           {/* Beim Verschachteln bleibt die Herkunft verdeckt, bis geantwortet
               ist — sonst verrät die Überschrift schon das Verfahren. */}
           {!fachId && herkunftVerbergen && phase !== "aufgedeckt" ? (
@@ -711,6 +831,19 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
               {richtungName(aufgabe.richtung, aufgabe.stapel)}
             </>
           )}
+        </div>
+        <div className="frage-symbole">
+          <SymbolKnopf symbol="laut" titel="Vorlesen"
+            onClick={() => sprich(teile.frage || teile.loesung, sprache,
+              einstellungen.sprechTempo)} />
+          <Stern an={markiert(aufgabe.karte)}
+            aufKlick={() => karteAendern(aufgabe.karte.id, { starred: !markiert(aufgabe.karte) })} />
+          <SymbolKnopf symbol="haken" titel="Kommt nicht dran — aus dem Abrufen nehmen" onClick={ausnehmen} />
+          {/* Erst nach dem Aufdecken: vorher zeigte das Fenster die Antwort. */}
+          {phase === "aufgedeckt" && (
+            <SymbolKnopf symbol="stift" titel="Karte bearbeiten (E)" onClick={() => setBearbeitet(true)} />
+          )}
+        </div>
         </div>
 
         {teile.art === "cloze" ? (
@@ -727,18 +860,6 @@ export default function Abrufen({ fachId = null, ordnerAuswahl = null, stapelAus
           </>
         )}
 
-        <div style={{ position: "absolute", top: 10, right: 12 }}>
-          <SymbolKnopf symbol="laut" titel="Vorlesen"
-            onClick={() => sprich(teile.frage || teile.loesung, sprache,
-              einstellungen.sprechTempo)} />
-          <Stern an={markiert(aufgabe.karte)}
-            aufKlick={() => karteAendern(aufgabe.karte.id, { starred: !markiert(aufgabe.karte) })} />
-          <SymbolKnopf symbol="haken" titel="Kommt nicht dran — aus dem Abrufen nehmen" onClick={ausnehmen} />
-          {/* Erst nach dem Aufdecken: vorher zeigte das Fenster die Antwort. */}
-          {phase === "aufgedeckt" && (
-            <SymbolKnopf symbol="stift" titel="Karte bearbeiten (E)" onClick={() => setBearbeitet(true)} />
-          )}
-        </div>
         {bearbeitet && (
           <KarteBearbeiten karte={aufgabe.karte} aufSchliessen={() => setBearbeitet(false)}
             aufGespeichert={karteErneuert} />

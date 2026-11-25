@@ -1,6 +1,11 @@
 /*
  * Einstellungen: Erscheinungsbild, Strenge der Antwortprüfung, Sprachausgabe,
  * Sicherung als Datei und der freiwillige Abgleich mit der Wolke.
+ *
+ * Seit dem 25. November 2026 wie am iPhone: eine ruhige Übersicht mit
+ * sieben Gruppen, jede auf einer eigenen Seite (`#/einstellungen/<gruppe>`).
+ * Vorher stand alles untereinander auf einer langen Seite — zu viel auf
+ * einmal.
  */
 
 import React, { useEffect, useRef, useState } from "react";
@@ -13,7 +18,10 @@ import * as kurzbefehl from "../core/kurzbefehl.js";
 import { WOCHE, HOECHSTENS_JE_TAG, zeitplanOrdnen } from "../core/pushplan.js";
 import * as tagessicherung from "../core/tagessicherung.js";
 import { UmzugAlt, UmzugNeu } from "./Umzug.jsx";
-import { stimmen, beiStimmen, sprich } from "../core/speech.js";
+import {
+  stimmen, beiStimmen, sprich, stimmenFuer, stimmeFuer, gewaehlt, waehle, kennungVon, guete,
+  GUETE_NAMEN, PROBE, SPRACHEN, sprachAusgabeDa,
+} from "../core/speech.js";
 import { verwaisteBilderAufraeumen } from "../core/media.js";
 import {
   dateiname, inhaltsangabe, angabeText, groesseText, pruefeSicherung,
@@ -24,18 +32,26 @@ import { herunterladen } from "../core/datei.js";
 import { sicherungen as kopienLesen, kopieAlsSicherung } from "../core/db.js";
 import * as beispiel from "../core/beispiel.js";
 import { datumKurz, tagesSchluessel } from "../core/util.js";
-import { Symbol, Knopf, SymbolKnopf, Dialog } from "./basis.jsx";
+import { Symbol, Knopf, SymbolKnopf, Dialog, Sinnbild } from "./basis.jsx";
+import { gehe, zurueck } from "../App.jsx";
 import { bestaetigen } from "./Rueckfragen.jsx";
 import Gestaltung from "./Gestaltung.jsx";
 import Kalenderausfuhr from "./Kalenderausfuhr.jsx";
 
 
 
+/* Auf einer Unterseite, die schon so heißt, fällt die doppelte Überschrift weg. */
+const SeitenTitel = React.createContext(null);
+
 function Abschnitt({ titel, hinweis, children }) {
+  const seite = React.useContext(SeitenTitel);
+  const ohneTitel = seite && seite === titel;
   return (
     <section className="unten-32">
-      <h2 style={{ marginBottom: hinweis ? 4 : 12 }}>{titel}</h2>
-      {hinweis && <p className="klein matt" style={{ marginTop: 0, marginBottom: 12 }}>{hinweis}</p>}
+      {!ohneTitel && <h2 style={{ marginBottom: hinweis ? 4 : 12 }}>{titel}</h2>}
+      {hinweis && (
+        <p className="klein matt erklaerung" style={{ marginTop: 0, marginBottom: 12 }}>{hinweis}</p>
+      )}
       {children}
     </section>
   );
@@ -1538,86 +1554,266 @@ function Sicherungsteil() {
   );
 }
 
-export default function Einstellungen({ aufAbgleich }) {
-  const { einstellungen, setzeEinstellung } = useDaten();
-  const [stimmenListe, setStimmenListe] = useState(stimmen());
+/* ------------------------------- Stimme -------------------------------- */
 
-  useEffect(() => beiStimmen(setStimmenListe), []);
+const istIphone = () => typeof navigator !== "undefined"
+  && (/iPhone|iPad|iPod/.test(navigator.userAgent)
+    || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1));
+const istEdge = () => typeof navigator !== "undefined" && /Edg\//.test(navigator.userAgent);
+
+/**
+ * Je Sprache die Stimme: automatisch die beste (core/speech.js) oder eine
+ * selbst gewählte, mit Probehören. Gibt es nur eine einfache Stimme, sagt
+ * die Seite, wie man an eine bessere kommt — gratis, aber nur der Nutzer
+ * selbst kann sie laden.
+ */
+function StimmenWahl({ tempo }) {
+  const { stapel } = useDaten();
+  const [liste, setListe] = useState(stimmen());
+  useEffect(() => beiStimmen((l) => setListe([...l])), []);
+
+  /* Deutsch und Spanisch immer, dazu jede Sprache, die ein Stapel nutzt. */
+  const benutzt = new Set(["de", "es"]);
+  for (const st of stapel || []) {
+    if (st.deleted) continue;
+    for (const l of [st.termLang, st.defLang]) if (l) benutzt.add(String(l).slice(0, 2));
+  }
+  const sprachen = SPRACHEN.filter(([k]) => benutzt.has(k));
+
+  if (!sprachAusgabeDa()) {
+    return <p className="klein matt">Dieser Browser kann nicht vorlesen.</p>;
+  }
+  if (!liste.length) {
+    return <p className="klein matt">Die Stimmen werden geladen …</p>;
+  }
+
+  return (
+    <div style={{ display: "grid", gap: 14 }}>
+      {sprachen.map(([kurz, name]) => {
+        const alle = stimmenFuer(kurz, liste);
+        const aktiv = stimmeFuer(kurz, liste);
+        const eigene = gewaehlt(kurz);
+        const beste = alle[0] || null;
+        const schwach = !beste || guete(beste) === "einfach";
+        return (
+          <div key={kurz}>
+            <label className="beschriftung">{name}</label>
+            <div className="reihe" style={{ gap: 8 }}>
+              <select className="feld dehnen" style={{ minWidth: 0 }}
+                value={eigene && alle.some((x) => kennungVon(x) === eigene) ? eigene : ""}
+                onChange={(e) => { waehle(kurz, e.target.value || null); setListe([...liste]); }}>
+                <option value="">
+                  {beste ? "Automatisch · " + kurzName(beste) : "Keine Stimme auf diesem Gerät"}
+                </option>
+                {alle.map((x) => (
+                  <option key={kennungVon(x)} value={kennungVon(x)}>
+                    {kurzName(x)} · {GUETE_NAMEN[guete(x)]}{x.localService === false ? " · braucht Netz" : ""}
+                  </option>
+                ))}
+              </select>
+              <Knopf art="klein" symbol="laut" disabled={!aktiv}
+                onClick={() => sprich(PROBE[kurz] || PROBE.de, kurz, tempo)}>
+                Probe
+              </Knopf>
+            </div>
+            {schwach && (
+              <div className="rueckmeldung oben-8 klein">
+                Für {name} gibt es auf diesem Gerät nur eine einfache Stimme.{" "}
+                {istIphone()
+                  ? <>Eine bessere lädst du gratis in den iPhone-Einstellungen: <strong>Bedienungshilfen →
+                    Gesprochene Inhalte → Stimmen → {name}</strong>, dort eine Stimme mit „Erweitert“ oder
+                    „Premium“ laden (z. B. {kurz === "es" ? "Jorge" : "Markus"}). Danach Anchor neu öffnen.</>
+                  : istEdge()
+                    ? <>Edge hat natürliche Stimmen, sie brauchen eine Internetverbindung. Ist der PC
+                      verbunden, erscheinen sie nach einem Neuladen.</>
+                    : <>Öffne Anchor in <strong>Microsoft Edge</strong>, dort gibt es gratis natürliche Stimmen.</>}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** „Microsoft Conrad Online (Natural) - German (Germany)“ → „Conrad (Deutschland)“. */
+function kurzName(stimme) {
+  const name = String(stimme?.name || "");
+  const edge = /^Microsoft\s+(\S+).*?-\s*[^(]+\(([^)]+)\)/.exec(name);
+  if (edge) return edge[1] + " (" + (LAENDER[edge[2]] || edge[2]) + ")";
+  const lang = String(stimme?.lang || "");
+  const land = LAENDER_KURZ[lang.slice(3).toUpperCase()];
+  return name.replace(/^(Microsoft|Google|Apple)\s+/, "") + (land && !name.includes("(") ? " (" + land + ")" : "");
+}
+const LAENDER = {
+  Germany: "Deutschland", Austria: "Österreich", Switzerland: "Schweiz", Spain: "Spanien",
+  Mexico: "Mexiko", "United States": "USA", "United Kingdom": "Großbritannien", France: "Frankreich",
+  Argentina: "Argentinien", Colombia: "Kolumbien",
+};
+const LAENDER_KURZ = { DE: "Deutschland", AT: "Österreich", CH: "Schweiz", ES: "Spanien", MX: "Mexiko",
+  US: "USA", GB: "Großbritannien", FR: "Frankreich", AR: "Argentinien", CO: "Kolumbien" };
+
+/* ------------------------------ Die Seiten ----------------------------- */
+
+const TEILE = [
+  { id: "lernen", name: "Lernen", symbol: "ziel", ton: "blau" },
+  { id: "stimme", name: "Stimme", symbol: "laut", ton: "lila" },
+  { id: "erinnerung", name: "Erinnerung", symbol: "glocke", ton: "orange" },
+  { id: "aussehen", name: "Aussehen", symbol: "sonne", ton: "gelb" },
+  { id: "cloud", name: "Cloud und Geräte", symbol: "wolke", ton: "tuerkis" },
+  { id: "daten", name: "Daten und Sicherung", symbol: "herunter", ton: "gruen" },
+  { id: "erweitert", name: "Erweitert", symbol: "zahnrad", ton: "grau" },
+];
+
+export default function Einstellungen({ aufAbgleich, teil = null }) {
+  const { einstellungen, setzeEinstellung } = useDaten();
 
   const schalter = (schluessel, name, hinweis) => (
     <label className="schalter" title={hinweis}>
       <input type="checkbox" checked={Boolean(einstellungen[schluessel])}
         onChange={(e) => setzeEinstellung(schluessel, e.target.checked)} />
-      <span>{name}{hinweis && <span className="klein blass"> · {hinweis}</span>}</span>
+      <span>{name}{hinweis && <span className="klein blass erklaerung"> · {hinweis}</span>}</span>
     </label>
   );
 
-  return (
-    <div className="mitte" style={{ maxWidth: 780 }}>
-      <div className="kopfzeile"><h1>Einstellungen</h1></div>
+  const seite = TEILE.find((x) => x.id === teil);
 
-      <UmzugAlt aufAbgleich={aufAbgleich} />
-      <UmzugNeu />
+  /* ------------------------------ Übersicht ----------------------------- */
+  if (!seite) {
+    return (
+      <div className="mitte" style={{ maxWidth: 640 }}>
+        <div className="kopfzeile"><h1>Einstellungen</h1></div>
 
-      <Abschnitt titel="Erscheinungsbild"
-        hinweis="Jede Änderung greift sofort. Die Vorschau daneben zeigt, was du beim Verstellen sonst nicht vor Augen hast.">
-        <Gestaltung />
-      </Abschnitt>
+        <UmzugAlt aufAbgleich={aufAbgleich} />
+        <UmzugNeu />
 
-      <Abschnitt titel="Antwortprüfung"
-        hinweis="Gilt für Schreiben, Lernen, Test und Meteor. „Buchstabieren“ prüft immer streng.">
-        {schalter("tippfehlerErlauben", "Tippfehler verzeihen", "ein verrutschter Buchstabe zählt als fast richtig")}
-        {schalter("ohneArtikel", "Artikel übergehen", "„das Haus“ gilt wie „Haus“")}
-        {schalter("zeichenEgal", "Betonungszeichen übergehen", "„café“ gilt wie „cafe“")}
-        {schalter("satzzeichenEgal", "Satzzeichen übergehen")}
-      </Abschnitt>
-
-      <Abschnitt titel="Lernen">
-        <label className="beschriftung">Karten je Runde: {einstellungen.rundenGroesse}</label>
-        <input type="range" min="4" max="20" step="1" value={einstellungen.rundenGroesse}
-          style={{ width: 260 }}
-          onChange={(e) => setzeEinstellung("rundenGroesse", Number(e.target.value))} />
-      </Abschnitt>
-
-      <Abschnitt titel="Sprachausgabe"
-        hinweis={stimmenListe.length
-          ? stimmenListe.length + " Stimmen stehen zur Verfügung."
-          : "Dieser Browser meldet keine Stimmen. Vorlesen und Buchstabieren bleiben stumm."}>
-        {schalter("vorlesenAutomatisch", "Bei Karteikarten von allein vorlesen")}
-        {schalter("eigeneStimmeAutomatisch", "Eigene Aufnahme von allein abspielen",
-          "wenn du die Loesung selbst eingesprochen hast, sobald sie aufgedeckt ist")}
-        <label className="beschriftung oben-12">
-          Sprechtempo: {Number(einstellungen.sprechTempo).toFixed(1)}
-        </label>
-        <div className="reihe">
-          <input type="range" min="0.6" max="1.6" step="0.1" value={einstellungen.sprechTempo}
-            style={{ width: 220 }}
-            onChange={(e) => setzeEinstellung("sprechTempo", Number(e.target.value))} />
-          <Knopf art="klein" symbol="laut"
-            onClick={() => sprich("Anchor liest vor.", "de", einstellungen.sprechTempo)}>
-            Probe
-          </Knopf>
+        <div className="einstellungs-liste">
+          {TEILE.map((x) => (
+            <button key={x.id} type="button" className="einstellungs-zeile"
+              onClick={() => gehe("/einstellungen/" + x.id)}>
+              <Sinnbild name={x.symbol} ton={x.ton} />
+              <span className="dehnen">{x.name}</span>
+              <Symbol name="weiter" groesse={16} className="blass" />
+            </button>
+          ))}
         </div>
-      </Abschnitt>
 
-      <Erinnerungsteil />
+        <div className="einstellungs-liste oben-16">
+          <button type="button" className="einstellungs-zeile" onClick={() => gehe("/hilfe")}>
+            <Sinnbild name="frage" ton="blau" />
+            <span className="dehnen">Fragen zur App</span>
+            <Symbol name="weiter" groesse={16} className="blass" />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-      <Sprachmodellteil />
+  /* ------------------------------ Unterseite ---------------------------- */
+  return (
+    <SeitenTitel.Provider value={seite.name}>
+      <div className="mitte" style={{ maxWidth: 780 }}>
+        <div className="kopfzeile">
+          <SymbolKnopf symbol="zurueck" titel="Einstellungen" art="leer" onClick={() => zurueck("/einstellungen")} />
+          <h1 className="dehnen">{seite.name}</h1>
+        </div>
 
-      <Wolkenteil aufAbgleich={aufAbgleich} />
+        {teil === "lernen" && (
+          <>
+            <Abschnitt titel="Antwortprüfung"
+              hinweis="Gilt für Schreiben, Lernen, Test und Meteor. „Buchstabieren“ prüft immer streng.">
+              {schalter("tippfehlerErlauben", "Tippfehler verzeihen", "ein verrutschter Buchstabe zählt als fast richtig")}
+              {schalter("ohneArtikel", "Artikel übergehen", "„das Haus“ gilt wie „Haus“")}
+              {schalter("zeichenEgal", "Betonungszeichen übergehen", "„café“ gilt wie „cafe“")}
+              {schalter("satzzeichenEgal", "Satzzeichen übergehen")}
+            </Abschnitt>
 
-      <Sicherungsteil />
+            <Abschnitt titel="Oben im Stapel"
+              hinweis="Zum Ausprobieren: Was beim Öffnen eines Stapels ganz oben steht.">
+              <div className="reihe umbruch" style={{ gap: 8 }} role="radiogroup" aria-label="Oben im Stapel">
+                {[["abrufen", "Abrufen"], ["karteikarten", "Karteikarten wie bei Quizlet"]].map(([wert, name]) => {
+                  const an = (einstellungen.stapelOben || "abrufen") === wert;
+                  return (
+                    <Knopf key={wert} art={an ? "voll" : ""} role="radio" aria-checked={an}
+                      onClick={() => setzeEinstellung("stapelOben", wert)}>{name}</Knopf>
+                  );
+                })}
+              </div>
+            </Abschnitt>
 
-      <Beispielteil />
+            <Abschnitt titel="Übungsrunden"
+              hinweis="Wie viele Karten eine Runde in Lernen, Schreiben und Test hat. Beim Abrufen wählst du die Größe jedes Mal neu.">
+              <label className="beschriftung">Karten je Runde: {einstellungen.rundenGroesse}</label>
+              <input type="range" min="4" max="20" step="1" value={einstellungen.rundenGroesse}
+                style={{ width: "100%", maxWidth: 320 }}
+                onChange={(e) => setzeEinstellung("rundenGroesse", Number(e.target.value))} />
+            </Abschnitt>
+          </>
+        )}
 
-      <Abschnitt titel="Über">
-        <p className="klein matt">
-          Anchor läuft ganz in deinem Browser. Über den Menüpunkt „Installieren“
-          deines Browsers lässt er sich wie eine gewöhnliche App auf den Startbildschirm
-          legen und dann auch ohne Netz benutzen.
-        </p>
-      </Abschnitt>
+        {teil === "stimme" && (
+          <>
+            <Abschnitt titel="Stimmen"
+              hinweis="Automatisch nimmt Anchor die beste Stimme auf diesem Gerät. Die Wahl gilt nur hier, iPhone und PC haben verschiedene Stimmen.">
+              <StimmenWahl tempo={einstellungen.sprechTempo} />
+            </Abschnitt>
+            <Abschnitt titel="Vorlesen">
+              {schalter("vorlesenAutomatisch", "Bei Karteikarten von allein vorlesen")}
+              {schalter("eigeneStimmeAutomatisch", "Eigene Aufnahme von allein abspielen",
+                "sobald die Lösung aufgedeckt ist")}
+              <label className="beschriftung oben-12">
+                Sprechtempo: {Number(einstellungen.sprechTempo).toFixed(1).replace(".", ",")}
+              </label>
+              <input type="range" min="0.6" max="1.6" step="0.1" value={einstellungen.sprechTempo}
+                style={{ width: "100%", maxWidth: 320 }}
+                onChange={(e) => setzeEinstellung("sprechTempo", Number(e.target.value))} />
+            </Abschnitt>
+          </>
+        )}
 
-    </div>
+        {teil === "erinnerung" && <Erinnerungsteil />}
+
+        {teil === "aussehen" && (
+          <>
+            {/* Minimal: einheitliche Zeichen und keine Erklärtexte — ein Schalter
+                für beides; die Fragen zur App erklären weiter alles. */}
+            <section className="unten-24">
+              <label className="schalter">
+                <input type="checkbox"
+                  checked={einstellungen.sinnbilderFarbig === false && einstellungen.erklaerungen === false}
+                  onChange={(e) => {
+                    setzeEinstellung("sinnbilderFarbig", !e.target.checked);
+                    setzeEinstellung("erklaerungen", !e.target.checked);
+                  }} />
+                <span><strong>Minimal</strong>
+                  <span className="klein blass"> · einheitliche Zeichen, keine Erklärtexte, Hilfe über das „?“</span>
+                </span>
+              </label>
+            </section>
+          <Abschnitt titel="Aussehen"
+            hinweis="Jede Änderung greift sofort.">
+            <Gestaltung />
+          </Abschnitt>
+          </>
+        )}
+
+        {teil === "cloud" && <Wolkenteil aufAbgleich={aufAbgleich} />}
+
+        {teil === "daten" && <Sicherungsteil />}
+
+        {teil === "erweitert" && (
+          <>
+            <Sprachmodellteil />
+            <Beispielteil />
+            <Abschnitt titel="Über">
+              <p className="klein matt">
+                Anchor läuft ganz in deinem Browser. Über „Installieren“ im Menü des Browsers
+                liegt er wie eine App auf dem Startbildschirm und geht auch ohne Netz.
+              </p>
+            </Abschnitt>
+          </>
+        )}
+      </div>
+    </SeitenTitel.Provider>
   );
 }

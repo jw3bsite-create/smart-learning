@@ -631,7 +631,7 @@ export function QuizletUebernahme({ daten }) {
     return (
       <div className="mitte">
         <Leer symbol="hinauf" titel="Keine Karten angekommen"
-          text="Hier landen Karten aus dem Quizlet-Knopf. Öffne einen Stapel und nimm dort „Aus Quizlet …“." />
+          text="Hier landen Karten aus dem Quizlet-Knopf." />
       </div>
     );
   }

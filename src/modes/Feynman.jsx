@@ -295,7 +295,7 @@ function Uebersicht({ faecher, erklaerungen, aufAnlegen, aufLoeschen, aufSchlies
 
       {erklaerungen.length === 0 ? (
         <Leer symbol="buch" titel="Noch nichts erklärt"
-          text="Nimm ein Thema, das du gerade lernst, und versuch es aufzuschreiben, ohne nachzusehen. Die Stellen, an denen du ins Stocken gerätst, sind die Antwort." />
+          text="Schreib ein Thema auf, ohne nachzusehen. Wo du stockst, fehlt etwas." />
       ) : (
         <div style={{ display: "grid", gap: 10 }}>
           {[...erklaerungen].sort((a, b) => b.updatedAt - a.updatedAt).map((x) => {

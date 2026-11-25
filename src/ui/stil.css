@@ -1461,3 +1461,72 @@ html.zieht { cursor: grabbing; }
   position: absolute; top: 12px; left: 14px; display: inline-flex; align-items: center; gap: 4px;
   font-size: 12px; color: var(--schrift-blass);
 }
+
+/* Rundengröße vor dem Abrufen: vier große Felder, die zuletzt gewählte hervorgehoben. */
+.runden-wahl { max-width: 520px; margin: 24px auto 0; display: grid; gap: 16px; }
+.runden-gitter { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.runden-knopf { position: relative; flex-direction: column; align-items: center; justify-content: center;
+  gap: 2px; padding: 18px 10px; min-height: 96px; }
+.runden-knopf.vorgabe { border-color: var(--akzent); box-shadow: 0 0 0 1px var(--akzent) inset; }
+.runden-zahl { font-family: var(--serifen); font-size: 30px; line-height: 1; }
+.runden-name { font-size: 14px; color: var(--schrift-matt); }
+.runden-knopf .tasten-hinweis { position: absolute; top: 8px; right: 10px; font-size: 11px; color: var(--schrift-blass); }
+@media (hover: none) { .runden-knopf .tasten-hinweis { display: none; } }
+.weiter-frage { max-width: 520px; margin: 8px auto 0; padding: 16px; border: 1px solid var(--rand);
+  border-radius: var(--rund); background: var(--grund-2); text-align: center; }
+
+/* Einstellungen wie am iPhone: eine ruhige Liste, je Gruppe eine Zeile. */
+.einstellungs-liste { border: 1px solid var(--rand); border-radius: var(--rund); overflow: hidden;
+  background: var(--grund-2); }
+.einstellungs-zeile { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px;
+  padding: 10px 14px; background: none; border: 0; color: var(--schrift); font: inherit; text-align: left;
+  cursor: pointer; transition: background var(--wechsel); }
+.einstellungs-zeile + .einstellungs-zeile { border-top: 1px solid var(--rand); }
+.einstellungs-zeile:hover { background: var(--grund-3); }
+.einstellungs-zeile:active { background: var(--grund-3); }
+
+/* Minimal: Erklärtexte ausgeblendet (Einstellungen → Aussehen). */
+:root[data-erklaerungen="aus"] .erklaerung { display: none !important; }
+
+/* Das kleine „?“ zur Hilfe: leise, rund, nicht im Weg. */
+.hilfe-link { display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--rand); background: transparent;
+  color: var(--schrift-blass); font: 600 12px/1 var(--schrift-oberflaeche); cursor: pointer;
+  vertical-align: middle; margin-left: 6px; padding: 0; transition: color var(--wechsel), border-color var(--wechsel); }
+.hilfe-link:hover { color: var(--akzent); border-color: var(--akzent); }
+@media (pointer: coarse) { .hilfe-link { width: 26px; height: 26px; } }
+
+/* Fragen zur App */
+.hilfe-gruppe { margin-bottom: 24px; }
+.hilfe-frage { border: 1px solid var(--rand); border-radius: calc(var(--rund) * 0.85); background: var(--grund-2);
+  margin-bottom: 6px; scroll-margin-top: 80px; }
+.hilfe-frage > summary { list-style: none; cursor: pointer; padding: 12px 14px; display: flex; gap: 10px;
+  align-items: center; font-weight: 500; }
+.hilfe-frage > summary::-webkit-details-marker { display: none; }
+.hilfe-frage > summary::after { content: "+"; margin-left: auto; color: var(--schrift-blass); font-weight: 400; }
+.hilfe-frage[open] > summary::after { content: "–"; }
+.hilfe-frage[open] { border-color: var(--akzent); }
+.hilfe-antwort { padding: 0 14px 12px; color: var(--schrift-matt); }
+.hilfe-antwort p { margin: 0 0 8px; }
+
+/* Karteikarten oben im Stapel, wie bei Quizlet (ui/KartenVorschau.jsx). */
+.vorschau-karte { position: relative; min-height: 190px; display: flex; align-items: center; justify-content: center;
+  padding: 28px 20px; border: 1px solid var(--rand); border-radius: var(--rund); background: var(--grund-2);
+  cursor: pointer; user-select: none; touch-action: pan-y; box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  transition: border-color var(--wechsel); }
+.vorschau-karte:hover { border-color: var(--akzent); }
+.vorschau-karte.gedreht { background: var(--grund-3); }
+.vorschau-inhalt { text-align: center; max-width: 100%; animation: vorschau-rein calc(var(--wechsel) * 2) ease-out; }
+.vorschau-inhalt img { max-height: 140px; max-width: 100%; }
+.vorschau-text { font-family: var(--schrift-karten); font-size: 22px; line-height: 1.35; overflow-wrap: anywhere; }
+.vorschau-text.lang { font-size: 17px; }
+.vorschau-ecke { position: absolute; top: 6px; right: 6px; }
+.vorschau-leiste { justify-content: center; gap: 18px; margin-top: 6px; }
+@keyframes vorschau-rein { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .vorschau-inhalt { animation: none; } }
+
+/* Abrufen: Herkunft links, Vorlesen/Stern/Haken/Stift rechts — nebeneinander,
+   damit die Symbole die Zeile nicht mehr überdecken. */
+.frage-kopf { display: flex; align-items: flex-start; gap: 8px; margin: -4px -6px 6px 0; }
+.frage-kopf .dehnen { min-width: 0; padding-top: 8px; }
+.frage-symbole { display: flex; flex: none; align-items: center; }

@@ -6,7 +6,7 @@ import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { anteileNachStufe, stufe, STUFEN } from "../core/fsrs.js";
 import { stapelStand, rueckkehrStand } from "../core/warteschlange.js";
-import { ruht } from "../core/model.js";
+import { ruht, istRelevant } from "../core/model.js";
 import { anzahl, datumKurz, mische } from "../core/util.js";
 import { alsCsv, alsText, alsAnkiText, alsCsvMitPlan } from "../core/importer.js";
 import { sprich, SPRACHEN } from "../core/speech.js";
@@ -16,8 +16,10 @@ import { herunterladen } from "../core/datei.js";
 import { alsStapeldatei } from "../core/stapeldatei.js";
 import {
   Symbol, Sinnbild, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Bild, Stern, Leer, Dialog, Rueckfrage, KLICKBAR,
+  HilfeLink,
 } from "./basis.jsx";
 import Formel from "./Formel.jsx";
+import KartenVorschau from "./KartenVorschau.jsx";
 import Auswahlleiste from "./Kartenauswahl.jsx";
 import { useZiehen } from "./ziehen.js";
 import { karteMitRueckfrageLoeschen } from "./Rueckfragen.jsx";
@@ -38,7 +40,7 @@ export default function Stapelansicht({ setId }) {
     stapel, ordner, kartenVon, karteAendern, stapelAendern,
     stapelLoeschen, stapelVervielfaeltigen, kartenOrdnen, seitenTauschen, kartenGliedern,
     zustandZuruecksetzen,
-    faecher, zustaende, stapelVon, fachVon, karteLoeschen,
+    faecher, zustaende, stapelVon, fachVon, karteLoeschen, einstellungen,
   } = useDaten();
   const [sortierung, setSortierung] = useState("eigen");
   const [nurMarkierte, setNurMarkierte] = useState(false);
@@ -203,12 +205,18 @@ export default function Stapelansicht({ setId }) {
 
       {karten.length === 0 ? (
         <Leer titel="Dieser Stapel ist noch leer"
-          text="Trage Karten ein, füge eine Liste aus der Zwischenablage ein oder lies sie aus einem Foto.">
+          text="Karten eintragen, einfügen oder aus einem Foto lesen.">
           <Knopf art="voll gross" symbol="plus"
             onClick={() => gehe("/stapel/" + setId + "/bearbeiten")}>Karten anlegen</Knopf>
         </Leer>
       ) : (
         <>
+          {/* Oben wie bei Quizlet: die Karten zum Durchblättern (Einstellungen →
+              Lernen → „Oben im Stapel“, seit dem 25.11.2026). */}
+          {einstellungen.stapelOben === "karteikarten" && (
+            <KartenVorschau setId={setId} karten={karten.filter(istRelevant)} />
+          )}
+
           {/* ------------------------- Der Lernweg ---------------------- */}
           <div {...KLICKBAR} className="kachel lernweg-kachel"
             onClick={() => gehe(derStapel.subjectId
@@ -217,7 +225,7 @@ export default function Stapelansicht({ setId }) {
               <Sinnbild name="blitz" ton="blau" groesse={18} className="gross" />
               <div>
                 <div className="titel">Abrufen</div>
-                <div className="klein matt">
+                <div className={"klein matt" + (derStapel.subjectId ? " erklaerung" : "")}>
                   {derStapel.subjectId
                     ? "Tippen, einschätzen, bewerten: Hier entscheidet sich, wann diese Karten wiederkommen."
                     : "Noch keinem Fach zugeordnet. Ohne Fach kann der Plan nicht rechnen."}
@@ -235,7 +243,8 @@ export default function Stapelansicht({ setId }) {
 
           {/* --------------------------- Übungsmodi --------------------- */}
           <div className="klein blass unten-8">
-            Zum Üben, zählt für die Statistik, verschiebt aber keine Termine
+            <span className="erklaerung">Zum Üben, verschiebt keine Termine</span>
+            <HilfeLink frage="uebung" titel="Warum zählen die Übungen nicht für den Plan?" />
           </div>
           {/* Nur Sinnbild und Name. Was ein Modus tut, steht im Modus hinter
               dem „?“ (und hier beim Überfahren mit der Maus). */}
@@ -278,7 +287,8 @@ export default function Stapelansicht({ setId }) {
 
           {/* -------------------------- Karten -------------------------- */}
           <div className="reihe umbruch unten-12">
-            <h3 className="dehnen">{anzahl(karten.length, "Karte", "Karten")}</h3>
+            <h3 className="dehnen">{anzahl(karten.length, "Karte", "Karten")}
+              {karten.length > 1 && <HilfeLink frage="umordnen" titel="Wie ordne ich Karten um?" />}</h3>
             {/* Sichtbar, solange etwas markiert ist — oder der Filter an ist:
                 Sonst verschwand der Weg zurück mit der letzten Markierung. */}
             {(markierte > 0 || nurMarkierte) && (
@@ -302,16 +312,8 @@ export default function Stapelansicht({ setId }) {
             </select>
           </div>
 
-          {karten.length > 1 && (
-            <p className="klein blass" style={{ marginTop: -4, marginBottom: 10 }}>
-              {ziehbar
-                ? "Zum Umordnen eine Karte gedrückt halten und ziehen, auch unter eine andere Überschrift."
-                : <>Umordnen geht in der eigenen Reihenfolge.{" "}
-                  <button type="button" className="pfad-verweis"
-                    onClick={() => { setSortierung("eigen"); setNurMarkierte(false); }}>
-                    Dorthin wechseln</button></>}
-            </p>
-          )}
+          {/* Der Bedienhinweis zum Umordnen steht seit dem 25.11.2026 unter
+              „Fragen zur App“ (das „?“ an der Kartenzahl). */}
 
           {waehlt && (
             <Auswahlleiste setId={setId} ausgewaehlt={ausgewaehlt}

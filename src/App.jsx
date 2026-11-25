@@ -46,6 +46,7 @@ const Papierkorb = lazy(() => import("./ui/Papierkorb.jsx"));
 const Fehlerheft = lazy(() => import("./ui/Fehlerheft.jsx"));
 const Kalibrierung = lazy(() => import("./ui/Kalibrierung.jsx"));
 const Noten = lazy(() => import("./ui/Noten.jsx"));
+const Hilfe = lazy(() => import("./ui/Hilfe.jsx"));
 const Fragen = lazy(() => import("./modes/Fragen.jsx"));
 const EntwuerfeAnsicht = lazy(() => import("./ui/Entwuerfe.jsx"));
 const Feynman = lazy(() => import("./modes/Feynman.jsx"));
@@ -398,7 +399,8 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
   else if (teile[0] === "stapel" && teile[2] === "bearbeiten") inhalt = <Bearbeiten setId={teile[1]} />;
   else if (teile[0] === "stapel" && teile[2] === "entwuerfe") inhalt = <EntwuerfeAnsicht setId={teile[1]} />;
   else if (teile[0] === "stapel") inhalt = <Stapelansicht setId={teile[1]} />;
-  else if (teile[0] === "einstellungen") inhalt = <Einstellungen aufAbgleich={() => abgleichen(false)} />;
+  else if (teile[0] === "einstellungen")
+    inhalt = <Einstellungen teil={teile[1] || null} aufAbgleich={() => abgleichen(false)} />;
   else if (teile[0] === "statistik") inhalt = <Statistik />;
   else if (teile[0] === "papierkorb") inhalt = <Papierkorb />;
   else if (teile[0] === "faecher") inhalt = <Faecher />;
@@ -407,6 +409,7 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
   else if (teile[0] === "kalibrierung") inhalt = <Kalibrierung />;
   else if (teile[0] === "fehler") inhalt = <Fehlerheft fachId={teile[1] || null} />;
   else if (teile[0] === "punkte") inhalt = <Noten />;
+  else if (teile[0] === "hilfe") inhalt = <Hilfe frage={teile[1] || null} />;
   // Vom Quizlet-Knopf: die Karten stehen im Weg (core/quizletknopf.js).
   else if (teile[0] === "quizlet") inhalt = <QuizletUebernahme daten={teile[1] || ""} />;
   else if (teile[0] === "fragen")

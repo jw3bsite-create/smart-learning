@@ -48,7 +48,7 @@ export default function Papierkorb() {
 
       {leer ? (
         <Leer symbol="papierkorb" titel="Nichts gelöscht"
-          text="Was du löschst, landet hier und lässt sich sechzig Tage lang zurückholen." />
+          text="Gelöschtes bleibt hier sechzig Tage." />
       ) : (
         <div style={{ display: "grid", gap: 8 }}>
           {inhalt.ordner.map((o) => zeile("ordner", o.name, "Ordner", o))}

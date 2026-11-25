@@ -231,6 +231,7 @@ export const STANDARD_GESTALTUNG = {
   kartenhoehe: 340,              // 240 bis 520
   ruhig: false,                  // Übergänge abschalten
   sinnbilderFarbig: true,        // Sinnbilder je Funktion in eigenem Ton (aus: schlicht, einheitlich)
+  erklaerungen: true,            // Erklärtexte zeigen (aus: „Minimal“, seit 25.11.2026)
 };
 
 /* ------------------------- Eigene Erscheinungsbilder --------------------- */
@@ -323,4 +324,5 @@ export function anwenden(el, g = {}) {
   s.setProperty("--kartenhoehe", w.kartenhoehe + "px");
   s.setProperty("--wechsel", w.ruhig ? "0s" : "0.12s");
   el.dataset.sinnbilder = w.sinnbilderFarbig === false ? "schlicht" : "farbig";
+  el.dataset.erklaerungen = w.erklaerungen === false ? "aus" : "an";
 }

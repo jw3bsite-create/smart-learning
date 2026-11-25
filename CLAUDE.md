@@ -171,6 +171,13 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
    Runde zusammen. Er verschiebt keine Termine — seine Antworten tragen
    `practice`. Ohne diese Trennung wäre er die Hintertür, durch die man sich
    seine Wiederholungen selbst zusammenstellt.
+
+   **Rundengröße und „weitermachen“** (seit 25. November 2026, auf Wunsch):
+   Klein/Mittel/Groß/Frei ist Umfang, keine Auswahl. Ist alles Fällige
+   durch, fragt das Abrufen nur, *ob* es weitergeht; *welche* Karten, nimmt
+   `baueWeitere`: neue (über das Tageslimit, zählen normal) oder vorgezogene
+   (nächstfällige zuerst, tragen `practice`, damit kein Abstand künstlich
+   schrumpft).
 8. **Keine Note durch die KI.** Strukturfeedback ja, Punkte nein.
 9. **Die Strähne belohnt abgerufene Karten, nicht geöffnete Fenster.**
 
@@ -480,6 +487,24 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     Punkte: Leistungen haben Sorten (Klassenarbeit, Test …) mit Gewicht,
     Bezeichnungen zählen sich selbst durch (`leistungsName`), Leistungen ohne
     Punkte (`null`) zählen nicht mit.
+72. **Einstellungen sind Unterseiten** (`#/einstellungen/<gruppe>`, seit
+    25. November 2026): lernen, stimme, erinnerung, aussehen, cloud, daten,
+    erweitert. Wer auf eine Einstellung verweist, verweist auf die Gruppe
+    (Rückkehr aus der Cloud-Anmeldung: `/einstellungen/cloud`).
+73. **Erklärtexte und Hilfe.** Bedienhinweise stehen nur in `core/hilfe.js`
+    („Fragen zur App“, `#/hilfe/<frage>`), an der Stelle ein `HilfeLink`
+    („?“). Übrige Erklärtexte tragen die Klasse `erklaerung`; „Minimal“
+    (Einstellungen → Aussehen, `erklaerungen: false` + schlichte Sinnbilder)
+    blendet sie aus. Warnungen und Rückfragen bekommen die Klasse nie.
+    `test/hilfe.test.js` prüft, dass jedes „?“ auf eine vorhandene Frage zeigt.
+74. **Vorlesestimme nach Güte** (`core/speech.js`): natürlich (Edge Natural,
+    Apple Premium) vor erweitert vor einfach, dann Gegend (es-ES, de-DE), dann
+    männlich (Wunsch des Nutzers). Eigene Wahl je Sprache in `localStorage`
+    (`anchor:stimmen`), pro Gerät, nicht im Abgleich. Edges natürliche
+    Stimmen brauchen Netz; scheitern sie, liest die beste lokale.
+75. **„Oben im Stapel“** (`stapelOben`: abrufen | karteikarten): Die
+    Karteikarten-Vorschau wie bei Quizlet (`ui/KartenVorschau.jsx`) verbucht
+    nichts. Vom Nutzer zum Ausprobieren gewünscht; Vorgabe bleibt Abrufen.
 
 ## Stapel aus Lernmaterial (im Chat)
 

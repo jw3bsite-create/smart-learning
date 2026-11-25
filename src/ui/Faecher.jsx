@@ -266,7 +266,7 @@ export default function Faecher() {
       <div className="mitte">
         <div className="kopfzeile"><h1>Fächer</h1></div>
         <Leer symbol="buch" titel="Noch keine Fächer"
-          text="Ein Fach bündelt Stapel, bekommt einen Prüfungstermin und eine eigene Ziel-Sicherheit. Erst damit kann der Plan rechnen, was wann drankommt.">
+          text="Ein Fach bündelt Stapel und gibt dem Plan einen Prüfungstermin.">
           <div className="reihe" style={{ justifyContent: "center", flexWrap: "wrap" }}>
             <Knopf art="voll gross" symbol="plus" onClick={faecherAnlegen}>
               Die sechs Schulfächer anlegen

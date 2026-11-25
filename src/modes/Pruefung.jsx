@@ -362,7 +362,7 @@ function Uebersicht({ pruefungen, faecher, aufAnlegen, aufLoeschen, aufSchliesse
 
       {pruefungen.length === 0 ? (
         <Leer symbol="papier" titel="Noch keine Prüfung"
-          text="Nimm eine Aufgabe aus einer alten Klausur oder aus dem Übungsbuch, trag die Kriterien der Musterlösung ein und schreib sie unter Zeit." />
+          text="Nimm eine alte Klausuraufgabe und schreib sie unter Zeit." />
       ) : (
         <div style={{ display: "grid", gap: 10, marginTop: 18 }}>
           {[...pruefungen].sort((a, b) => b.zeit - a.zeit).map((p) => {

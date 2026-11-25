@@ -115,7 +115,7 @@ export default function KiGenerator({ setId, aufSchliessen }) {
             mit LM Studio auf diesem Rechner, dann verlässt die Vorlage das
             Gerät nicht und es kostet nichts.
           </p>
-          <Knopf art="klein" onClick={() => { aufSchliessen(); gehe("/einstellungen"); }}>
+          <Knopf art="klein" onClick={() => { aufSchliessen(); gehe("/einstellungen/erweitert"); }}>
             In den Einstellungen einrichten
           </Knopf>
         </div>

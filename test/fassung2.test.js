@@ -21,7 +21,7 @@ import {
   kalibrierung, aufschlagFuer, istPlausibel, PLAUSIBEL_AB_MS, gewusst,
 } from "../src/core/kalibrierung.js";
 import {
-  baueSitzung, fachZaehlung, faelligJeTag, heuteEingefuehrt,
+  baueSitzung, fachZaehlung, faelligJeTag, heuteEingefuehrt, baueWeitere, weitereZaehlung,
 } from "../src/core/warteschlange.js";
 import {
   neuesFach, neuesReview, clozeTeile, clozeAnzahl, richtungenFuer, kartenArt, neueKarte,
@@ -383,4 +383,30 @@ test("ein neues Fach kommt mit brauchbaren Vorgaben", () => {
   assert.equal(f.neuProTag, 15);
   assert.deepEqual(f.richtungen, ["td"]);
   assert.equal(f.pruefungsdatum, null);
+});
+
+/* ------------- Rundengröße „Frei“: weitermachen, wenn alles durch ist ------------- */
+
+test("weitere Karten: neue über das Tageslimit, vorziehen nur Gelerntes, das noch nicht fällig ist", () => {
+  const { fach, karten, stapelVon } = aufbau();
+  const jetzt = START + 3 * TAG;
+  const zustaende = {};
+  // k0 gelernt und erst in 20 Tagen fällig, k1 gelernt und überfällig, der Rest neu.
+  for (const [i, due] of [[0, jetzt + 20 * TAG], [1, jetzt - TAG]]) {
+    let z = neuerZustand("k" + i, "td", "s1", "f1", START);
+    z = bewerteKarte(z, NOTEN.GUT, { zeit: START });
+    zustaende[z.id] = { ...z, due };
+  }
+  const eingaben = { karten, zustaende, stapelVon, fach, zeit: jetzt };
+
+  const neu = baueWeitere({ ...eingaben, art: "neu", umfang: 3 });
+  assert.equal(neu.gesamt, 4, "vier neue, das Tageslimit von zwei gilt hier nicht");
+  assert.equal(neu.aufgaben.length, 3, "höchstens so viele wie verlangt");
+  assert.ok(neu.aufgaben.every((a) => !["k0", "k1"].includes(a.karte.id)));
+
+  const vor = baueWeitere({ ...eingaben, art: "vorziehen", umfang: 10 });
+  assert.deepEqual(vor.aufgaben.map((a) => a.karte.id), ["k0"], "nur die noch nicht fällige, gelernte");
+  assert.equal(vor.zusatz, "vorziehen");
+
+  assert.deepEqual(weitereZaehlung(eingaben), { neu: 4, vorziehen: 1 });
 });

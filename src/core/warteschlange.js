@@ -282,6 +282,55 @@ export function pensumPruefen(karten, zustaende, stapelVon, fach, zeit = Date.no
 }
 
 /**
+ * Wenn alles Fällige durch ist und man weitermachen will (Rundengröße
+ * „Frei“, seit dem 25. November 2026). Gefragt wird der Nutzer, ob er
+ * weitermacht, nicht welche Karten: Die nimmt weiter der Plan.
+ *
+ * `art: "neu"`        neue Karten über das Tageslimit hinaus, zufällig; sie
+ *                     zählen ganz normal und kommen ab jetzt in den Plan.
+ * `art: "vorziehen"`  gelernte Karten, die noch nicht fällig sind, die
+ *                     nächstfälligen zuerst. Zählen als Übung (`practice`):
+ *                     Ein vorgezogener Abruf soll den Abstand nicht künstlich
+ *                     verkürzen, der Plan bleibt, wie er ist.
+ */
+export function baueWeitere({
+  karten, zustaende, stapelVon, fach = null, faecherIds = null, art = "neu",
+  umfang = 10, zeit = Date.now(),
+}) {
+  const liste = [];
+  for (const karte of karten) {
+    if (!istRelevant(karte)) continue;
+    const stapel = stapelVon(karte.setId);
+    if (!stapel || ruht(stapel)) continue;
+    const fachId = stapel.subjectId || null;
+    if (fach && fachId !== fach.id) continue;
+    if (faecherIds && faecherIds.length && !faecherIds.includes(fachId)) continue;
+    for (const richtung of richtungenFuer(karte, stapel)) {
+      const zustand = zustaende[karte.id + ":" + richtung];
+      if (zustand?.gesperrt) continue;
+      const neu = istNeu(zustand);
+      if (art === "neu" ? !neu : neu || istFaellig(zustand, zeit)) continue;
+      liste.push({ karte, stapel, richtung, zustand, fachId, schluessel: karte.id + ":" + richtung });
+    }
+  }
+  const geordnet = art === "neu" ? mische(liste)
+    : liste.sort((a, b) => (a.zustand?.due || 0) - (b.zustand?.due || 0));
+  return {
+    aufgaben: mische(geordnet.slice(0, umfang)),
+    gesamt: liste.length,
+    zusatz: art,
+  };
+}
+
+/** Wie viele Karten für „weitermachen“ noch da wären, je Art. */
+export function weitereZaehlung(eingaben) {
+  return {
+    neu: baueWeitere({ ...eingaben, art: "neu", umfang: 0 }).gesamt,
+    vorziehen: baueWeitere({ ...eingaben, art: "vorziehen", umfang: 0 }).gesamt,
+  };
+}
+
+/**
  * Die Warteschlange für den Endspurt: alles, quer durch, ohne Rücksicht auf
  * Termine. Verändert nichts — die Reviews tragen den Vermerk `cram`.
  */

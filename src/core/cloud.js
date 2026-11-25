@@ -291,7 +291,7 @@ export async function zugangUebernehmen(zugang) {
   await zugangSchreiben(zugang);
   try { window.sessionStorage.setItem(UEBERNOMMEN, "1"); } catch (e) { /* egal */ }
   if (typeof window !== "undefined") {
-    const ziel = window.location.pathname + "#/einstellungen";
+    const ziel = window.location.pathname + "#/einstellungen/cloud";
     window.history.replaceState(window.history.state, "", ziel);
     window.dispatchEvent(new HashChangeEvent("hashchange"));
   }
@@ -530,7 +530,7 @@ export async function rueckkehrVerarbeiten() {
   // Die Anmeldedaten gehoeren nicht in die Adresszeile — und nicht in den
   // Verlauf, wo sie beim Zurueckblaettern wieder auftauchten.
   if (typeof window !== "undefined") {
-    const ziel = window.location.pathname + window.location.search + "#/einstellungen";
+    const ziel = window.location.pathname + window.location.search + "#/einstellungen/cloud";
     // Den angehefteten Zustand behalten: Er traegt die Tiefe im Verlauf.
     window.history.replaceState(window.history.state, "", ziel);
     window.dispatchEvent(new HashChangeEvent("hashchange"));

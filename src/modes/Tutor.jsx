@@ -175,7 +175,7 @@ function MitnehmenKnopf({ schluessel, stoff, hilfsgrad, art = "klein" }) {
             <div className="reihe"><Symbol name="zahnrad" />
               <strong>Kein Sprachmodell eingerichtet</strong></div>
             <Knopf art="klein" style={{ marginTop: 8 }}
-              onClick={() => gehe("/einstellungen")}>Einrichten</Knopf>
+              onClick={() => gehe("/einstellungen/erweitert")}>Einrichten</Knopf>
           </div>
         )}
         <div className="gitter oben-24">
@@ -235,7 +235,7 @@ function MitnehmenKnopf({ schluessel, stoff, hilfsgrad, art = "klein" }) {
           <div className="reihe" style={{ justifyContent: "center", flexWrap: "wrap" }}>
             <MitnehmenKnopf art="voll gross" schluessel={tutorSchluessel}
               stoff={stoff} hilfsgrad={hilfsgrad} />
-            <Knopf art="gross" onClick={() => gehe("/einstellungen")}>Modell einrichten</Knopf>
+            <Knopf art="gross" onClick={() => gehe("/einstellungen/erweitert")}>Modell einrichten</Knopf>
           </div>
         </Leer>
       ) : (

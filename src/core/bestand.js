@@ -55,7 +55,8 @@ export const STANDARD_EINSTELLUNGEN = {
   sprechTempo: 1,
   ocrSprache: "deu+eng",
   zuletztStapel: null,
-  sitzungsUmfang: 30,            // Aufgaben je Abrufsitzung
+  sitzungsUmfang: 30,            // früher: Aufgaben je Abrufsitzung (seit 25.11.2026 jedes Mal gewählt)
+  stapelOben: "abrufen",         // was oben im Stapel steht: "abrufen" | "karteikarten" (wie Quizlet)
   faecherAngelegt: false,        // ob der Vorschlag der sechs Fächer schon kam
   letzteSicherung: 0,            // wann zuletzt eine Sicherungsdatei geschrieben wurde
   eigeneErscheinungsbilder: [],  // selbst gespeicherte Gestaltungen

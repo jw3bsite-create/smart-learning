@@ -17,7 +17,7 @@ import { sprich } from "../core/speech.js";
 import { seitenFuerRichtung } from "../core/ton.js";
 import Tonaufnahme from "../ui/Tonaufnahme.jsx";
 import { gehe } from "../App.jsx";
-import { Knopf, SymbolKnopf, Symbol, Stern, Leer, useTastatur } from "../ui/basis.jsx";
+import { Knopf, SymbolKnopf, Symbol, Stern, Leer, useTastatur, HilfeLink } from "../ui/basis.jsx";
 import KarteBearbeiten from "../ui/KarteBearbeiten.jsx";
 import { useWischen } from "../ui/wischen.js";
 import { useStoppuhr } from "../ui/stoppuhr.js";
@@ -235,12 +235,7 @@ export default function Karteikarten({ setId, aufSchliessen }) {
           Nur Markierte
         </label>
         <div className="dehnen" />
-        <span className="klein blass nur-schmal">Wischen: rechts weiß ich, links noch üben</span>
-        <span className="klein blass nur-breit">
-          <span className="tastenhilfe">Leertaste</span> drehen ·
-          <span className="tastenhilfe">↑</span> weiß ich ·
-          <span className="tastenhilfe">↓</span> noch üben
-        </span>
+        <HilfeLink frage="karteikarten" titel="Wie funktionieren die Karteikarten?" />
       </ModusLeiste>
 
       <div className="karten-buehne">

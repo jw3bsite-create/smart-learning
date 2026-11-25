@@ -154,7 +154,7 @@ export default function Statistik() {
         <Punktestand faecher={faecher} notenfaecher={notenfaecher} />
         <Lernzeit />
         <Leer symbol="statistik" titel="Noch nichts gelernt"
-          text="Sobald du Karten anlegst und abrufst, sammeln sich hier Zahlen an.">
+          text="Hier sammeln sich bald deine Zahlen.">
           <Knopf art="voll" onClick={() => gehe("/")}>Zur Übersicht</Knopf>
         </Leer>
       </div>

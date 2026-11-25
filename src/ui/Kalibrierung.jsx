@@ -57,7 +57,7 @@ export default function Kalibrierung() {
       <div className="mitte">
         <div className="kopfzeile"><h1>Kalibrierung</h1></div>
         <Leer symbol="auge" titel="Noch nichts zu messen"
-          text="Sobald du im Abrufen ein paar Mal eingeschätzt hast, wie sicher du dir bist, steht hier, ob dein Gefühl stimmt.">
+          text="Nach ein paar Abrufen steht hier, ob dein Gefühl stimmt.">
           <Knopf art="voll" symbol="blitz" onClick={() => gehe("/abrufen")}>Abrufen</Knopf>
         </Leer>
       </div>
