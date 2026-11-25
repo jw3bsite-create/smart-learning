@@ -83,12 +83,56 @@ export function ZielDialog({ titel, art, wert, automatisch = null, aufSpeichern,
   );
 }
 
-/** Was „nötig“ sagt, in Worten. */
-function noetigText(noetig) {
-  if (noetig === null) return null;
-  if (noetig <= 0) return "Ziel schon sicher";
-  if (noetig > PUNKTE_MAX) return "mit dieser Rechnung nicht mehr erreichbar";
-  return "dafür ab jetzt im Schnitt " + punkteText(noetig) + " P (≈ " + noteKomma(alsNote(noetig)) + ")";
+/** Das Halbjahr, das gerade läuft: das jüngste mit Fächern, sonst das erste. */
+function laufendesHalbjahr(alle) {
+  return [...HALBJAHRE].reverse().find((x) => faecherIm(alle, x.id).length) || HALBJAHRE[0];
+}
+
+/**
+ * Der Satz, auf den es ankommt (Wunsch des Nutzers, 25.11.2026): was im
+ * laufenden Halbjahr als Schnitt nötig ist — nicht ein Schnitt „über alles
+ * ab jetzt“, der sich mit den Halbjahreszielen ohnehin auflöst.
+ */
+function BrauchstDu({ alle, ziele, klasse = "klein oben-4" }) {
+  const h = laufendesHalbjahr(alle);
+  const ziel = halbjahrZiel(alle, h.id, ziele).wert;
+  if (ziel === null) return null;
+  const schnitt = halbjahrSchnitt(faecherIm(alle, h.id));
+  if (ziel > PUNKTE_MAX) {
+    return <div className={klasse} style={{ color: "var(--rot)" }}>
+      In {h.name} wären über 15 P nötig, das Ziel ist mit dieser Rechnung nicht mehr erreichbar.</div>;
+  }
+  return (
+    <div className={klasse}>
+      In {h.name} brauchst du einen Schnitt von <strong>{punkteText(ziel)} P</strong> (≈ {noteKomma(alsNote(ziel))})
+      {schnitt !== null && (schnitt >= ziel ? <>, mit {punkteText(schnitt)} P liegst du darüber.</>
+        : <>, gerade stehst du bei {punkteText(schnitt)} P.</>)}
+      {schnitt === null && "."}
+    </div>
+  );
+}
+
+/** Alle vier Halbjahre auf einen Blick: Ziel und, wo es ihn gibt, der Schnitt. */
+function HalbjahrReihe({ alle, ziele }) {
+  const jetzt = laufendesHalbjahr(alle).id;
+  return (
+    <div className="halbjahr-reihe oben-12">
+      {HALBJAHRE.map((h) => {
+        const ziel = halbjahrZiel(alle, h.id, ziele).wert;
+        const schnitt = halbjahrSchnitt(faecherIm(alle, h.id));
+        const erreicht = ziel !== null && schnitt !== null && schnitt >= ziel;
+        return (
+          <div key={h.id} className={"halbjahr-zelle" + (h.id === jetzt ? " jetzt" : "")}>
+            <div className="klein blass">{h.id}</div>
+            <div className={"halbjahr-ziel" + (erreicht ? " gut" : "")}>
+              {ziel === null ? "—" : ziel > PUNKTE_MAX ? "> 15" : punkteText(ziel)}
+            </div>
+            <div className="klein blass">{schnitt !== null ? "ist " + punkteText(schnitt) : "Ziel"}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 /* ------------------------------- Abitur -------------------------------- */
@@ -119,13 +163,13 @@ export function AbiZiel() {
           : "Noch keine Punkte eingetragen"}
         {stand.ziel !== null && <> · Ziel <strong>{stand.ziel}</strong> (≈ {noteKomma(stand.zielNote)})</>}
       </div>
-      {stand.ziel !== null && (
-        <div className="klein oben-4"
-          style={stand.noetig !== null && stand.noetig > PUNKTE_MAX ? { color: "var(--rot)" } : undefined}>
-          {noetigText(stand.noetig)}
-        </div>
+      {(stand.ziel !== null || Object.keys(ziele).some((k) => k !== "abi" && ziele[k] !== null)) && (
+        <>
+          <BrauchstDu alle={notenfaecher} ziele={ziele} klasse="oben-8" />
+          <HalbjahrReihe alle={notenfaecher} ziele={ziele} />
+        </>
       )}
-      <div className="klein blass oben-4">
+      <div className="klein blass oben-8">
         <span className="erklaerung">Grob: jedes Halbjahr gleich, Prüfungen mit deinem Schnitt geschätzt.</span>
         <HilfeLink frage="ziele" titel="Wie wird das Abi-Ziel gerechnet?" />
       </div>
@@ -206,9 +250,6 @@ export function ZielStreifen({ aufOeffnen }) {
       </div>
       <ZielBalken erreicht={stand.erreicht} hochgerechnet={stand.hochgerechnet} ziel={stand.ziel}
         max={ABI_MAX} hoehe={8} titel="Abiturpunkte" />
-      {stand.ziel !== null && (
-        <div className="klein blass oben-4" style={{ textAlign: "left" }}>{noetigText(stand.noetig)}</div>
-      )}
       <LaufendesHalbjahr ziele={ziele} />
     </button>
   );
@@ -233,6 +274,7 @@ function LaufendesHalbjahr({ ziele }) {
         {schnitt !== null && <strong>{punkteText(schnitt)} P</strong>}
       </div>
       <ZielBalken erreicht={schnitt ?? 0} ziel={ziel} max={PUNKTE_MAX} hoehe={6} titel={"Schnitt " + h.name} />
+      <div style={{ textAlign: "left" }}><BrauchstDu alle={notenfaecher} ziele={ziele} klasse="klein matt oben-4" /></div>
       {bedarf?.offen > 0 && bedarf.offeneBrauchen > 0 && (
         <div className="klein blass oben-4" style={{ textAlign: "left" }}>
           {bedarf.offen === 1 ? "Fach ohne Note braucht " : bedarf.offen + " Fächer ohne Note brauchen je "}

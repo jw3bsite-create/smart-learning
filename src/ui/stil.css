@@ -1551,3 +1551,10 @@ html.zieht { cursor: grabbing; }
 .abruf-einstieg-frage { text-align: center; padding: 10px 4px 6px; }
 .abruf-einstieg-frage .frage-text { font-size: 24px; }
 .abruf-einstieg-frage .frage-text.lang { font-size: 18px; }
+
+/* Alle vier Halbjahresziele auf einen Blick (ui/Ziele.jsx). */
+.halbjahr-reihe { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.halbjahr-zelle { text-align: center; padding: 8px 4px; border: 1px solid var(--rand); border-radius: calc(var(--rund) * 0.7); }
+.halbjahr-zelle.jetzt { border-color: var(--akzent); }
+.halbjahr-ziel { font-family: var(--schrift-karten); font-size: 19px; font-weight: 600; line-height: 1.2; }
+.halbjahr-ziel.gut { color: var(--gruen); }
