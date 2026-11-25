@@ -392,3 +392,18 @@ test("die nächste Klassenarbeit: welche Punktzahl bringt das Fach aufs Ziel", (
   assert.equal(naechsteArbeit(fach("12.1", "Leer"), 12), null, "ohne Punkte zählt der Ausgleich im Halbjahr");
   assert.equal(naechsteArbeit({ ...f, endpunkte: 10 }, 12), null, "Zeugnis steht fest");
 });
+
+import { halbjahrZielAusAbi, halbjahrZiel } from "../src/core/noten.js";
+
+test("Halbjahresziele folgen dem Abi-Ziel und rechnen frühere Halbjahre ein", () => {
+  assert.equal(halbjahrZielAusAbi([], "12.1", 720), 12, "720 / 60");
+  const gut = [fach("12.1", "Deutsch", [{ art: "schriftlich", punkte: 15 }])];
+  // 12.1 bringt 150 ein; Rest 3 Halbjahre + Prüfungen = 50 Einheiten: (720 − 150) / 50
+  assert.equal(halbjahrZielAusAbi(gut, "12.2", 720), 11.4, "ein starkes 12.1 senkt das Ziel für 12.2");
+  const schwach = [fach("12.1", "Deutsch", [{ art: "schriftlich", punkte: 9 }])];
+  assert.equal(halbjahrZielAusAbi(schwach, "12.2", 720), 12.6);
+  assert.equal(halbjahrZielAusAbi(gut, "12.2", null), null);
+  assert.deepEqual(halbjahrZiel(gut, "12.2", { abi: 720, "12.2": 13 }), { wert: 13, automatisch: false },
+    "ein eigenes Ziel hat Vorrang");
+  assert.equal(halbjahrZiel(gut, "12.2", { abi: 720 }).automatisch, true);
+});

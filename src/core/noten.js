@@ -522,3 +522,33 @@ export function naechsteArbeit(notenfach, ziel) {
   return { unerreichbar: true, name };
 }
 
+/**
+ * Das Ziel eines Halbjahres aus dem Abi-Ziel (Wunsch des Nutzers, 25.11.2026):
+ * der Schnitt, der ab diesem Halbjahr bis zum Abi nötig ist — die früheren
+ * Halbjahre eingerechnet. Liegt 12.1 über dem Nötigen, sinkt das Ziel für
+ * 12.2, liegt es darunter, steigt es. Kann über 15 liegen (nicht mehr
+ * erreichbar); die Anzeige sagt das.
+ */
+export function halbjahrZielAusAbi(alle, halbjahr, abiZiel) {
+  if (abiZiel === null || abiZiel === undefined) return null;
+  const stelle = HALBJAHR_IDS.indexOf(halbjahr);
+  if (stelle < 0) return null;
+  const vorher = HALBJAHR_IDS.slice(0, stelle)
+    .map((hj) => halbjahrSchnitt(faecherIm(alle, hj)))
+    .filter((p) => p !== null)
+    .reduce((a, p) => a + p * JE_HALBJAHR, 0);
+  /* Ein früheres Halbjahr ohne Punkte zählt, als käme es noch: mit dabei. */
+  const fehlendVorher = HALBJAHR_IDS.slice(0, stelle)
+    .filter((hj) => halbjahrSchnitt(faecherIm(alle, hj)) === null).length;
+  const rest = (HALBJAHR_IDS.length - stelle + fehlendVorher) * JE_HALBJAHR + PRUEFUNGEN;
+  return Math.max(0, (Number(abiZiel) - vorher) / rest);
+}
+
+/** Das Ziel, das für ein Halbjahr gilt: das eigene, sonst das aus dem Abi-Ziel. */
+export function halbjahrZiel(alle, halbjahr, ziele = {}) {
+  const eigenes = ziele?.[halbjahr];
+  if (eigenes !== null && eigenes !== undefined) return { wert: Number(eigenes), automatisch: false };
+  const aus = halbjahrZielAusAbi(alle, halbjahr, ziele?.abi ?? null);
+  return aus === null ? { wert: null, automatisch: false } : { wert: aus, automatisch: true };
+}
+

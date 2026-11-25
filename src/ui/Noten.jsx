@@ -17,7 +17,7 @@ import {
   HALBJAHRE, ARTEN, ART_IDS, PUNKTE_MAX,
   fachPunkte, halbjahrSchnitt, uebersicht, verlaufVon,
   faecherIm, punkteText, noteText, punkteStufe,
-  sortenVon, neueSorte, gewichtVon, leistungsName, naechsteArbeit, halbjahrBedarf, zahlZeigen, uebernahmeVorschlaege,
+  sortenVon, neueSorte, gewichtVon, leistungsName, naechsteArbeit, halbjahrBedarf, halbjahrZiel, zahlZeigen, uebernahmeVorschlaege,
 } from "../core/noten.js";
 import { SymbolKnopf, Knopf, Leer, Dialog, Rueckfrage, HilfeLink } from "./basis.jsx";
 import ZahlFeld from "./ZahlFeld.jsx";
@@ -467,8 +467,8 @@ export default function Noten() {
   }
 
   const gewaehlt = alles.halbjahre.find((h) => h.id === halbjahr);
-  const halbjahrZiel = ziele[halbjahr] ?? null;
-  const bedarf = gewaehlt ? halbjahrBedarf(gewaehlt.faecher, halbjahrZiel) : null;
+  const halbjahrZielWert = halbjahrZiel(notenfaecher, halbjahr, ziele).wert;
+  const bedarf = gewaehlt ? halbjahrBedarf(gewaehlt.faecher, halbjahrZielWert) : null;
   const herkunftText = (v) => (v.herkunft === "lernfach" ? "aus deinen Lernfächern"
     : "aus " + (HALBJAHRE.find((h) => h.id === v.herkunft)?.name || v.herkunft));
 
@@ -544,14 +544,18 @@ export default function Noten() {
         ))}
       </div>
 
-      {gewaehlt && gewaehlt.faecher.length > 0 && (
+      {gewaehlt && (gewaehlt.faecher.length > 0 || halbjahrZielWert !== null) && (
         <div className="zahl-kachel unten-16">
           <div className="reihe">
             <div className="dehnen klein matt">
-              Schnitt in {gewaehlt.name} · {anzahl(gewaehlt.anzahl, "Fach", "Fächer")}
+              {gewaehlt.faecher.length > 0
+                ? <>Schnitt in {gewaehlt.name} · {anzahl(gewaehlt.anzahl, "Fach", "Fächer")}</>
+                : gewaehlt.name}
             </div>
-            <Punkte wert={gewaehlt.schnitt} />
-            <span className="klein blass">≙ {noteText(gewaehlt.schnitt)}</span>
+            {gewaehlt.faecher.length > 0 && <>
+              <Punkte wert={gewaehlt.schnitt} />
+              <span className="klein blass">≙ {noteText(gewaehlt.schnitt)}</span>
+            </>}
           </div>
           <HalbjahrZiel halbjahr={gewaehlt.id} schnitt={gewaehlt.schnitt} />
         </div>
@@ -575,7 +579,7 @@ export default function Noten() {
         <div style={{ display: "grid", gap: 8 }}>
           {gewaehlt.faecher.map((f) => (
             <FachZeile key={f.id} notenfach={f} aufOeffnen={() => setOffen(f.id)}
-              ziel={halbjahrZiel} offeneBrauchen={bedarf?.offeneBrauchen ?? null} />
+              ziel={halbjahrZielWert} offeneBrauchen={bedarf?.offeneBrauchen ?? null} />
           ))}
         </div>
       )}

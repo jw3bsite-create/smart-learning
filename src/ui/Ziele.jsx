@@ -13,7 +13,7 @@ import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import {
   ABI_MAX, PUNKTE_MAX, HALBJAHRE, abiStand, abiNote, abiPunkteFuer, punkteFuerNote, alsNote,
-  noteKomma, punkteText, halbjahrBedarf, faecherIm, halbjahrSchnitt,
+  noteKomma, punkteText, halbjahrBedarf, faecherIm, halbjahrSchnitt, halbjahrZiel,
 } from "../core/noten.js";
 import { Knopf, Dialog, HilfeLink } from "./basis.jsx";
 import ZahlFeld from "./ZahlFeld.jsx";
@@ -47,7 +47,7 @@ export function ZielBalken({ erreicht, hochgerechnet = null, ziel = null, max, h
 }
 
 /** Ein Ziel setzen: Punkte oder Note, das andere rechnet sich mit. */
-export function ZielDialog({ titel, art, wert, aufSpeichern, aufSchliessen }) {
+export function ZielDialog({ titel, art, wert, automatisch = null, aufSpeichern, aufSchliessen }) {
   const abi = art === "abi";
   const [punkte, setPunkte] = useState(wert ?? (abi ? 700 : 12));
   const note = abi ? abiNote(punkte) : alsNote(punkte);
@@ -55,7 +55,9 @@ export function ZielDialog({ titel, art, wert, aufSpeichern, aufSchliessen }) {
     <Dialog titel={titel} aufSchliessen={aufSchliessen}
       fuss={<>
         {wert !== null && wert !== undefined && (
-          <Knopf onClick={() => { aufSpeichern(null); aufSchliessen(); }}>Kein Ziel</Knopf>
+          <Knopf onClick={() => { aufSpeichern(null); aufSchliessen(); }}>
+            {automatisch !== null ? "Automatisch" : "Kein Ziel"}
+          </Knopf>
         )}
         <span className="dehnen" />
         <Knopf onClick={aufSchliessen}>Abbrechen</Knopf>
@@ -73,7 +75,9 @@ export function ZielDialog({ titel, art, wert, aufSpeichern, aufSchliessen }) {
       </div>
       <p className="klein blass oben-8 erklaerung">
         {abi ? "Umgerechnet mit Note = 17/3 − Punkte/180, ein Richtwert."
-          : "Gemeint ist der Schnitt aller Fächer dieses Halbjahres."}
+          : automatisch !== null
+            ? "Gemeint ist der Schnitt aller Fächer. „Automatisch“ nimmt, was dein Abi-Ziel verlangt (jetzt " + punkteText(automatisch) + " P)."
+            : "Gemeint ist der Schnitt aller Fächer dieses Halbjahres."}
       </p>
     </Dialog>
   );
@@ -140,7 +144,10 @@ export function HalbjahrZiel({ halbjahr, schnitt }) {
   const { notenfaecher } = useDaten();
   const [ziele, setzen] = useZiele();
   const [dialog, setDialog] = useState(false);
-  const ziel = ziele[halbjahr] ?? null;
+  const gilt = halbjahrZiel(notenfaecher, halbjahr, ziele);
+  const ziel = gilt.wert;
+  const eigenes = ziele[halbjahr] ?? null;
+  const ausAbi = halbjahrZiel(notenfaecher, halbjahr, { abi: ziele.abi }).wert;
   const bedarf = halbjahrBedarf(faecherIm(notenfaecher, halbjahr), ziel);
   const name = HALBJAHRE.find((h) => h.id === halbjahr)?.name || halbjahr;
 
@@ -150,8 +157,10 @@ export function HalbjahrZiel({ halbjahr, schnitt }) {
       <div className="reihe klein oben-8" style={{ gap: 8, flexWrap: "wrap" }}>
         <span className="dehnen matt">
           {ziel === null ? "Kein Ziel für dieses Halbjahr"
-            : <>Ziel <strong>{punkteText(ziel)} P</strong> (≈ {noteKomma(alsNote(ziel))})
-              {schnitt !== null && (schnitt >= ziel ? " · erreicht" : " · noch " + punkteText(ziel - schnitt) + " P")}</>}
+            : ziel > PUNKTE_MAX ? <>Fürs Abi-Ziel wären hier über 15 P nötig</>
+              : <>Ziel <strong>{punkteText(ziel)} P</strong> (≈ {noteKomma(alsNote(ziel))})
+                {gilt.automatisch && <span className="blass"> aus dem Abi-Ziel</span>}
+                {schnitt !== null && (schnitt >= ziel ? " · erreicht" : " · noch " + punkteText(ziel - schnitt) + " P")}</>}
         </span>
         <Knopf art="klein leer" onClick={() => setDialog(true)}>{ziel === null ? "Ziel setzen" : "Ändern"}</Knopf>
       </div>
@@ -162,7 +171,7 @@ export function HalbjahrZiel({ halbjahr, schnitt }) {
         </div>
       )}
       {dialog && (
-        <ZielDialog titel={"Ziel für " + name} art="halbjahr" wert={ziel}
+        <ZielDialog titel={"Ziel für " + name} art="halbjahr" wert={eigenes ?? ziel} automatisch={ausAbi}
           aufSpeichern={(p) => setzen(halbjahr, p)} aufSchliessen={() => setDialog(false)} />
       )}
     </div>
@@ -212,7 +221,7 @@ function LaufendesHalbjahr({ ziele }) {
   if (!h) return null;
   const faecher = faecherIm(notenfaecher, h.id);
   const schnitt = halbjahrSchnitt(faecher);
-  const ziel = ziele[h.id] ?? null;
+  const ziel = halbjahrZiel(notenfaecher, h.id, ziele).wert;
   if (schnitt === null && ziel === null) return null;
   const bedarf = halbjahrBedarf(faecher, ziel);
   return (
