@@ -1790,6 +1790,19 @@ export default function Einstellungen({ aufAbgleich, teil = null }) {
                 </span>
               </label>
             </section>
+            {/* Zum Ausprobieren (Wunsch des Nutzers, 25.11.2026). */}
+            <section className="unten-24">
+              <label className="beschriftung">Zurück- und Vor-Pfeile am Handy</label>
+              <div className="reihe umbruch" style={{ gap: 8 }} role="radiogroup" aria-label="Zurück- und Vor-Pfeile">
+                {[["unten", "Unten in der Mitte"], ["logo", "Unter dem Logo"], ["aus", "Aus"]].map(([wert, name]) => {
+                  const an = (einstellungen.verlaufPfeile || "unten") === wert;
+                  return (
+                    <Knopf key={wert} art={"klein" + (an ? " voll" : "")} role="radio" aria-checked={an}
+                      onClick={() => setzeEinstellung("verlaufPfeile", wert)}>{name}</Knopf>
+                  );
+                })}
+              </div>
+            </section>
           <Abschnitt titel="Aussehen"
             hinweis="Jede Änderung greift sofort.">
             <Gestaltung />

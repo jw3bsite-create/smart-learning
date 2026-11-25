@@ -158,6 +158,25 @@ function useWeg() {
  * Menüknopf oben links — die weiteste Stelle für eine Hand. „Mehr“ öffnet
  * das bisherige Menü mit Ordnern, Suche und Einstellungen.
  */
+/*
+ * Zurück und vor wie im Browser — die App vom Startbildschirm hat keine
+ * Browserknöpfe (Wunsch des Nutzers, 25.11.2026). Wo sie stehen, ist
+ * einstellbar (Einstellungen → Aussehen): klein unten mittig über der
+ * Leiste, unter dem Logo, oder gar nicht. Neben dem Logo quetschten sie es.
+ */
+function VerlaufKnoepfe({ art }) {
+  return (
+    <div className={"verlauf-knoepfe " + art + " nur-schmal"}>
+      <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer klein" groesse={art === "unten" ? 16 : 14}
+        disabled={!(window.history.state?.slTiefe > 0)}
+        onClick={() => window.history.back()} />
+      <SymbolKnopf symbol="weiter" titel="Vor" art="leer klein" groesse={art === "unten" ? 16 : 14}
+        disabled={!naechsterWeg()}
+        onClick={() => window.history.forward()} />
+    </div>
+  );
+}
+
 function Fussleiste({ weg, faellig, aufMehr }) {
   const erster = weg[0] || "";
   const punkte = [
@@ -336,7 +355,8 @@ export default function App() {
 /* Die Wege. Eigenes Bauteil, damit der Zeitmesser oben bei jedem Weg dabei ist. */
 function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
   const teile = weg.split("/").filter(Boolean);
-  const { stapel, offen } = useDaten();
+  const { stapel, offen, einstellungen } = useDaten();
+  const pfeile = einstellungen.verlaufPfeile || "unten";
 
   /* Jede Seite in ihrer eigenen Auffanglinie. Der Schlüssel ist der Weg:
      Wer nach einem Absturz woandershin geht, bekommt eine frische Hülle. */
@@ -439,26 +459,20 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
             oben die Statusleiste ausgeglichen werden, und ein fest
             eingetragener Wert kann das nicht. */}
         <div className="menue-streifen nur-schmal">
-          {/* Zurück und vor wie im Browser — die App vom Startbildschirm hat
-              keine Browserknöpfe (Wunsch des Nutzers, 25.11.2026). */}
-          <div className="verlauf-knoepfe">
-            <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer"
-              disabled={!(window.history.state?.slTiefe > 0)}
-              onClick={() => window.history.back()} />
-            <SymbolKnopf symbol="weiter" titel="Vor" art="leer"
-              disabled={!naechsterWeg()}
-              onClick={() => window.history.forward()} />
-          </div>
+          <div className="logo-spalte">
           <button type="button" className="logo-knopf" title="Zur Startseite"
             onClick={() => gehe(START)}>
             <img src="./logo-96.png" className="logo-bild klein" alt="" />
             <span>Anchor</span>
           </button>
+            {pfeile === "logo" && <VerlaufKnoepfe art="unter-logo" />}
+          </div>
           <span className="dehnen" />
           <Glocke />
         </div>
         {gefangen(inhalt)}
       </main>
+      {pfeile === "unten" && <VerlaufKnoepfe art="unten" />}
       <Fussleiste weg={teile} faellig={offen?.faellig || 0}
         aufMehr={() => setLeisteOffen(true)} />
     </div>
