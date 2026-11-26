@@ -1553,15 +1553,19 @@ html.zieht { cursor: grabbing; }
 .frage-kopf .dehnen { min-width: 0; padding-top: 8px; }
 .frage-symbole { display: flex; flex: none; align-items: center; }
 
-/* Ziele (ui/Ziele.jsx): erreicht voll, hochgerechnet blass, Ziel als Strich. */
+/* Ziele (ui/Ziele.jsx): Hauptfortschritt oben, verlorene Punkte klar getrennt darunter. */
+.ziel-balken-gruppe { display: grid; gap: 5px; }
 .ziel-balken { position: relative; border-radius: 999px; background: var(--grund-3); overflow: visible; }
 .ziel-balken > span { position: absolute; top: 0; bottom: 0; border-radius: 999px; }
-/* Erreicht und verschenkt als ein Stück: gemeinsame Rundung, innen nahtlos. */
-.ziel-balken > .ziel-stueck { left: 0; display: flex; overflow: hidden; transition: width calc(var(--wechsel) * 4) ease-out; }
-.ziel-stueck > span { flex-basis: 0; min-width: 0; height: 100%; }
+/* Der Hauptfortschritt ist ein ununterbrochener Balken; Rot liegt nie darin. */
+.ziel-balken > .ziel-stueck { left: 0; overflow: hidden; transition: width calc(var(--wechsel) * 4) ease-out; }
+.ziel-stueck > span { display: block; width: 100%; height: 100%; }
 .ziel-voll { background: var(--akzent); }
 .ziel-hoch { background: var(--akzent); opacity: 0.28; }
 .ziel-balken.auf-kurs .ziel-voll, .ziel-balken.auf-kurs .ziel-hoch { background: var(--gruen); }
+.ziel-verlust-balken { overflow: hidden; border-radius: 999px; background: var(--grund-3); }
+.ziel-verlust-balken > span { display: block; height: 100%; border-radius: inherit; background: var(--rot);
+  transition: width calc(var(--wechsel) * 4) ease-out; }
 .ziel-strich { width: 3px; top: -4px !important; bottom: -4px !important; margin-left: -1.5px;
   background: var(--schrift); border-radius: 2px !important; }
 .ziel-zahl { font-family: var(--schrift-karten); font-size: 26px; font-weight: 600; line-height: 1.1; }
@@ -1602,8 +1606,7 @@ html.zieht { cursor: grabbing; }
 .verlauf-knoepfe.unten .knopf { min-height: calc(28px * var(--pfeil-skala, 1));
   min-width: calc(36px * var(--pfeil-skala, 1)); padding: 2px 8px; }
 
-/* Verschenkte Punkte: rot am rechten Ende des Ziel-Balkens (ui/Ziele.jsx). */
-.ziel-stueck > .ziel-verloren { background: var(--rot); }
+/* Verschenkte Punkte: als klar abgesetzte rote Leiste unter dem Fortschritt. */
 .verloren-text { color: var(--rot); }
 /* Startseite: kompakter Streifen, Texte erst nach einem Tipp. */
 .ziel-streifen { cursor: default; }
@@ -1676,8 +1679,9 @@ html.zieht { cursor: grabbing; }
 /* Startseite: kleines Antwortfeld; die Karte wächst beim Tippen auf volle Größe. */
 .abruf-einstieg-antwort { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
 .abruf-einstieg-antwort .feld { flex: 1; min-width: 0; cursor: text; }
-.abruf-einstieg.waechst { transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease,
-  border-radius 0.25s ease; overflow: hidden; }
+.abruf-einstieg.auf-start { cursor: pointer; }
+.abruf-einstieg.waechst { transform-origin: top left; will-change: transform;
+  transition: transform 0.22s cubic-bezier(.2, .8, .2, 1); overflow: hidden; }
 /* Startseite: „Heute“ in einer schmalen Zeile. */
 .heute-zeile { display: flex; align-items: center; gap: 14px; padding: 10px 14px; flex-wrap: wrap; }
 .heute-zeile .heute-wert { display: flex; align-items: baseline; gap: 6px; }

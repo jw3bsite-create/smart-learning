@@ -23,7 +23,7 @@ import { seitenFuer } from "../core/kartenseiten.js";
 import { KONFIDENZ } from "../core/fsrs.js";
 import { anzahl } from "../core/util.js";
 import { gehe } from "../App.jsx";
-import { Symbol, Sinnbild, Knopf, Bild, KLICKBAR } from "./basis.jsx";
+import { Symbol, Sinnbild, Knopf, Bild } from "./basis.jsx";
 import Formel from "./Formel.jsx";
 
 const STUFEN = [
@@ -41,6 +41,7 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
   const [gesehen, setGesehen] = useState(() => new Set());
   const [konfidenz, setKonfidenz] = useState(null);
   const kachel = useRef(null);
+  const waechstSchon = useRef(false);
 
   const sitzung = useMemo(() => {
     if (startseite) {
@@ -80,21 +81,26 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
     gehe(weg + "/start/" + encodeURIComponent(aufgabe.schluessel) + (konfidenz ? "/" + konfidenz : ""));
   /* Die Karte wächst aus ihrer Lage auf den ganzen Bildschirm, dann das Abrufen. */
   const wachsen = (k = konfidenz) => {
+    if (waechstSchon.current) return;
     const el = kachel.current;
     const ruhig = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (!el || ruhig) { insAbrufen(k); return; }
+    waechstSchon.current = true;
     const r = el.getBoundingClientRect();
     Object.assign(el.style, { position: "fixed", top: r.top + "px", left: r.left + "px",
       width: r.width + "px", height: r.height + "px", margin: 0, zIndex: 60 });
     el.classList.add("waechst");
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      Object.assign(el.style, { top: "0px", left: "0px", width: "100vw", height: "100dvh", borderRadius: "0px" });
+      const breite = window.visualViewport?.width || window.innerWidth;
+      const hoehe = window.visualViewport?.height || window.innerHeight;
+      el.style.transform = "translate3d(" + (-r.left) + "px, " + (-r.top) + "px, 0) scale(" + (breite / r.width) + ", " + (hoehe / r.height) + ")";
     }));
-    setTimeout(() => insAbrufen(k), 260);
+    setTimeout(() => insAbrufen(k), 230);
   };
 
   return (
-    <div ref={kachel} className={"kachel abruf-einstieg" + (startseite ? " auf-start" : "")}>
+    <div ref={kachel} className={"kachel abruf-einstieg" + (startseite ? " auf-start" : "")}
+      {...(startseite ? { onClick: () => wachsen(), title: "Abrufen groß öffnen" } : {})}>
       <div className="reihe unten-8" style={{ gap: 8 }}>
         <Sinnbild name="blitz" ton="blau" />
         {/* Auf der Startseite ohne Fach: Wie beim Verschachteln bleibt die
@@ -104,15 +110,14 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
         </span>
         {auswahlFach}
         {startseite && aufgabe && (
-          <Knopf art="klein" symbol="blitz" onClick={() => wachsen(null)}>Groß</Knopf>
+          <Knopf art="klein" symbol="blitz" onClick={(e) => { e.stopPropagation(); wachsen(null); }}>Groß</Knopf>
         )}
       </div>
 
       {aufgabe ? (
         <>
-          {/* Startseite: Ein Tipp auf die Frage führt ins Abrufen, mit dieser Karte. */}
-          <div className={"abruf-einstieg-frage" + (startseite ? " tippbar" : "")}
-            {...(startseite ? { ...KLICKBAR, onClick: () => wachsen(), title: "Diese Frage groß beantworten" } : {})}>
+          {/* Startseite: Ein Tipp auf die freie Fläche der Kachel führt ins Abrufen. */}
+          <div className={"abruf-einstieg-frage" + (startseite ? " tippbar" : "")}>
             {seiten.frageBild && <Bild kennung={seiten.frageBild} />}
             {seiten.frage && <div className={"frage-text" + (seiten.frage.length > 90 ? " lang" : "")}>
               <Formel text={seiten.frage} /></div>}
@@ -121,9 +126,9 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
           {startseite && konfidenz ? (
             /* Das Antwortfeld, klein; ein Tipp hinein macht die Karte groß. */
             <div className="abruf-einstieg-antwort">
-              <input className="feld" readOnly placeholder="Antwort tippen …"
-                onFocus={(e) => { e.target.blur(); wachsen(); }} onClick={() => wachsen()} />
-              <Knopf art="voll" onClick={() => wachsen()}>Aufdecken</Knopf>
+                <input className="feld" readOnly placeholder="Antwort tippen …"
+                  onFocus={(e) => { e.target.blur(); wachsen(); }} onClick={(e) => { e.stopPropagation(); wachsen(); }} />
+                <Knopf art="voll" onClick={(e) => { e.stopPropagation(); wachsen(); }}>Aufdecken</Knopf>
             </div>
           ) : (
             <>
@@ -133,7 +138,7 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
               <div className="gitter konfidenz-gitter">
                 {STUFEN.map(([wert, name, symbol, farbe]) => (
                   <button key={wert} type="button" className="antwort" style={{ justifyContent: "center" }}
-                    onClick={() => (startseite ? setKonfidenz(wert) : insAbrufen(wert))}>
+                    onClick={(e) => { e.stopPropagation(); startseite ? setKonfidenz(wert) : insAbrufen(wert); }}>
                     <Symbol name={symbol} groesse={17} style={{ color: farbe }} />
                     <span>{name}</span>
                   </button>
