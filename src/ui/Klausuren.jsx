@@ -42,7 +42,7 @@ function zuordnungText(k, fach, stapel, ordner) {
 
 /* ------------------------------ Der Dialog ----------------------------- */
 
-function KlausurDialog({ fach, klausur, aufSpeichern, aufLoeschen, aufSchliessen }) {
+export function KlausurDialog({ fach, klausur, aufSpeichern, aufLoeschen, aufSchliessen }) {
   const { ordner, stapel } = useDaten();
   const [name, setName] = useState(klausur?.name || "");
   const [datum, setDatum] = useState(alsEingabe(klausur?.datum));
@@ -137,6 +137,17 @@ function KlausurDialog({ fach, klausur, aufSpeichern, aufLoeschen, aufSchliessen
   );
 }
 
+/** Eine Klausur in die Liste eines Fachs schreiben (neu oder geändert). */
+export function klausurSpeichern(fach, k, fachAendern) {
+  const alle = klausurenVon(fach);
+  const da = alle.some((x) => x.id === k.id);
+  /* Der alte Prüfungstermin ist noch keine echte Klausur: beim ersten
+     Speichern bekommt er eine eigene Kennung. */
+  const liste = (da ? alle.map((x) => (x.id === k.id ? k : x)) : [...alle, k])
+    .map((x) => (x.id === "termin" ? { ...neueKlausur(x), name: x.name } : x));
+  return fachAendern(fach.id, { klausuren: liste });
+}
+
 /* ------------------------------ Die Liste ------------------------------ */
 
 /**
@@ -152,14 +163,7 @@ export default function KlausurenTeil({ fach, knapp = false }) {
   const vergangen = alle.filter((k) => !kommendIds.has(k.id)).sort((a, b) => b.datum - a.datum);
 
   const speichern = (liste) => fachAendern(fach.id, { klausuren: liste });
-  const ersetzen = (k) => {
-    const da = alle.some((x) => x.id === k.id);
-    /* Der alte Prüfungstermin ist noch keine echte Klausur: beim ersten
-       Speichern bekommt er eine eigene Kennung. */
-    const liste = (da ? alle.map((x) => (x.id === k.id ? k : x)) : [...alle, k])
-      .map((x) => (x.id === "termin" ? { ...neueKlausur(x), name: x.name } : x));
-    speichern(liste);
-  };
+  const ersetzen = (k) => klausurSpeichern(fach, k, fachAendern);
   const loeschen = async (k) => {
     if (!(await bestaetigen({ titel: "„" + (k.name || "Klausur") + "“ löschen?", ja: "Löschen",
       text: "Nur der Termin verschwindet, die Stapel bleiben, wie sie sind." }))) return;

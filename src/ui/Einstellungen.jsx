@@ -8,6 +8,7 @@
  * einmal.
  */
 
+import { ZurueckKnopf } from "./basis.jsx";
 import React, { useEffect, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import * as wolke from "../core/cloud.js";
@@ -1682,7 +1683,7 @@ export default function Einstellungen({ aufAbgleich, teil = null }) {
   if (!seite) {
     return (
       <div className="mitte" style={{ maxWidth: 640 }}>
-        <div className="kopfzeile"><h1>Einstellungen</h1></div>
+        <div className="kopfzeile"><ZurueckKnopf onClick={() => zurueck("/start")} /><h1>Einstellungen</h1></div>
 
         <UmzugAlt aufAbgleich={aufAbgleich} />
         <UmzugNeu />
@@ -1714,7 +1715,7 @@ export default function Einstellungen({ aufAbgleich, teil = null }) {
     <SeitenTitel.Provider value={seite.name}>
       <div className="mitte" style={{ maxWidth: 780 }}>
         <div className="kopfzeile">
-          <SymbolKnopf symbol="zurueck" titel="Einstellungen" art="leer" onClick={() => zurueck("/einstellungen")} />
+          <ZurueckKnopf titel="Einstellungen" onClick={() => zurueck("/einstellungen")} />
           <h1 className="dehnen">{seite.name}</h1>
         </div>
 
@@ -1813,6 +1814,32 @@ export default function Einstellungen({ aufAbgleich, teil = null }) {
                     onChange={(e) => setzeEinstellung("verlaufPfeileGroesse", Number(e.target.value))} />
                 </>
               )}
+            
+              {/* Die Navigierleiste unten (Start, Fächer, Abrufen, …): Größe nach Geschmack. */}
+              <label className="beschriftung oben-16">
+                Größe der Navigierleiste: {Math.round((Number(einstellungen.navGroesse) || 1) * 100)} %
+              </label>
+              <input type="range" min="0.8" max="1.5" step="0.05"
+                value={Number(einstellungen.navGroesse) || 1}
+                style={{ width: "100%", maxWidth: 320 }}
+                onChange={(e) => setzeEinstellung("navGroesse", Number(e.target.value))} />
+
+              {/* Zwei Wege zum Erstellen, zum Ausprobieren (26.11.2026). */}
+              <label className="beschriftung oben-16">Erstellen</label>
+              <div className="reihe umbruch" style={{ gap: 8 }} role="radiogroup" aria-label="Erstellen">
+                {[["plus", "Plus-Knopf"], ["vereint", "Fächer und Stapel vereint"]].map(([wert, name]) => {
+                  const an = (einstellungen.erstellen || "plus") === wert;
+                  return (
+                    <Knopf key={wert} art={"klein" + (an ? " voll" : "")} role="radio" aria-checked={an}
+                      onClick={() => setzeEinstellung("erstellen", wert)}>{name}</Knopf>
+                  );
+                })}
+              </div>
+              <p className="klein blass oben-4 erklaerung">
+                {(einstellungen.erstellen || "plus") === "vereint"
+                  ? "Fächer und Stapel teilen sich einen Reiter, in der Leiste unten steht „Erstellen“."
+                  : "Ein runder +-Knopf unten rechts über der Leiste, auf Start, Fächer und Stapel."}
+              </p>
             </section>
           <Abschnitt titel="Aussehen"
             hinweis="Jede Änderung greift sofort.">

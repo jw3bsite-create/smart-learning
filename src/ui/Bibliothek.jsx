@@ -2,6 +2,8 @@
  * Die Übersicht: Ordner und Stapel, dazu die Suche über alle Karten.
  */
 
+import { ZurueckKnopf } from "./basis.jsx";
+import { zurueck } from "../App.jsx";
 import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { anteileNachStufe } from "../core/fsrs.js";
@@ -275,8 +277,11 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
   return (
     <div className="mitte">
       <div className="kopfzeile">
+        {derOrdner && (
+          <ZurueckKnopf onClick={() => zurueck(derOrdner.parentId ? "/ordner/" + derOrdner.parentId : "/")} />
+        )}
         {pfad.length > 0 && (
-          <nav className="pfad klein matt" aria-label="Ablage">
+          <nav className="pfad klein matt nur-breit" aria-label="Ablage">
             <button type="button" className="pfad-verweis" onClick={() => gehe("/")}>Alle Stapel</button>
             {pfad.map((o, i) => (
               <React.Fragment key={o.id}>

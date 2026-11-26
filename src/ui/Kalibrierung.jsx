@@ -9,6 +9,8 @@
  * ohne Messung unsichtbar.
  */
 
+import { ZurueckKnopf } from "./basis.jsx";
+import { zurueck as zurueckNach } from "../App.jsx";
 import React, { useMemo } from "react";
 import { useDaten } from "../core/store.jsx";
 import { kalibrierung, kalibrierungJeFach } from "../core/kalibrierung.js";
@@ -55,7 +57,7 @@ export default function Kalibrierung() {
   if (!gesamt.gesamt) {
     return (
       <div className="mitte">
-        <div className="kopfzeile"><h1>Kalibrierung</h1></div>
+        <div className="kopfzeile"><ZurueckKnopf onClick={() => zurueckNach("/start")} /><h1>Kalibrierung</h1></div>
         <Leer symbol="auge" titel="Noch nichts zu messen"
           text="Nach ein paar Abrufen steht hier, ob dein Gefühl stimmt.">
           <Knopf art="voll" symbol="blitz" onClick={() => gehe("/abrufen")}>Abrufen</Knopf>
@@ -68,7 +70,7 @@ export default function Kalibrierung() {
 
   return (
     <div className="mitte" style={{ maxWidth: 820 }}>
-      <div className="kopfzeile"><h1>Kalibrierung</h1></div>
+      <div className="kopfzeile"><ZurueckKnopf onClick={() => zurueckNach("/start")} /><h1>Kalibrierung</h1></div>
 
       <div className="zahl-kachel" style={{ marginBottom: 24, textAlign: "center", padding: 26 }}>
         <div className="klein matt">Wenn du „sicher" sagst, stimmt es</div>

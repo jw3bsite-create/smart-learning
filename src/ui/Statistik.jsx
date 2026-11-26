@@ -3,6 +3,8 @@
  * Stapel und die letzten Sitzungen.
  */
 
+import { ZurueckKnopf } from "./basis.jsx";
+import { zurueck as zurueckNach } from "../App.jsx";
 import React, { useMemo } from "react";
 import { useDaten } from "../core/store.jsx";
 import { anteileNachStufe } from "../core/fsrs.js";
@@ -150,7 +152,7 @@ export default function Statistik() {
   if (!karten.length) {
     return (
       <div className="mitte">
-        <div className="kopfzeile"><h1>Fortschritt</h1></div>
+        <div className="kopfzeile"><ZurueckKnopf onClick={() => zurueckNach("/start")} /><h1>Fortschritt</h1></div>
         <Punktestand faecher={faecher} notenfaecher={notenfaecher} />
         <Lernzeit />
         <Leer symbol="statistik" titel="Noch nichts gelernt"
@@ -163,7 +165,7 @@ export default function Statistik() {
 
   return (
     <div className="mitte">
-      <div className="kopfzeile"><h1>Fortschritt</h1></div>
+      <div className="kopfzeile"><ZurueckKnopf onClick={() => zurueckNach("/start")} /><h1>Fortschritt</h1></div>
 
       <div className="unten-24"><Flamme /></div>
 

@@ -12,6 +12,7 @@
  * durchdacht. Der Unterschied zwischen beidem ist das ganze Fach.
  */
 
+import { ZurueckKnopf } from "./basis.jsx";
 import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { normalisiere } from "../core/text.js";
@@ -145,8 +146,7 @@ export default function Entwuerfe({ setId }) {
   return (
     <div className="mitte" style={{ maxWidth: 900 }}>
       <div className="kopfzeile">
-        <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer"
-          onClick={() => zurueckZu("/stapel/" + setId)} />
+        <ZurueckKnopf onClick={() => zurueckZu("/stapel/" + setId)} />
         <div style={{ flex: 1 }}>
           <h1>Entwürfe</h1>
           <div className="klein matt">{derStapel.title}</div>

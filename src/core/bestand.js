@@ -58,7 +58,9 @@ export const STANDARD_EINSTELLUNGEN = {
   sitzungsUmfang: 30,            // früher: Aufgaben je Abrufsitzung (seit 25.11.2026 jedes Mal gewählt)
   stapelOben: "abrufen",
   verlaufPfeile: "unten",
-  verlaufPfeileGroesse: 1,       // Größe der Pfeile, 0,7 bis 1,8        // Zurück/Vor am Handy: "unten" | "logo" | "aus" (25.11.2026)         // was oben im Stapel steht: "abrufen" | "karteikarten" (wie Quizlet)
+  verlaufPfeileGroesse: 1,       // Größe der Pfeile, 0,7 bis 1,8
+  erstellen: "plus",             // Erstellen: "plus" (runder Knopf) | "vereint" (Fächer+Stapel, Reiter Erstellen)
+  navGroesse: 1.1,               // Größe der Navigierleiste, 0,8 bis 1,5        // Zurück/Vor am Handy: "unten" | "logo" | "aus" (25.11.2026)         // was oben im Stapel steht: "abrufen" | "karteikarten" (wie Quizlet)
   faecherAngelegt: false,        // ob der Vorschlag der sechs Fächer schon kam
   letzteSicherung: 0,            // wann zuletzt eine Sicherungsdatei geschrieben wurde
   eigeneErscheinungsbilder: [],  // selbst gespeicherte Gestaltungen

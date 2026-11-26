@@ -5,10 +5,10 @@
  * öffnet und zeigt die passende Frage) und über die Einstellungen.
  */
 
+import { ZurueckKnopf } from "./basis.jsx";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { FRAGEN, GRUPPEN } from "../core/hilfe.js";
 import { zurueck } from "../App.jsx";
-import { SymbolKnopf } from "./basis.jsx";
 
 const klein = (t) => String(t || "").toLowerCase();
 
@@ -30,7 +30,7 @@ export default function Hilfe({ frage = null }) {
   return (
     <div className="mitte" style={{ maxWidth: 720 }}>
       <div className="kopfzeile">
-        <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer" onClick={() => zurueck("/einstellungen")} />
+        <ZurueckKnopf onClick={() => zurueck("/einstellungen")} />
         <h1 className="dehnen">Fragen zur App</h1>
       </div>
 

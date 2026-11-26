@@ -232,6 +232,7 @@ export const STANDARD_GESTALTUNG = {
   ruhig: false,                  // Übergänge abschalten
   sinnbilderFarbig: true,        // Sinnbilder je Funktion in eigenem Ton (aus: schlicht, einheitlich)
   erklaerungen: true,            // Erklärtexte zeigen (aus: „Minimal“, seit 25.11.2026)
+  grundton: null,                // eigene Hintergrundfarbe (#rrggbb) oder null (26.11.2026)
 };
 
 /* ------------------------- Eigene Erscheinungsbilder --------------------- */
@@ -282,6 +283,18 @@ function abdunkeln(farbe, anteil = 0.16) {
   return "#" + teile.map((k) => k.toString(16).padStart(2, "0")).join("");
 }
 
+/** Mischt eine Farbe mit Weiß (anteil > 0) oder Schwarz (anteil < 0). */
+export function mischen(farbe, anteil) {
+  const treffer = /^#?([0-9a-f]{6})$/i.exec(String(farbe || "").trim());
+  if (!treffer) return farbe;
+  const zahl = parseInt(treffer[1], 16);
+  const ziel = anteil > 0 ? 255 : 0;
+  const a = Math.abs(anteil);
+  const teile = [(zahl >> 16) & 255, (zahl >> 8) & 255, zahl & 255]
+    .map((k) => Math.round(k + (ziel - k) * a));
+  return "#" + teile.map((k) => k.toString(16).padStart(2, "0")).join("");
+}
+
 /** Hell genug für dunkle Schrift darauf? Entscheidet über die Knopfbeschriftung. */
 export function istHell(farbe) {
   const treffer = /^#?([0-9a-f]{6})$/i.exec(String(farbe || "").trim());
@@ -325,4 +338,20 @@ export function anwenden(el, g = {}) {
   s.setProperty("--wechsel", w.ruhig ? "0s" : "0.12s");
   el.dataset.sinnbilder = w.sinnbilderFarbig === false ? "schlicht" : "farbig";
   el.dataset.erklaerungen = w.erklaerungen === false ? "aus" : "an";
+
+  /* Eigener Grundton (Wunsch des Nutzers, 26.11.2026): der Hintergrund in
+     einer selbst gewählten Farbe. Flächen und Ränder werden daraus abgeleitet,
+     und hell oder dunkel richtet sich nach dem Ton — sonst stünde helle
+     Schrift auf hellem Grund. */
+  const ton = /^#[0-9a-f]{6}$/i.test(String(w.grundton || "")) ? w.grundton : null;
+  if (ton) {
+    const hell = istHell(ton);
+    el.dataset.design = hell ? "hell" : "dunkel";
+    s.setProperty("--grund", ton);
+    s.setProperty("--grund-2", mischen(ton, hell ? 0.55 : 0.06));
+    s.setProperty("--grund-3", mischen(ton, hell ? -0.05 : 0.11));
+    s.setProperty("--rand", mischen(ton, hell ? -0.13 : 0.2));
+  } else {
+    for (const v of ["--grund", "--grund-2", "--grund-3", "--rand"]) s.removeProperty(v);
+  }
 }

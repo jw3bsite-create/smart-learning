@@ -2,6 +2,7 @@
  * Ein einzelner Stapel: Überblick, Wahl des Lernmodus, Liste aller Karten.
  */
 
+import { ZurueckKnopf } from "./basis.jsx";
 import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { anteileNachStufe, stufe, STUFEN } from "../core/fsrs.js";
@@ -124,13 +125,8 @@ export default function Stapelansicht({ setId }) {
         {/* Zurueck dorthin, wo man herkam — Fach, Ordner, Start, Fehlerheft.
             Ohne bekannten Vorgaenger (etwa nach dem Neuladen) zum Ordner des
             Stapels, sonst zu seinem Fach, sonst zu allen Stapeln. */}
-        <div style={{ width: "100%" }}>
-          <button type="button" className="zurueck-verweis"
-            onClick={() => (vorherName ? zurueck(ersatzWeg) : ersetze(ersatzWeg))}>
-            <Symbol name="zurueck" groesse={15} />
-            {vorherName || ersatzName}
-          </button>
-        </div>
+        <ZurueckKnopf titel={"Zurück zu " + (vorherName || ersatzName)}
+          onClick={() => (vorherName ? zurueck(ersatzWeg) : ersetze(ersatzWeg))} />
         <h1>{derStapel.title || "Ohne Titel"}</h1>
         {/* Am Rechner als Knopf, auf dem Telefon im Menü „···“: Dort stand
             er sonst als breiter Balken ganz oben, vor allem anderen. */}

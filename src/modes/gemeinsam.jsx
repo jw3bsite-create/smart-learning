@@ -10,7 +10,8 @@ import { istUebbar } from "../core/kartenseiten.js";
 import { istRelevant } from "../core/model.js";
 import { gehe } from "../App.jsx";
 import { modusNachName } from "./modi.js";
-import { Symbol, SymbolKnopf, Knopf, Bild } from "../ui/basis.jsx";
+import { Symbol, SymbolKnopf, Knopf, Bild, ZurueckKnopf } from "../ui/basis.jsx";
+import MenueStreifen from "../ui/MenueStreifen.jsx";
 import Formel from "../ui/Formel.jsx";
 
 /** Ein Notstapel, damit ein fehlender Stapel keinen Absturz auslöst. */
@@ -90,9 +91,12 @@ export function ModusRahmen({ titel, symbol, aufSchliessen, anteil = null, recht
   const bereich = useContext(UebungsBereich);
   return (
     <div>
+      {/* Am Handy bleibt oben die Logo-Leiste, darunter links der runde
+          Zurück-Knopf — wie auf allen anderen Seiten (26.11.2026). */}
+      <div className="modus-oben">
+      <MenueStreifen imModus />
       <div className="modus-kopf">
-        <SymbolKnopf symbol="kreuz" titel="Beenden" art="leer" groesse={20}
-          onClick={aufSchliessen} />
+        <ZurueckKnopf titel="Beenden" onClick={aufSchliessen} />
         <Symbol name={symbol} groesse={18} />
         <strong style={{ fontFamily: "var(--serifen)", fontWeight: 600 }}>{titel}</strong>
         {erklaerung && (
@@ -103,6 +107,7 @@ export function ModusRahmen({ titel, symbol, aufSchliessen, anteil = null, recht
         {bereich && <span className="marke nur-breit">{bereich.titel || "Abschnitt"}</span>}
         <div className="dehnen" />
         {rechts}
+      </div>
       </div>
       {bereich && <div className="modus-erklaerung nur-schmal">Nur „{bereich.titel || "Abschnitt"}“</div>}
       {erklaert && <div className="modus-erklaerung">{erklaerung}</div>}

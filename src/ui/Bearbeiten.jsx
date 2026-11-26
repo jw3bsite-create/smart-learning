@@ -6,6 +6,7 @@
  * jeder Tastendruck in die Datenbank.
  */
 
+import { ZurueckKnopf } from "./basis.jsx";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { bildAufnehmen, bildLoeschen, dateiAusEreignis } from "../core/media.js";
@@ -435,8 +436,7 @@ export default function Bearbeiten({ setId }) {
   return (
     <div className="mitte">
       <div className="kopfzeile">
-        <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer"
-          onClick={() => zurueckZu("/stapel/" + setId)} />
+        <ZurueckKnopf onClick={() => zurueckZu("/stapel/" + setId)} />
         <h1>Bearbeiten</h1>
         <div className="kopf-werkzeuge">
           <Knopf symbol="hinauf" onClick={() => setTextEinfuhr(true)}>Text einfügen</Knopf>

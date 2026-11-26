@@ -641,6 +641,18 @@ export default function Abrufen({
           </Leer>
         ) : (
           <>
+            {/* Oben, was man zuerst braucht: Losgehen, Alle, Keins (26.11.2026). */}
+            <Knopf art="voll gross" symbol="blitz" className="breite-leiste oben-16" disabled={!bereit}
+              onClick={() => setGestartet(true)}>
+              Losgehen
+            </Knopf>
+            <div className="reihe oben-8" style={{ gap: 8 }}>
+              <Knopf art="klein leer"
+                onClick={() => setGewaehlteFaecher(faecher.map((f) => f.id))}>
+                Alle
+              </Knopf>
+              <Knopf art="klein leer" onClick={() => setGewaehlteFaecher([])}>Keins</Knopf>
+            </div>
             <label className="beschriftung oben-24">Welche Fächer?</label>
             <div className="gitter" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
               {faecher.map((f) => {
@@ -657,14 +669,6 @@ export default function Abrufen({
               })}
             </div>
 
-            <div className="reihe oben-12">
-              <Knopf art="klein leer"
-                onClick={() => setGewaehlteFaecher(faecher.map((f) => f.id))}>
-                Alle
-              </Knopf>
-              <Knopf art="klein leer" onClick={() => setGewaehlteFaecher([])}>Keins</Knopf>
-            </div>
-
             <label className="schalter oben-16">
               <input type="checkbox" checked={herkunftVerbergen}
                 onChange={(e) => setHerkunftVerbergen(e.target.checked)} />
@@ -673,10 +677,7 @@ export default function Abrufen({
               </span>
             </label>
 
-            <Knopf art="voll gross" symbol="blitz" style={{ marginTop: 24 }}
-              disabled={!bereit} onClick={() => setGestartet(true)}>
-              Losgehen
-            </Knopf>
+
           </>
         )}
       </ModusRahmen>

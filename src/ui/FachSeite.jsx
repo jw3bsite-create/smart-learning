@@ -23,6 +23,8 @@
  * jeden seiner Ordner.
  */
 
+import { ZurueckKnopf } from "./basis.jsx";
+import { zurueck } from "../App.jsx";
 import { klausurJeStapel } from "../core/klausuren.js";
 import KlausurenTeil from "./Klausuren.jsx";
 import React, { useMemo, useState } from "react";
@@ -181,7 +183,12 @@ export default function FachSeite({ fachId, ordnerId = null }) {
   return (
     <div className="mitte">
       <div className="kopfzeile">
-        <nav className="pfad klein matt" aria-label="Ablage">
+        {/* Der runde Zurück-Knopf wie überall; der Pfad nur am Rechner. */}
+        <ZurueckKnopf onClick={() => zurueck(derOrdner
+          ? "/fach/" + fach.id + (derOrdner.parentId && ordner.some((o) => o.id === derOrdner.parentId && o.subjectId === fach.id)
+            ? "/ordner/" + derOrdner.parentId : "")
+          : "/faecher")} />
+        <nav className="pfad klein matt nur-breit" aria-label="Ablage">
           <button type="button" className="pfad-verweis" onClick={() => gehe("/faecher")}>Fächer</button>
           <span aria-hidden="true">›</span>
           {derOrdner

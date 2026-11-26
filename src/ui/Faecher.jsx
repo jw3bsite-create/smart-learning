@@ -78,7 +78,7 @@ export function Farbwahl({ wert, setzen }) {
 }
 
 /* Ein neues Fach: Name und Farbe auf einmal, statt eines kahlen Eingabefensters. */
-function NeuesFach({ aufSchliessen }) {
+export function NeuesFach({ aufSchliessen }) {
   const { faecher, fachAnlegen } = useDaten();
   const [name, setName] = useState("");
   const [farbe, setFarbe] = useState(() => freieFarbe(faecher));
@@ -224,6 +224,9 @@ export default function Faecher() {
   const [einstellungenFuer, setEinstellungenFuer] = useState(null);
   const [loescht, setLoescht] = useState(null);
   const [zuordnen, setZuordnen] = useState(false);
+  const [lageErklaert, setLageErklaert] = useState(false);
+  const { einstellungen: einst, stapel: alleStapel } = useDaten();
+  const vereint = einst.erstellen === "vereint";
   const [neuesFach, setNeuesFach] = useState(false);
   const [kalenderAus, setKalenderAus] = useState(false);
 
@@ -294,8 +297,20 @@ export default function Faecher() {
         </div>
       </div>
 
+      {/* „Vereint“ (Einstellungen → Aussehen): Fächer und Stapel in einem Reiter —
+          die Stapel als breite Leiste wie „Alles abrufen“. */}
+      {vereint && (
+        <Knopf art="gross" symbol="stapel" className="breite-leiste unten-16" onClick={() => gehe("/")}>
+          Alle Stapel ({alleStapel.filter((x) => !x.deleted).length})
+        </Knopf>
+      )}
+
       {/* --------------------------- Tageslage --------------------------- */}
-      <div className="zahl-kachel unten-24">
+      <div className="zahl-kachel unten-24" style={{ position: "relative", paddingRight: 44 }}>
+        {/* Was die Zahlen bedeuten, erst auf ein „?“ — und gleich hier, nicht
+            auf der Hilfeseite (Wunsch des Nutzers, 26.11.2026). */}
+        <button type="button" className={"hilfe-link lage-hilfe" + (lageErklaert ? " aktiv" : "")}
+          aria-expanded={lageErklaert} title="Was heißen die Zahlen?" onClick={() => setLageErklaert((x) => !x)}>?</button>
         <div className="reihe umbruch" style={{ gap: 20 }}>
           <div>
             <div className="klein matt">Heute fällig</div>
@@ -328,11 +343,20 @@ export default function Faecher() {
             </div>
           </div>
         </div>
-        {last.heute > 0 && (
+        {lageErklaert && (
+          <div className="klein matt oben-12 lage-text">
+            <strong>Heute fällig</strong>: Karten, deren Termin heute oder früher ist.{" "}
+            <strong>Noch nie gesehen</strong>: neue Karten, von denen je Fach nur das Tageslimit
+            dazukommt. <strong>Abfragen im Plan</strong>: alle Abfragen, je Richtung gezählt.
+            {gesamt.gesperrt > 0 && <> <strong>Hängengeblieben</strong>: Karten, die immer wieder
+              falsch waren und im Fehlerheft warten.</>}
+            {" "}Der Streifen zeigt, wie viel an den nächsten 30 Tagen fällig wird.
+            {last.heute > 0 && <> Schöpfst du die Tageslimits aus, sind auf Dauer rund {last.heute} Abrufe
+              am Tag zu erwarten, etwa {Math.max(1, last.minutenHeute)} Minuten, als grobe Größenordnung.</>}
+          </div>
+        )}
+        {kalender.ueberfaellig > 20 && (
           <div className="klein blass oben-12">
-            Schöpfst du die Tageslimits aus, sind auf Dauer rund {last.heute} Abrufe
-            am Tag zu erwarten, etwa {Math.max(1, last.minutenHeute)} Minuten.
-            Grobe Größenordnung, keine Vorhersage.
             {kalender.ueberfaellig > 20 && (
               <strong style={{ color: "var(--gelb)" }}>
                 {" "}{kalender.ueberfaellig} Karten sind überfällig, nimm das Tageslimit

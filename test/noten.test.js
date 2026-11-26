@@ -386,7 +386,7 @@ test("Fächer ohne Note gleichen aus, was die anderen unter dem Ziel liegen", ()
 test("die nächste Klassenarbeit: welche Punktzahl bringt das Fach aufs Ziel", () => {
   const f = fach("12.1", "Deutsch", [{ art: "schriftlich", punkte: 9, sorte: "klassenarbeit" }]);
   // (9 + x) / 2 ≥ 12 → x = 15
-  assert.deepEqual(naechsteArbeit(f, 12), { punkte: 15, name: "Klassenarbeit" });
+  assert.deepEqual(naechsteArbeit(f, 12), { punkte: 15, name: "Klassenarbeit", anzahl: 1 });
   assert.equal(naechsteArbeit(f, 13).unerreichbar, true);
   assert.equal(naechsteArbeit(f, 4).sicher, true);
   assert.equal(naechsteArbeit(fach("12.1", "Leer"), 12), null, "ohne Punkte zählt der Ausgleich im Halbjahr");
@@ -439,3 +439,17 @@ test("verschenkte Punkte: was die Noten unter 15 liegen, auf alle Fächer umgele
   const s = abiStand(faecher, null);
   assert.ok(s.hochgerechnet + s.verschenkt <= 900);
 });
+
+import { fachBestfall, ausstehendVon } from "../src/core/noten.js";
+
+test("ausstehende Leistungen: das Beste, was noch geht, und was jede braucht", () => {
+  const f = fach("12.1", "Deutsch", [{ art: "schriftlich", punkte: 9, sorte: "klassenarbeit" }]);
+  assert.equal(fachBestfall(f), 9, "ohne Eintrag: so wie es steht");
+  const mit = { ...f, ausstehend: { anzahl: 2, sorte: "klassenarbeit" } };
+  assert.equal(fachBestfall(mit), 13, "(9 + 15 + 15) / 3");
+  assert.equal(halbjahrVerschenkt([mit]), 2, "nur noch 2 Punkte sicher verschenkt");
+  // Ziel 12: (9 + 2x) / 3 ≥ 12 → x ≥ 13,5 → 14 je Arbeit
+  assert.deepEqual(naechsteArbeit(mit, 12), { punkte: 14, name: "Klassenarbeit", anzahl: 2 });
+  assert.equal(ausstehendVon({ ausstehend: { anzahl: 99 } }).anzahl, 20, "begrenzt");
+});
+

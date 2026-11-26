@@ -15,14 +15,15 @@ import { zustaendeImPlan } from "./core/warteschlange.js";
 import { tagesLage } from "./core/straehne.js";
 import { anwenden as gestaltungAnwenden } from "./core/gestaltung.js";
 import { fortschreiben, vorheriger, naechster } from "./core/verlauf.js";
-import { Symbol, SymbolKnopf } from "./ui/basis.jsx";
+import { Symbol } from "./ui/basis.jsx";
 import Seitenleiste from "./ui/Seitenleiste.jsx";
 import Bibliothek from "./ui/Bibliothek.jsx";
 import Stapelansicht from "./ui/Stapelansicht.jsx";
 import Faecher from "./ui/Faecher.jsx";
 import FachSeite from "./ui/FachSeite.jsx";
 import Startseite from "./ui/Startseite.jsx";
-import Glocke from "./ui/Glocke.jsx";
+import MenueStreifen, { VerlaufKnoepfe } from "./ui/MenueStreifen.jsx";
+import ErstellenBlatt from "./ui/Erstellen.jsx";
 import Zeitmesser from "./ui/Zeitmesser.jsx";
 import { Ladefehler, Hinweisleiste } from "./ui/Meldungen.jsx";
 import Auffanglinie from "./ui/Auffanglinie.jsx";
@@ -70,6 +71,9 @@ export function gehe(weg) { window.location.hash = weg; }
 /* Ohne Weg in der Adresse (frisch geoeffnet, vom Startbildschirm) beginnt
    die App auf der Startseite. "#/" bleibt "Alle Stapel". */
 export const START = "/start";
+
+/* Wo der runde +-Knopf erscheint: Start, Fächer, Fach, Stapel (Übersicht und Ordner). */
+const PLUS_WEGE = new Set(["start", "faecher", "fach", "", "ordner"]);
 
 /*
  * Der Verlauf, siehe core/verlauf.js.
@@ -159,72 +163,53 @@ function useWeg() {
  * das bisherige Menü mit Ordnern, Suche und Einstellungen.
  */
 /*
- * Zurück und vor wie im Browser — die App vom Startbildschirm hat keine
- * Browserknöpfe (Wunsch des Nutzers, 25.11.2026). Wo sie stehen, ist
- * einstellbar (Einstellungen → Aussehen): klein unten mittig über der
- * Leiste, unter dem Logo, oder gar nicht. Neben dem Logo quetschten sie es.
+ * Die Navigierleiste (so nennt sie der Nutzer): Start, Fächer, Abrufen,
+ * Stapel, Mehr. Seit dem 26.11.2026:
+ *   - Der Hintergrund des aktiven Reiters ist ein eigenes Stück, das beim
+ *     Wechsel hinübergleitet, in der Farbe des Reiters.
+ *   - Größe einstellbar (Einstellungen → Aussehen, `navGroesse`).
+ *   - „Vereint“ (Einstellung `erstellen`): Fächer und Stapel sind ein Reiter,
+ *     auf dem frei gewordenen Platz steht „Erstellen“.
  */
-function VerlaufKnoepfe({ art, skala = 1 }) {
-  /* Die Größe stellt der Nutzer selbst ein (Einstellungen → Aussehen).
-     Symbol, Tippfläche und bei „unten“ die Wölbung wachsen gemeinsam. */
-  const s = Math.min(1.8, Math.max(0.7, Number(skala) || 1));
-  const knoepfe = (
-    <div className={"verlauf-knoepfe " + art} style={{ "--pfeil-skala": s }}>
-      {/* Zurück nur bis zur Startseite (Wunsch des Nutzers, 26.11.2026):
-          Dort ist Schluss, auch wenn der Verlauf davor noch etwas kennt. */}
-      <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer klein" groesse={Math.round(16 * s)}
-        disabled={!(window.history.state?.slTiefe > 0) || (window.location.hash.slice(1) || START) === START}
-        onClick={() => window.history.back()} />
-      <SymbolKnopf symbol="weiter" titel="Vor" art="leer klein" groesse={Math.round(16 * s)}
-        disabled={!naechsterWeg()}
-        onClick={() => window.history.forward()} />
-    </div>
-  );
-  if (art !== "unten") return knoepfe;
-  /* Unten: Die Leiste hebt sich über „Abrufen“ zu einem flachen Buckel —
-     unten ein weicher Übergang in die Kante, steile Seiten, oben breit und
-     gerade (nach einer Skizze des Nutzers, 25.11.2026). Darin die Pfeile.
-     Fläche und Rand in den Farben der Leiste. */
-  return (
-    <div className="fuss-welle" style={{ "--pfeil-skala": s }}>
-      <svg className="fuss-welle-form" viewBox="0 0 140 30" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M0 30 C 8 30, 13 28, 15 22 L 18 9 C 20 3, 25 1, 32 1 L 108 1 C 115 1, 120 3, 122 9 L 125 22 C 127 28, 132 30, 140 30 Z" fill="var(--grund)" />
-        <path d="M0 30 C 8 30, 13 28, 15 22 L 18 9 C 20 3, 25 1, 32 1 L 108 1 C 115 1, 120 3, 122 9 L 125 22 C 127 28, 132 30, 140 30" fill="none"
-          stroke="var(--rand)" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-      </svg>
-      {knoepfe}
-    </div>
-  );
-}
-
-function Fussleiste({ weg, faellig, aufMehr, welle = false, skala = 1 }) {
+function Fussleiste({ weg, faellig, aufMehr, aufErstellen, vereint = false, welle = false, skala = 1, groesse = 1 }) {
   const erster = weg[0] || "";
+  const stapelWeg = erster === "" || erster === "ordner" || erster === "stapel" || erster === "suche";
   const punkte = [
     ["start", "Start", "haus", START, erster === "start", "blau"],
-    ["faecher", "Fächer", "buch", "/faecher", erster === "faecher" || erster === "fach", "gruen"],
+    ["faecher", "Fächer", "buch", "/faecher", erster === "faecher" || erster === "fach" || (vereint && stapelWeg), "gruen"],
     ["abrufen", "Abrufen", "blitz", "/abrufen", false, "blau"],
-    ["stapel", "Stapel", "stapel", "/",
-      erster === "" || erster === "ordner" || erster === "stapel" || erster === "suche", "lila"],
+    vereint
+      ? ["erstellen", "Erstellen", "plus", null, false, "lila"]
+      : ["stapel", "Stapel", "stapel", "/", stapelWeg, "lila"],
   ];
+  const aktiv = punkte.findIndex((p) => p[4]);
+  const g = Math.min(1.5, Math.max(0.8, Number(groesse) || 1));
   return (
-    <nav className="fussleiste nur-schmal" aria-label="Hauptwege">
+    <nav className="fussleiste nur-schmal" aria-label="Hauptwege" style={{ "--nav-skala": g }}>
       {welle && <VerlaufKnoepfe art="unten" skala={skala} />}
-      {punkte.map(([schluessel, name, symbol, ziel, aktiv, ton]) => (
-        <button key={schluessel} type="button"
-          className={"fuss-knopf ton-" + ton + (aktiv ? " aktiv" : "") + (schluessel === "abrufen" ? " haupt" : "")}
-          aria-current={aktiv ? "page" : undefined}
-          onClick={() => gehe(ziel)}>
-          <span className="fuss-symbol"><Symbol name={symbol} groesse={20} /></span>
-          <span>{name}</span>
-          {schluessel === "abrufen" && faellig > 0 && (
-            <span className="fuss-zahl">{faellig > 99 ? "99+" : faellig}</span>
-          )}
+      <div className="fuss-raster">
+        <span className="fuss-zeiger" aria-hidden="true"
+          style={{ transform: "translateX(" + Math.max(0, aktiv) * 100 + "%)", opacity: aktiv < 0 ? 0 : 1,
+            "--zeiger-ton": "var(--ton-" + (punkte[aktiv]?.[5] || "blau") + ")" }}>
+          <span />
+        </span>
+        {punkte.map(([schluessel, name, symbol, ziel, an, ton]) => (
+          <button key={schluessel} type="button"
+            className={"fuss-knopf ton-" + ton + (an ? " aktiv" : "") + (schluessel === "abrufen" ? " haupt" : "")}
+            aria-current={an ? "page" : undefined}
+            onClick={() => (ziel ? gehe(ziel) : aufErstellen())}>
+            <span className="fuss-symbol"><Symbol name={symbol} groesse={Math.round(20 * g)} /></span>
+            <span>{name}</span>
+            {schluessel === "abrufen" && faellig > 0 && (
+              <span className="fuss-zahl">{faellig > 99 ? "99+" : faellig}</span>
+            )}
+          </button>
+        ))}
+        <button type="button" className="fuss-knopf" onClick={aufMehr}>
+          <span className="fuss-symbol"><Symbol name="balken" groesse={Math.round(20 * g)} /></span>
+          <span>Mehr</span>
         </button>
-      ))}
-      <button type="button" className="fuss-knopf" onClick={aufMehr}>
-        <span className="fuss-symbol"><Symbol name="balken" groesse={20} /></span>
-        <span>Mehr</span>
-      </button>
+      </div>
     </nav>
   );
 }
@@ -378,6 +363,14 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
   const teile = weg.split("/").filter(Boolean);
   const { stapel, offen, einstellungen } = useDaten();
   const pfeile = einstellungen.verlaufPfeile || "unten";
+  const vereint = einstellungen.erstellen === "vereint";
+  const [erstellt, setErstellt] = useState(false);
+  useEffect(() => { setErstellt(false); }, [weg]);
+  /* Die Größe der Navigierleiste wirkt auch auf den Platz unter den Seiten. */
+  useEffect(() => {
+    document.documentElement.style.setProperty("--nav-skala",
+      String(Math.min(1.5, Math.max(0.8, Number(einstellungen.navGroesse) || 1))));
+  }, [einstellungen.navGroesse]);
 
   /* Jede Seite in ihrer eigenen Auffanglinie. Der Schlüssel ist der Weg:
      Wer nach einem Absturz woandershin geht, bekommt eine frische Hülle. */
@@ -482,22 +475,22 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
         {/* Der Abstand steht im Stilblatt, nicht hier: Auf dem iPhone muss
             oben die Statusleiste ausgeglichen werden, und ein fest
             eingetragener Wert kann das nicht. */}
-        <div className="menue-streifen nur-schmal">
-          <div className="logo-spalte">
-          <button type="button" className="logo-knopf" title="Zur Startseite"
-            onClick={() => gehe(START)}>
-            <img src="./logo-96.png" className="logo-bild klein" alt="" />
-            <span>Anchor</span>
-          </button>
-            {pfeile === "logo" && <VerlaufKnoepfe art="unter-logo" skala={einstellungen.verlaufPfeileGroesse} />}
-          </div>
-          <span className="dehnen" />
-          <Glocke />
-        </div>
+        <MenueStreifen />
         {gefangen(inhalt)}
       </main>
+      {/* Erstellen: runder +-Knopf über der Navigierleiste (Vorgabe) oder,
+          bei „vereint“, als Reiter in der Leiste (Einstellungen → Aussehen). */}
+      {!vereint && PLUS_WEGE.has(teile[0] || "") && (
+        <button type="button" className="plus-knopf nur-schmal" title="Erstellen" aria-label="Erstellen"
+          onClick={() => setErstellt(true)}>
+          <Symbol name="plus" groesse={26} />
+        </button>
+      )}
+      {erstellt && <ErstellenBlatt fachId={teile[0] === "fach" ? teile[1] : null}
+        aufSchliessen={() => setErstellt(false)} />}
       <Fussleiste weg={teile} faellig={offen?.faellig || 0} welle={pfeile === "unten"}
-        skala={einstellungen.verlaufPfeileGroesse}
+        skala={einstellungen.verlaufPfeileGroesse} groesse={einstellungen.navGroesse}
+        vereint={vereint} aufErstellen={() => setErstellt(true)}
         aufMehr={() => setLeisteOffen(true)} />
     </div>
   );

@@ -144,17 +144,31 @@ export default function Startseite() {
                 </div>
               )}
               <div className="dehnen" />
-              {offen > 0 ? (
-                <Knopf art="voll gross" symbol="blitz" onClick={() => gehe("/abrufen/alle")}>
-                  Abrufen
-                </Knopf>
-              ) : (
+              {/* Abrufen steht schon in der Fragekarte darüber — hier nur, wenn nichts ansteht. */}
+              {offen === 0 && (
                 <Knopf art="gross" symbol="wuerfel" onClick={() => gehe("/fragen")}>
                   Nichts fällig. Fragen üben
                 </Knopf>
               )}
             </div>
           </div>
+
+          {/* ---------------------------- Zuletzt ----------------------------- */}
+          {/* Nach oben gerückt und kompakt, zwei mal zwei (Wunsch des Nutzers,
+              26.11.2026): der schnelle Wiedereinstieg. */}
+          {zuletzt.length > 0 && (
+            <Abschnitt titel="Zuletzt gelernt">
+              <div className="zuletzt-raster">
+                {zuletzt.map(({ s, zeit }) => (
+                  <button type="button" key={s.id} className="zuletzt-kachel"
+                    onClick={() => gehe("/stapel/" + s.id)} title={s.title || "Ohne Titel"}>
+                    <span className="zuletzt-name">{s.title || "Ohne Titel"}</span>
+                    <span className="klein blass">{datumKurz(zeit)}</span>
+                  </button>
+                ))}
+              </div>
+            </Abschnitt>
+          )}
 
           {/* ---------------------------- Prüfungen --------------------------- */}
           {pruefungen.length > 0 && (
@@ -199,21 +213,6 @@ export default function Startseite() {
             </Abschnitt>
           )}
 
-          {/* ---------------------------- Zuletzt ----------------------------- */}
-          {zuletzt.length > 0 && (
-            <Abschnitt titel="Zuletzt gelernt">
-              <div className="liste">
-                {zuletzt.map(({ s, zeit }) => (
-                  <button type="button" key={s.id} className="listenzeile"
-                    onClick={() => gehe("/stapel/" + s.id)}>
-                    <Sinnbild name="stapel" ton="blau" />
-                    <span className="dehnen">{s.title || "Ohne Titel"}</span>
-                    <span className="klein blass">{datumKurz(zeit)}</span>
-                  </button>
-                ))}
-              </div>
-            </Abschnitt>
-          )}
         </>
       )}
 

@@ -11,13 +11,15 @@
  * Karte am besten läuft.
  */
 
+import { ZurueckKnopf } from "./basis.jsx";
+import { zurueck as zurueckNach } from "../App.jsx";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import {
   HALBJAHRE, ARTEN, ART_IDS, PUNKTE_MAX,
   fachPunkte, halbjahrSchnitt, uebersicht, verlaufVon,
   faecherIm, punkteText, noteText, punkteStufe,
-  sortenVon, neueSorte, gewichtVon, leistungsName, naechsteArbeit, halbjahrBedarf, halbjahrZiel, zahlZeigen, uebernahmeVorschlaege,
+  sortenVon, neueSorte, gewichtVon, leistungsName, naechsteArbeit, halbjahrBedarf, halbjahrZiel, ausstehendVon, zahlZeigen, uebernahmeVorschlaege,
 } from "../core/noten.js";
 import { SymbolKnopf, Knopf, Leer, Dialog, Rueckfrage, HilfeLink } from "./basis.jsx";
 import ZahlFeld from "./ZahlFeld.jsx";
@@ -87,7 +89,7 @@ function Bedarf({ notenfach, ziel, offeneBrauchen }) {
   if (!n) return null;
   if (n.sicher || stand.punkte >= ziel) return <span className="bedarf gut">auf Kurs</span>;
   if (n.unerreichbar) return <span className="bedarf">Ziel mit einer {n.name} nicht mehr erreichbar</span>;
-  return <span className="bedarf">nächste {n.name}: {n.punkte} P</span>;
+  return <span className="bedarf">{n.anzahl > 1 ? "nächste " + n.anzahl + "×" : "nächste"} {n.name}: {n.anzahl > 1 ? "je " : ""}{n.punkte} P</span>;
 }
 
 function FachZeile({ notenfach, aufOeffnen, ziel = null, offeneBrauchen = null }) {
@@ -319,7 +321,7 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
   return (
     <div className="mitte">
       <div className="kopfzeile">
-        <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer" onClick={aufSchliessen} />
+        <ZurueckKnopf onClick={aufSchliessen} />
         <div className="dehnen">
           <h1 className="unten-4">{notenfach.fach}</h1>
           <div className="klein matt">{halbjahr?.name}</div>
@@ -373,6 +375,35 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
           </div>
         );
       })}
+
+      {/* Noch ausstehend (26.11.2026): wie viele Leistungen in diesem Fach
+          noch kommen — dann rechnen verschenkte Punkte und „nächste Arbeit“
+          damit, statt anzunehmen, das Fach stehe schon fest. */}
+      {(() => {
+        const aus = ausstehendVon(notenfach);
+        const sorten = sortenVon(notenfach);
+        return (
+          <div className="unten-24">
+            <h3 className="unten-4">Noch ausstehend <HilfeLink frage="ziele" /></h3>
+            <div className="reihe umbruch" style={{ gap: 8 }}>
+              <div style={{ width: 80 }}>
+                <ZahlFeld wert={aus.anzahl} min={0} max={20} aria-label="Anzahl ausstehender Leistungen"
+                  aufAendern={(x) => notenfachAendern(notenfach.id, {
+                    ausstehend: { anzahl: Math.round(x), sorte: aus.sorte?.id || null } })} />
+              </div>
+              <select className="feld" style={{ width: "auto" }} value={aus.sorte?.id || ""}
+                aria-label="Welche Sorte"
+                onChange={(e) => notenfachAendern(notenfach.id, {
+                  ausstehend: { anzahl: aus.anzahl, sorte: e.target.value || null } })}>
+                {sorten.map((x) => <option key={x.id} value={x.id}>{x.name || "Ohne Namen"}</option>)}
+              </select>
+            </div>
+            <p className="klein blass oben-4 erklaerung">
+              Zum Beispiel 2 Klassenarbeiten oder 1 GFS, die noch kommen. Null heißt: Das Fach steht so, wie es eingetragen ist.
+            </p>
+          </div>
+        );
+      })()}
 
       <SortenTeil notenfach={notenfach} />
 
@@ -517,6 +548,7 @@ function NotenSeite() {
   return (
     <div className="mitte">
       <div className="kopfzeile">
+        <ZurueckKnopf onClick={() => zurueckNach("/start")} />
         <h1>Punkte</h1>
         {/* Probe-Modus: „Was wäre mein Schnitt, wenn …?“ (ui/Probe.jsx) */}
         <SymbolKnopf symbol="wuerfel" art={"leer" + (probe.aktiv ? " aktiv" : "")}

@@ -34,6 +34,7 @@ const PFADE = {
   haken: "M4 12.5l5 5L20 6.5",
   kreuz: "M6 6l12 12M18 6L6 18",
   raster: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
+  vollbild: "M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5",
   rakete: "M5 15c-1 2-1 4-1 4s2 0 4-1M9 15l-3-3 1.5-3A11 11 0 0 1 19 4a11 11 0 0 1-5 11.5L11 17z",
   laut: "M4 9v6h4l5 4V5L8 9zM17 9a4 4 0 0 1 0 6",
   frage: "M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3M12 17h.01M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z",
@@ -259,6 +260,19 @@ export function HilfeLink({ frage, titel = "Fragen zur App", className = "" }) {
       title={titel} aria-label={titel}
       onClick={(e) => { e.stopPropagation(); window.location.hash = "/hilfe/" + frage; }}>
       ?
+    </button>
+  );
+}
+
+/*
+ * Der Zurück-Knopf (Wunsch des Nutzers, 26.11.2026): rund, nur ein Pfeil,
+ * auf jeder Unterseite an derselben Stelle — links im Seitenkopf, auch in
+ * den Vollbild-Modi. Wohin er führt, sagt die Seite selbst (`onClick`).
+ */
+export function ZurueckKnopf({ onClick, titel = "Zurück" }) {
+  return (
+    <button type="button" className="zurueck-rund" title={titel} aria-label={titel} onClick={onClick}>
+      <Symbol name="zurueck" groesse={20} />
     </button>
   );
 }

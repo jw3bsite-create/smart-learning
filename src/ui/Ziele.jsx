@@ -43,11 +43,13 @@ export function ZielBalken({ erreicht, hochgerechnet = null, ziel = null, versch
   return (
     <div className={"ziel-balken" + (ueber ? " auf-kurs" : "")} style={{ height: hoehe }}
       role="img" aria-label={titel + (verschenkt > 0 ? ", " + punkteText(verschenkt) + " Punkte verschenkt" : "")}>
+      {/* Wie bei einem Video der geladene Teil: Rot schließt direkt an das
+          Erreichte an (26.11.2026), danach die Hochrechnung. */}
       {verschenkt > 0 && (
-        <span className="ziel-verloren" style={{ left: prozent(max - verschenkt, max), width: prozent(verschenkt, max) }} />
+        <span className="ziel-verloren" style={{ left: prozent(erreicht, max), width: prozent(verschenkt, max) }} />
       )}
       {hochgerechnet !== null && hochgerechnet > erreicht && (
-        <span className="ziel-hoch" style={{ left: prozent(erreicht, max), width: prozent(hochgerechnet - erreicht, max) }} />
+        <span className="ziel-hoch" style={{ left: prozent(erreicht + verschenkt, max), width: prozent(hochgerechnet - erreicht, max) }} />
       )}
       <span className="ziel-voll" style={{ width: prozent(erreicht, max) }} />
       {ziel !== null && <span className="ziel-strich" style={{ left: prozent(ziel, max) }} />}

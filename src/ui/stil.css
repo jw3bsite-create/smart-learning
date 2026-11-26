@@ -1260,25 +1260,35 @@ html.zieht { cursor: grabbing; }
 @media (max-width: 860px) {
   .fussleiste {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
-    display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
+    display: block;
     padding: 4px max(4px, env(safe-area-inset-right, 0px))
       calc(4px + env(safe-area-inset-bottom, 0px)) max(4px, env(safe-area-inset-left, 0px));
     background: var(--grund); border-top: 1px solid var(--rand);
   }
   /* Platz für die Leiste, damit das Letzte auf der Seite nicht darunter liegt. */
-  .mitte { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); }
+  .mitte { padding-bottom: calc(96px * var(--nav-skala, 1) + 20px + env(safe-area-inset-bottom, 0px)); }
 }
+/* Die Reiter in einem Raster; der Zeiger gleitet darunter von Reiter zu Reiter. */
+.fuss-raster { position: relative; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.fuss-zeiger { position: absolute; left: 0; top: 4px; width: 20%; height: calc(28px * var(--nav-skala, 1));
+  display: flex; justify-content: center; pointer-events: none; z-index: 0;
+  transition: transform calc(var(--wechsel) * 2.5) cubic-bezier(0.3, 0.9, 0.3, 1.05), opacity var(--wechsel); }
+.fuss-zeiger > span { width: calc(56px * var(--nav-skala, 1)); height: 100%; border-radius: 999px;
+  background: color-mix(in srgb, var(--zeiger-ton, var(--akzent)) 22%, transparent);
+  transition: background calc(var(--wechsel) * 2.5); }
+:root[data-sinnbilder="schlicht"] .fuss-zeiger > span { background: color-mix(in srgb, var(--akzent) 16%, transparent); }
 .fuss-knopf {
-  position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px;
-  padding: 4px 0; min-height: 48px; background: none; border: 0; cursor: pointer;
-  color: var(--schrift-matt); font: inherit; font-size: 11px; line-height: 1.2;
+  position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 4px 0; min-height: calc(48px * var(--nav-skala, 1)); background: none; border: 0; cursor: pointer;
+  color: var(--schrift-matt); font: inherit; font-size: calc(11px * var(--nav-skala, 1)); line-height: 1.2;
   -webkit-user-select: none; user-select: none; touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 .fuss-knopf.aktiv { color: var(--akzent); }
-.fuss-symbol { display: grid; place-items: center; height: 28px; padding: 0 14px; border-radius: 14px;
+.fuss-symbol { display: grid; place-items: center; height: calc(28px * var(--nav-skala, 1));
+  padding: 0 calc(14px * var(--nav-skala, 1)); border-radius: 999px;
   transition: background var(--wechsel), transform var(--wechsel); }
-.fuss-knopf.aktiv .fuss-symbol { background: color-mix(in srgb, var(--akzent) 16%, transparent); }
+/* Der Hintergrund des aktiven Reiters kommt vom gleitenden Zeiger. */
 .fuss-knopf.haupt .fuss-symbol { background: var(--akzent); color: var(--akzent-schrift); }
 .fuss-knopf:active .fuss-symbol { transform: scale(0.92); }
 .fuss-zahl {
@@ -1512,21 +1522,30 @@ html.zieht { cursor: grabbing; }
 .hilfe-antwort { padding: 0 14px 12px; color: var(--schrift-matt); }
 .hilfe-antwort p { margin: 0 0 8px; }
 
-/* Karteikarten oben im Stapel, wie bei Quizlet (ui/KartenVorschau.jsx). */
-.vorschau-karte { position: relative; min-height: 190px; display: flex; align-items: center; justify-content: center;
-  padding: 28px 20px; border: 1px solid var(--rand); border-radius: var(--rund); background: var(--grund-2);
-  cursor: pointer; user-select: none; touch-action: pan-y; box-shadow: 0 1px 2px rgba(0,0,0,0.06);
-  transition: border-color var(--wechsel); }
-.vorschau-karte:hover { border-color: var(--akzent); }
+/* Karteikarten oben im Stapel, wie bei Quizlet (ui/KartenVorschau.jsx):
+   eine große Karte, die Nachbarn schauen am Rand hervor, Ziehen läuft mit. */
+.vorschau-flaeche { position: relative; height: 210px; overflow: hidden; touch-action: pan-y;
+  margin: 0 -4px; outline: none; -webkit-user-select: none; user-select: none; }
+.vorschau-spur { position: absolute; top: 0; bottom: 0; left: 0; width: 100%;
+  transition: transform calc(var(--wechsel) * 2.6) cubic-bezier(0.25, 0.9, 0.3, 1); will-change: transform; }
+.vorschau-spur.zieht { transition: none; }
+.vorschau-karte { position: absolute; top: 4px; bottom: 4px; display: flex; align-items: center; justify-content: center;
+  padding: 24px 20px; border: 1px solid var(--rand); border-radius: calc(var(--rund) * 1.6);
+  background: var(--grund-2); cursor: pointer; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: opacity calc(var(--wechsel) * 2), background var(--wechsel); }
+.vorschau-karte:not(.vorn) { opacity: 0.55; }
 .vorschau-karte.gedreht { background: var(--grund-3); }
-.vorschau-inhalt { text-align: center; max-width: 100%; animation: vorschau-rein calc(var(--wechsel) * 2) ease-out; }
-.vorschau-inhalt img { max-height: 140px; max-width: 100%; }
+.vorschau-inhalt { text-align: center; max-width: 100%; max-height: 100%; overflow: hidden;
+  animation: vorschau-rein calc(var(--wechsel) * 2) ease-out; }
+.vorschau-inhalt img { max-height: 120px; max-width: 100%; }
 .vorschau-text { font-family: var(--schrift-karten); font-size: 22px; line-height: 1.35; overflow-wrap: anywhere; }
-.vorschau-text.lang { font-size: 17px; }
-.vorschau-ecke { position: absolute; top: 6px; right: 6px; }
+.vorschau-text.lang { font-size: 16px; }
+.vorschau-vollbild { position: absolute; right: 10px; bottom: 10px; width: 34px; height: 34px; border: 0;
+  border-radius: 10px; background: transparent; color: var(--schrift-matt); display: grid; place-items: center; cursor: pointer; }
+.vorschau-vollbild:hover { color: var(--akzent); }
 .vorschau-leiste { justify-content: center; gap: 18px; margin-top: 6px; }
 @keyframes vorschau-rein { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .vorschau-inhalt { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .vorschau-inhalt { animation: none; } .vorschau-spur { transition: none; } }
 
 /* Abrufen: Herkunft links, Vorlesen/Stern/Haken/Stift rechts — nebeneinander,
    damit die Symbole die Zeile nicht mehr überdecken. */
@@ -1596,3 +1615,57 @@ html.zieht { cursor: grabbing; }
 
 /* Finger weggezogen: Die Kachel richtet sich wieder auf, statt gedrückt zu bleiben. */
 .druck-weg, .druck-weg:active { transform: none !important; }
+
+/* Runder +-Knopf zum Erstellen, unten rechts knapp über der Navigierleiste. */
+.plus-knopf { position: fixed; right: max(16px, env(safe-area-inset-right, 0px)); z-index: 41;
+  bottom: calc(66px * var(--nav-skala, 1) + 12px + env(safe-area-inset-bottom, 0px));
+  width: 54px; height: 54px; border-radius: 50%; border: 0; background: var(--akzent); color: var(--akzent-schrift);
+  display: grid; place-items: center; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  transition: transform var(--wechsel); -webkit-tap-highlight-color: transparent; }
+.plus-knopf:active { transform: scale(0.93); }
+.erstellen-zeile .dehnen { white-space: normal; }
+
+/* Der Zurück-Knopf: rund, nur ein Pfeil, überall an derselben Stelle (links im Kopf). */
+.zurueck-rund { flex: none; display: inline-grid; place-items: center; width: 40px; height: 40px;
+  border-radius: 50%; border: 1px solid var(--rand); background: var(--grund-2); color: var(--schrift);
+  cursor: pointer; padding: 0; transition: border-color var(--wechsel), transform var(--wechsel); }
+.zurueck-rund:hover { border-color: var(--akzent); }
+.zurueck-rund:active { transform: scale(0.94); }
+
+/* Vollbild-Modi: Logo-Leiste und Modus-Kopf kleben gemeinsam oben. */
+.modus-oben { position: sticky; top: 0; z-index: 20; }
+.modus-oben .menue-streifen { position: static; }
+.modus-oben .modus-kopf { position: static; }
+@media (max-width: 860px) { .modus-oben .modus-kopf { padding-top: 10px; } }
+
+/* Startseite: „Zuletzt gelernt“ kompakt, zwei mal zwei. */
+.zuletzt-raster { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.zuletzt-kachel { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0;
+  padding: 10px 12px; border: 1px solid var(--rand); border-radius: calc(var(--rund) * 0.85);
+  background: var(--grund-2); color: var(--schrift); font: inherit; text-align: left; cursor: pointer;
+  transition: border-color var(--wechsel); }
+.zuletzt-kachel:hover { border-color: var(--akzent); }
+.zuletzt-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+/* Startseite: Frage antippbar, Lösung gleich darunter. */
+.abruf-einstieg-frage.tippbar { cursor: pointer; border-radius: calc(var(--rund) * 0.7); }
+.abruf-einstieg-frage.tippbar:hover { background: var(--grund-3); }
+.abruf-einstieg-loesung { margin-top: 6px; padding: 12px 14px; border-radius: calc(var(--rund) * 0.7);
+  background: var(--grund-3); animation: vorschau-rein calc(var(--wechsel) * 2) ease-out; }
+.abruf-einstieg-loesung .antwort-text { font-family: var(--schrift-karten); font-size: 18px; line-height: 1.4; }
+
+/* Fächer: „?“ oben rechts in der Tageslage, Text klappt an Ort und Stelle auf. */
+.lage-hilfe { position: absolute; top: 10px; right: 10px; margin: 0; }
+.hilfe-link.aktiv { color: var(--akzent); border-color: var(--akzent); }
+.lage-text { animation: vorschau-rein calc(var(--wechsel) * 2) ease-out; }
+/* Eine breite Leiste wie „Alles abrufen“. */
+.knopf.breite-leiste { width: 100%; justify-content: center; }
+
+/*
+ * iPhone, App vom Startbildschirm: Auf Seiten, die kürzer als der Bildschirm
+ * sind (etwa die Übersicht der Einstellungen), stand die Navigierleiste zu
+ * hoch; auf langen Seiten nie. Darum ist jede Seite am Handy mindestens einen
+ * Hauch höher als der Bildschirm — wie die langen, bei denen es stimmt.
+ */
+@media (max-width: 860px) {
+  .buehne { min-height: calc(100dvh + 1px); }
+}

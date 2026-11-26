@@ -466,10 +466,45 @@ export function halbjahrVerschenkt(faecher) {
   if (!alle.length) return 0;
   let verloren = 0;
   for (const f of alle) {
-    const p = fachPunkte(f).punkte;
-    if (p !== null) verloren += PUNKTE_MAX - p;
+    const best = fachBestfall(f);
+    if (best !== null) verloren += PUNKTE_MAX - best;
   }
   return verloren / alle.length;
+}
+
+/*
+ * Noch ausstehende Leistungen eines Fachs (Wunsch des Nutzers, 26.11.2026):
+ * Nicht jedes Fach hat eine Arbeit je Halbjahr — mal kommt noch eine GFS,
+ * mal kommen drei Klassenarbeiten. `notenfach.ausstehend = { anzahl, sorte }`.
+ * Ohne Eintrag gilt das Fach als so, wie es steht.
+ */
+export function ausstehendVon(notenfach) {
+  const a = notenfach?.ausstehend;
+  const anzahl = Math.max(0, Math.min(20, Math.round(zahl(a?.anzahl, 0))));
+  const sorten = sortenVon(notenfach);
+  const sorte = sorten.find((x) => x.id === a?.sorte) || sorten.find((x) => x.art === "schriftlich") || null;
+  return { anzahl, sorte };
+}
+
+/** Das Fach mit `anzahl` weiteren Leistungen der ausstehenden Sorte, je `punkte`. */
+function mitWeiteren(notenfach, anzahl, punkte, sorte) {
+  const extra = Array.from({ length: anzahl }, (_, i) => ({
+    id: "probe-" + i, art: sorte?.art || "schriftlich", punkte, sorte: sorte?.id || null, gewicht: sorte?.gewicht ?? 1,
+  }));
+  return { ...notenfach, leistungen: [...(notenfach.leistungen || []), ...extra] };
+}
+
+/**
+ * Das Beste, was ein Fach noch erreichen kann: 15 Punkte in allen
+ * ausstehenden Leistungen. Ohne Noten `null`, mit festen Zeugnispunkten diese.
+ */
+export function fachBestfall(notenfach) {
+  const stand = fachPunkte(notenfach);
+  if (stand.punkte === null) return null;
+  if (stand.vonHand !== null) return stand.vonHand;
+  const { anzahl, sorte } = ausstehendVon(notenfach);
+  if (!anzahl) return stand.punkte;
+  return fachPunkte(mitWeiteren(notenfach, anzahl, PUNKTE_MAX, sorte)).punkte;
 }
 
 /**
@@ -516,13 +551,14 @@ export function halbjahrBedarf(faecher, ziel) {
   const bekannt = punkte.filter((p) => p !== null);
   const offen = punkte.length - bekannt.length;
   const summe = bekannt.reduce((a, b) => a + b, 0);
+  const besteSumme = alle.map(fachBestfall).filter((p) => p !== null).reduce((a, b) => a + b, 0);
   return {
     offen,
     /* Im Schnitt nötig für die Fächer ohne Punkte. */
     offeneBrauchen: offen ? (Number(ziel) * alle.length - summe) / offen : null,
     schnitt: bekannt.length ? summe / bekannt.length : null,
     /* Das Beste, was noch geht: 15 Punkte in jedem offenen Fach. */
-    bestfall: (summe + PUNKTE_MAX * offen) / alle.length,
+    bestfall: (besteSumme + PUNKTE_MAX * offen) / alle.length,
   };
 }
 
@@ -536,18 +572,18 @@ export function naechsteArbeit(notenfach, ziel) {
   if (ziel === null || ziel === undefined || !notenfach) return null;
   if (notenfach.endpunkte !== null && notenfach.endpunkte !== undefined) return null;
   if (fachPunkte(notenfach).punkte === null) return null;
-  const sorte = sortenVon(notenfach).find((x) => x.art === "schriftlich") || null;
-  const mit = (x) => fachPunkte({
-    ...notenfach,
-    leistungen: [...(notenfach.leistungen || []),
-      { id: "probe", art: "schriftlich", punkte: x, sorte: sorte?.id || null, gewicht: sorte?.gewicht ?? 1 }],
-  }).punkte;
+  /* Mit eingetragenen ausstehenden Leistungen: was jede davon braucht (alle
+     gleich gerechnet); sonst eine Arbeit der ersten schriftlichen Sorte. */
+  const aus = ausstehendVon(notenfach);
+  const anzahl = aus.anzahl || 1;
+  const sorte = aus.sorte;
+  const mit = (x) => fachPunkte(mitWeiteren(notenfach, anzahl, x, sorte)).punkte;
   const z = Number(ziel) - 1e-9;
   const name = sorte?.name || "Arbeit";
-  if (mit(PUNKTE_MIN) >= z) return { sicher: true, name };
-  if (mit(PUNKTE_MAX) < z) return { unerreichbar: true, name };
-  for (let x = PUNKTE_MIN; x <= PUNKTE_MAX; x += 1) if (mit(x) >= z) return { punkte: x, name };
-  return { unerreichbar: true, name };
+  if (mit(PUNKTE_MIN) >= z) return { sicher: true, name, anzahl };
+  if (mit(PUNKTE_MAX) < z) return { unerreichbar: true, name, anzahl };
+  for (let x = PUNKTE_MIN; x <= PUNKTE_MAX; x += 1) if (mit(x) >= z) return { punkte: x, name, anzahl };
+  return { unerreichbar: true, name, anzahl };
 }
 
 /**

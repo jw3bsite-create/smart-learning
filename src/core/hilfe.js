@@ -27,7 +27,7 @@ export const FRAGEN = [
     antwort: [
       "Welche Karten fällig sind, entscheidet der Plan. Aus den fälligen wird für jede Runde zufällig gezogen, aber gewichtet: Je näher die Klausur eines Fachs (in den letzten 30 Tagen bis aufs Fünffache am Klausurtag), desto öfter kommen seine Karten, bei zugeordneten Stapeln nur diese. Lange Überfälliges bekommt einen kleinen Zuschlag.",
       "Was in einer Runde nicht gezogen wird, bleibt fällig und kommt beim nächsten Mal.",
-      "Auf der Startseite steht die erste so gezogene Frage gleich mit „Wie sicher bist du dir?“. Ein Tipp darauf führt ins Abrufen über alle Fächer.",
+      "Auf der Startseite steht die erste so gezogene Frage gleich mit „Wie sicher bist du dir?“. Eine Einschätzung deckt die Lösung dort auf, „Weiter“ holt die nächste — zum Warmwerden, es wird nichts verbucht. Ein Tipp auf die Frage selbst führt ins richtige Abrufen.",
     ],
   },
   {
@@ -155,6 +155,22 @@ export const FRAGEN = [
     ],
   },
   {
+    id: "erstellen", gruppe: "karten",
+    frage: "Wie lege ich etwas Neues an?",
+    antwort: [
+      "Über den runden +-Knopf unten rechts (auf Start, Fächer und Stapel) oder, wenn du unter Einstellungen → Aussehen „Fächer und Stapel vereint“ gewählt hast, über „Erstellen“ in der Leiste unten.",
+      "Dort: neuer Stapel, Karten zu einem Stapel, aus Text, Bild oder Quizlet, ein Fach oder eine Klausur. Stehst du gerade in einem Fach, gehört der neue Stapel gleich dazu.",
+    ],
+  },
+  {
+    id: "navigation", gruppe: "karten",
+    frage: "Wie komme ich zurück?",
+    antwort: [
+      "Auf jeder Seite, in die du hineingegangen bist, steht oben links der runde Zurück-Knopf — auch im Abrufen und in den Übungen. Er führt dorthin, wo du herkamst.",
+      "Dazu gibt es die Pfeile zurück und vor (unten in der Mitte oder unter dem Logo, einstellbar unter Aussehen). Zurück endet an der Startseite.",
+    ],
+  },
+  {
     id: "quizlet", gruppe: "karten",
     frage: "Wie hole ich einen Stapel aus Quizlet?",
     antwort: [
@@ -197,7 +213,8 @@ export const FRAGEN = [
       "Bei Fächern ohne Note steht, was sie im Schnitt bringen müssen. Reichen selbst 15 P nicht, steht da, welchen Halbjahresschnitt du mit 15 P überall höchstens erreichst.",
       "Die Halbjahresziele folgen von selbst deinem Abi-Ziel: Jedes Halbjahr bekommt den Schnitt, den du ab dort bis zum Abi brauchst, die früheren Halbjahre eingerechnet. Ein eigenes Ziel kannst du trotzdem setzen; „Automatisch“ im Dialog holt die Rechnung zurück.",
       "Im Halbjahr: Fächer ohne Note zeigen, wie viel sie im Schnitt bringen müssen, damit das Halbjahr aufs Ziel kommt. Fächer, die darüber liegen, gleichen aus. Fächer mit Noten zeigen, welche Punktzahl die nächste Klassenarbeit braucht, damit das Fach selbst aufs Ziel kommt.",
-      "Rot am rechten Ende der Balken: deine verschenkten Punkte, also was die eingetragenen Noten unter 15 liegen, aufs Halbjahr umgelegt (fürs Abi × 10). Fächer ohne Note verschenken noch nichts.",
+      "Rot direkt hinter dem gefüllten Teil: deine verschenkten Punkte, also was mit den eingetragenen Noten selbst im besten Fall nicht mehr zu holen ist, aufs Halbjahr umgelegt (fürs Abi × 10). Fächer ohne Note verschenken noch nichts.",
+      "Im Fach unter „Noch ausstehend“ trägst du ein, wie viele Leistungen noch kommen (zum Beispiel 2 Klassenarbeiten oder 1 GFS). Dann rechnen die verschenkten Punkte und „nächste Klassenarbeit“ damit; ohne Eintrag gilt das Fach als so, wie es steht.",
       "Auf der Startseite stehen nur Zahlen und Balken. Ein Tipp darauf zeigt die Sätze dazu.",
       "Alles ist ein Richtwert zur Orientierung, nicht die Abiturnote.",
     ],

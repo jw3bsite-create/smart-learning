@@ -21,6 +21,17 @@ import { Symbol, SymbolKnopf, Knopf, Rueckfrage, useMerker, EigeneFarbe } from "
 import * as wolke from "../core/cloud.js";
 import { bestaetigen } from "./Rueckfragen.jsx";
 
+/* Grundtöne zur Wahl (null = wie das Design); daneben ein eigener. */
+const GRUNDTOENE = [
+  [null, "Wie das Design"],
+  ["#14171d", "Anthrazit"],
+  ["#0f1a2b", "Nachtblau"],
+  ["#1c1626", "Aubergine"],
+  ["#13211b", "Tannengrün"],
+  ["#f3efe6", "Papier"],
+  ["#eef3f8", "Eisblau"],
+];
+
 const AKZENTE = [
   ["#5b8bff", "Blau"], ["#a97bf0", "Violett"], ["#3fbf7f", "Grün"],
   ["#e8b84b", "Gelb"], ["#ef5b6b", "Rot"], ["#4bc6d8", "Türkis"],
@@ -158,7 +169,7 @@ function Regler({ beschriftung, wert, min, max, schritt = 1, einheit = "", setze
       <input type="range" min={min} max={max} step={schritt} value={wert}
         style={{ width: "100%" }}
         onChange={(e) => setzen(Number(e.target.value))} />
-      {hinweis && <div className="klein blass oben-4">{hinweis}</div>}
+      {hinweis && <div className="klein blass oben-4 erklaerung">{hinweis}</div>}
     </div>
   );
 }
@@ -370,6 +381,7 @@ export default function Gestaltung() {
   };
 
   const eigeneFarbe = !AKZENTE.some(([f]) => f === einstellungen.akzent);
+  const eigenerGrundton = Boolean(einstellungen.grundton) && !GRUNDTOENE.some(([f]) => f === einstellungen.grundton);
   const eigene = einstellungen.eigeneErscheinungsbilder || [];
   const ausgeblendet = einstellungen.ausgeblendeteErscheinungsbilder || [];
   const bilder = sichtbareBilder(eigene, ausgeblendet);
@@ -474,9 +486,31 @@ export default function Gestaltung() {
                   style={{ color: "var(--akzent-schrift)" }} />}
               </EigeneFarbe>
             </div>
-            <p className="klein blass" style={{ margin: 0 }}>
+            <p className="klein blass erklaerung" style={{ margin: 0 }}>
               Grün, Gelb und Rot bleiben, wie sie sind, sie bedeuten in dieser App
               richtig, unsicher und falsch.
+            </p>
+
+            {/* Eigener Grundton: die Hintergrundfarbe selbst wählen (26.11.2026). */}
+            <label className="beschriftung oben-16">Grundfarbe</label>
+            <div className="reihe umbruch" style={{ gap: 8, marginBottom: 4 }}>
+              {GRUNDTOENE.map(([farbe, name]) => (
+                <button key={name} title={name} onClick={() => setzen("grundton", farbe)}
+                  style={{ width: 30, height: 30, borderRadius: 9, cursor: "pointer",
+                    background: farbe || "linear-gradient(135deg, var(--grund) 50%, #f6f7fa 50%)",
+                    border: (einstellungen.grundton || null) === farbe
+                      ? "2px solid var(--schrift)" : "1px solid var(--rand)" }} />
+              ))}
+              <EigeneFarbe wert={einstellungen.grundton || "#14171d"} setzen={(f) => setzen("grundton", f)}
+                style={{ width: 30, height: 30, borderRadius: 9,
+                  border: eigenerGrundton ? "2px solid var(--schrift)" : "1px solid var(--rand)",
+                  background: eigenerGrundton ? einstellungen.grundton
+                    : "conic-gradient(#2a1f3d,#1d2b3a,#203a2c,#3a2f1d,#f3efe6,#2a1f3d)" }}>
+                {eigenerGrundton && <Symbol name="stift" groesse={14} style={{ color: "var(--schrift)" }} />}
+              </EigeneFarbe>
+            </div>
+            <p className="klein blass erklaerung" style={{ margin: 0 }}>
+              Färbt den Hintergrund. „Wie das Design“ nimmt wieder den Grundton von oben.
             </p>
 
             {/* Wem die Töne je Funktion zu bunt sind: alles wieder einheitlich. */}
@@ -484,7 +518,7 @@ export default function Gestaltung() {
               <input type="checkbox" checked={einstellungen.sinnbilderFarbig !== false}
                 onChange={(e) => setzen("sinnbilderFarbig", e.target.checked)} />
               <span>Farbige Sinnbilder
-                <span className="klein blass"> (aus: alle Zeichen einheitlich, wie früher)</span>
+                <span className="klein blass erklaerung"> (aus: alle Zeichen einheitlich, wie früher)</span>
               </span>
             </label>
           </Klappe>

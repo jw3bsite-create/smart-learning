@@ -3,6 +3,8 @@
  * Danach räumt der Speicher es beim Start von selbst weg.
  */
 
+import { ZurueckKnopf } from "./basis.jsx";
+import { zurueck as zurueckNach } from "../App.jsx";
 import React, { useEffect, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { datumKurz, anzahl } from "../core/util.js";
@@ -43,6 +45,7 @@ export default function Papierkorb() {
   return (
     <div className="mitte">
       <div className="kopfzeile">
+        <ZurueckKnopf onClick={() => zurueckNach("/start")} />
         <h1>Papierkorb</h1>
       </div>
 

@@ -538,6 +538,25 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
 80. **Antippen abbrechen** (`main.jsx`): Zieht man den Finger von einer
     Kachel/einem Knopf weg, schluckt ein Klick-Abfang den Klick. Zurück-Pfeil
     endet an der Startseite.
+81. **Navigation** (26.11.2026): Jede Unterseite und jeder Vollbild-Modus
+    beginnt links mit `ZurueckKnopf` (basis.jsx, rund, nur Pfeil). In den
+    Modi bleibt am Handy die Logo-Leiste (`ui/MenueStreifen.jsx`, darin auch
+    `VerlaufKnoepfe`) — `ModusRahmen` klebt Leiste und Kopf gemeinsam
+    (`.modus-oben`). Top-Reiter (Start, Fächer, Stapel) haben keinen.
+82. **Navigierleiste** (= untere Leiste): gleitender Zeiger `.fuss-zeiger`,
+    Größe `navGroesse` (→ `--nav-skala` am Wurzelelement), `erstellen`:
+    "plus" (runder Knopf, `PLUS_WEGE`) | "vereint" (Reiter Erstellen,
+    Stapel als Leiste auf der Fächer-Seite). Erstellen-Blatt: `ui/Erstellen.jsx`.
+83. **Startseite-Einstieg** (`AbrufEinstieg startseite`): Einschätzung deckt
+    die Lösung auf, „Weiter“ → nächste; nichts wird verbucht. Tipp auf die
+    Frage → `/abrufen/alle/start/<karte:richtung>` (ohne Einschätzung).
+84. **Ausstehende Leistungen** (`notenfach.ausstehend = { anzahl, sorte }`,
+    `fachBestfall`, `ausstehendVon`): verschenkt = 15 − Bestfall; Rot schließt
+    im Balken direkt an „erreicht“ an, danach die Hochrechnung.
+85. **Grundfarbe** (`grundton` in der Gestaltung): setzt `--grund*`/`--rand`
+    und hell/dunkel nach Helligkeit; null = wie das Design.
+86. **Am Handy ist jede Seite ≥ 100dvh + 1px** (`.buehne`): Auf kurzen Seiten
+    stand die Navigierleiste in der iPhone-App sonst zu hoch.
 
 ## Stapel aus Lernmaterial (im Chat)
 

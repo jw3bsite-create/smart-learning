@@ -8,6 +8,8 @@
  * Abrufen bleiben dem Plan überlassen (siehe core/fehler.js).
  */
 
+import { ZurueckKnopf } from "./basis.jsx";
+import { zurueck as zurueckNach } from "../App.jsx";
 import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import {
@@ -83,6 +85,7 @@ export default function Fehlerheft({ fachId = null }) {
   return (
     <div className="mitte">
       <div className="kopfzeile">
+        <ZurueckKnopf onClick={() => zurueckNach("/start")} />
         <h1>Fehlerheft</h1>
         {gefiltert.length > 0 && (
           <div className="kopf-werkzeuge">
