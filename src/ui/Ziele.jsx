@@ -41,25 +41,22 @@ const prozent = (wert, max) => Math.max(0, Math.min(100, (100 * (wert || 0)) / m
 export function ZielBalken({ erreicht, hochgerechnet = null, ziel = null, verschenkt = 0, max, hoehe = 12, titel }) {
   const ueber = ziel !== null && hochgerechnet !== null && hochgerechnet >= ziel;
   const verloren = Math.max(0, verschenkt);
+  const verlustBreite = Math.max(0, Math.min(verloren, max - Math.max(0, erreicht)));
   return (
-    <div className="ziel-balken-gruppe"
+    <div className={"ziel-balken" + (ueber ? " auf-kurs" : "")} style={{ height: hoehe }}
       role="img" aria-label={titel + (verschenkt > 0 ? ", " + punkteText(verschenkt) + " Punkte verschenkt" : "")}>
-      <div className={"ziel-balken" + (ueber ? " auf-kurs" : "")} style={{ height: hoehe }}>
-        {/* Die Hauptleiste bleibt durchgehend grün bzw. blau. Die verlorenen
-            Punkte liegen bewusst in einer eigenen roten Ebene darunter. */}
-        {hochgerechnet !== null && hochgerechnet > erreicht && (
-          <span className="ziel-hoch" style={{ left: 0, width: prozent(hochgerechnet, max) }} />
-        )}
-        <span className="ziel-stueck" style={{ width: prozent(erreicht, max) }}>
-          <span className="ziel-voll" />
-        </span>
-        {ziel !== null && <span className="ziel-strich" style={{ left: prozent(ziel, max) }} />}
-      </div>
-      {verloren > 0 && (
-        <div className="ziel-verlust-balken" style={{ height: Math.max(4, Math.round(hoehe * 0.55)) }} aria-hidden="true">
-          <span style={{ width: prozent(verloren, max) }} />
-        </div>
+      {hochgerechnet !== null && hochgerechnet > erreicht && (
+        <span className="ziel-hoch" style={{ left: 0, width: prozent(hochgerechnet, max) }} />
       )}
+      {/* Rot beginnt exakt hinter dem Fortschritt. Das runde Ende des grünen
+          Balkens liegt darüber und macht den Übergang weich statt kantig. */}
+      {verlustBreite > 0 && (
+        <span className="ziel-verloren" style={{ left: prozent(erreicht, max), width: prozent(verlustBreite, max) }} />
+      )}
+      <span className="ziel-stueck" style={{ width: prozent(erreicht, max) }}>
+        <span className="ziel-voll" />
+      </span>
+      {ziel !== null && <span className="ziel-strich" style={{ left: prozent(ziel, max) }} />}
     </div>
   );
 }

@@ -1553,21 +1553,18 @@ html.zieht { cursor: grabbing; }
 .frage-kopf .dehnen { min-width: 0; padding-top: 8px; }
 .frage-symbole { display: flex; flex: none; align-items: center; }
 
-/* Ziele (ui/Ziele.jsx): Hauptfortschritt oben, verlorene Punkte klar getrennt darunter. */
-.ziel-balken-gruppe { display: grid; gap: 5px; }
+/* Ziele (ui/Ziele.jsx): Rot setzt direkt hinter Grün an, aber unter dessen Rundung. */
 .ziel-balken { position: relative; border-radius: 999px; background: var(--grund-3); overflow: visible; }
 .ziel-balken > span { position: absolute; top: 0; bottom: 0; border-radius: 999px; }
-/* Der Hauptfortschritt ist ein ununterbrochener Balken; Rot liegt nie darin. */
-.ziel-balken > .ziel-stueck { left: 0; overflow: hidden; transition: width calc(var(--wechsel) * 4) ease-out; }
+.ziel-balken > .ziel-stueck { left: 0; z-index: 2; overflow: hidden; transition: width calc(var(--wechsel) * 4) ease-out; }
 .ziel-stueck > span { display: block; width: 100%; height: 100%; }
 .ziel-voll { background: var(--akzent); }
-.ziel-hoch { background: var(--akzent); opacity: 0.28; }
+.ziel-hoch { z-index: 0; background: var(--akzent); opacity: 0.28; }
 .ziel-balken.auf-kurs .ziel-voll, .ziel-balken.auf-kurs .ziel-hoch { background: var(--gruen); }
-.ziel-verlust-balken { overflow: hidden; border-radius: 999px; background: var(--grund-3); }
-.ziel-verlust-balken > span { display: block; height: 100%; border-radius: inherit; background: var(--rot);
-  transition: width calc(var(--wechsel) * 4) ease-out; }
+.ziel-verloren { z-index: 1; background: var(--rot); border-radius: 0 999px 999px 0 !important;
+  transition: left calc(var(--wechsel) * 4) ease-out, width calc(var(--wechsel) * 4) ease-out; }
 .ziel-strich { width: 3px; top: -4px !important; bottom: -4px !important; margin-left: -1.5px;
-  background: var(--schrift); border-radius: 2px !important; }
+  z-index: 3; background: var(--schrift); border-radius: 2px !important; }
 .ziel-zahl { font-family: var(--schrift-karten); font-size: 26px; font-weight: 600; line-height: 1.1; }
 .ziel-streifen { display: block; width: 100%; padding: 12px 14px; text-align: left; font: inherit; color: var(--schrift);
   background: var(--grund-2); border: 1px solid var(--rand); border-radius: var(--rund); cursor: pointer; }
