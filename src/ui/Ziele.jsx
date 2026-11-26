@@ -43,15 +43,16 @@ export function ZielBalken({ erreicht, hochgerechnet = null, ziel = null, versch
   return (
     <div className={"ziel-balken" + (ueber ? " auf-kurs" : "")} style={{ height: hoehe }}
       role="img" aria-label={titel + (verschenkt > 0 ? ", " + punkteText(verschenkt) + " Punkte verschenkt" : "")}>
-      {/* Wie bei einem Video der geladene Teil: Rot schließt direkt an das
-          Erreichte an (26.11.2026), danach die Hochrechnung. */}
-      {verschenkt > 0 && (
-        <span className="ziel-verloren" style={{ left: prozent(erreicht, max), width: prozent(verschenkt, max) }} />
-      )}
+      {/* Ein Balken aus einem Stück (Wunsch des Nutzers, 26.11.2026): Die
+          Hochrechnung liegt blass dahinter; davor ein Stück aus Erreichtem
+          und, nahtlos angeschmiegt, Verschenktem — gemeinsam rund am Ende. */}
       {hochgerechnet !== null && hochgerechnet > erreicht && (
-        <span className="ziel-hoch" style={{ left: prozent(erreicht + verschenkt, max), width: prozent(hochgerechnet - erreicht, max) }} />
+        <span className="ziel-hoch" style={{ left: 0, width: prozent(hochgerechnet + verschenkt, max) }} />
       )}
-      <span className="ziel-voll" style={{ width: prozent(erreicht, max) }} />
+      <span className="ziel-stueck" style={{ width: prozent(erreicht + verschenkt, max) }}>
+        <span className="ziel-voll" style={{ flexGrow: Math.max(0, erreicht) }} />
+        {verschenkt > 0 && <span className="ziel-verloren" style={{ flexGrow: verschenkt }} />}
+      </span>
       {ziel !== null && <span className="ziel-strich" style={{ left: prozent(ziel, max) }} />}
     </div>
   );

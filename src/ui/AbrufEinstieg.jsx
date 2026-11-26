@@ -5,12 +5,11 @@
  * Frage des Stapels mit „Wie sicher bist du dir?“; ein Tipp darauf führt ins
  * Abrufen des Stapels, mit dieser Karte zuerst und der Einschätzung gesetzt.
  *
- * Auf der Startseite (26.11.2026, Wunsch des Nutzers): ein kleiner Einstieg
- * zum Warmwerden. Die Einschätzung deckt die Lösung gleich hier auf, „Weiter“
- * holt die nächste Frage — ohne ins Abrufen zu wechseln. Es wird nichts
- * verbucht, kein Termin verschoben: Die Hürde sinkt, und ein kleiner
- * Lerneffekt bleibt. Wer richtig abrufen will, tippt auf die Frage selbst
- * (oder auf „Abrufen“ im Kopf) und ist mit einem Tipp drin.
+ * Auf der Startseite (26.11.2026, Wunsch des Nutzers): richtiges Abrufen im
+ * kleinen Fenster. Nach der Einschätzung erscheint das Antwortfeld; ein Tipp
+ * hinein (oder auf die Frage) lässt die Karte auf volle Größe wachsen, und
+ * es geht im Abrufen weiter — mit dieser Karte und der Einschätzung, ganz
+ * normal verbucht.
  *
  * Welche Karten kommen, entscheidet wie immer der Plan (`baueSitzung`), auf
  * der Startseite gewichtet nach der Nähe der Klausuren.
@@ -40,7 +39,8 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
   const gewicht = useMemo(() => gewichtNachKlausur(faecher, stapel, ordner), [faecher, stapel, ordner]);
   /* Startseite: schon gesehene Karten dieser Runde und die aufgedeckte Einschätzung. */
   const [gesehen, setGesehen] = useState(() => new Set());
-  const [aufgedeckt, setAufgedeckt] = useState(null);
+  const [konfidenz, setKonfidenz] = useState(null);
+  const kachel = useRef(null);
 
   const sitzung = useMemo(() => {
     if (startseite) {
@@ -78,13 +78,23 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
   const seiten = aufgabe ? seitenFuer(aufgabe.karte, aufgabe.richtung) : null;
   const insAbrufen = (konfidenz = null) =>
     gehe(weg + "/start/" + encodeURIComponent(aufgabe.schluessel) + (konfidenz ? "/" + konfidenz : ""));
-  const weiter = () => {
-    setGesehen((alt) => new Set([...alt, aufgabe.schluessel]));
-    setAufgedeckt(null);
+  /* Die Karte wächst aus ihrer Lage auf den ganzen Bildschirm, dann das Abrufen. */
+  const wachsen = (k = konfidenz) => {
+    const el = kachel.current;
+    const ruhig = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (!el || ruhig) { insAbrufen(k); return; }
+    const r = el.getBoundingClientRect();
+    Object.assign(el.style, { position: "fixed", top: r.top + "px", left: r.left + "px",
+      width: r.width + "px", height: r.height + "px", margin: 0, zIndex: 60 });
+    el.classList.add("waechst");
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      Object.assign(el.style, { top: "0px", left: "0px", width: "100vw", height: "100dvh", borderRadius: "0px" });
+    }));
+    setTimeout(() => insAbrufen(k), 260);
   };
 
   return (
-    <div className={"kachel abruf-einstieg" + (startseite ? " auf-start" : "")}>
+    <div ref={kachel} className={"kachel abruf-einstieg" + (startseite ? " auf-start" : "")}>
       <div className="reihe unten-8" style={{ gap: 8 }}>
         <Sinnbild name="blitz" ton="blau" />
         {/* Auf der Startseite ohne Fach: Wie beim Verschachteln bleibt die
@@ -94,7 +104,7 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
         </span>
         {auswahlFach}
         {startseite && aufgabe && (
-          <Knopf art="klein" symbol="blitz" onClick={() => insAbrufen()}>Abrufen</Knopf>
+          <Knopf art="klein" symbol="blitz" onClick={() => wachsen(null)}>Groß</Knopf>
         )}
       </div>
 
@@ -102,22 +112,18 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
         <>
           {/* Startseite: Ein Tipp auf die Frage führt ins Abrufen, mit dieser Karte. */}
           <div className={"abruf-einstieg-frage" + (startseite ? " tippbar" : "")}
-            {...(startseite ? { ...KLICKBAR, onClick: () => insAbrufen(), title: "Diese Frage im Abrufen beantworten" } : {})}>
+            {...(startseite ? { ...KLICKBAR, onClick: () => wachsen(), title: "Diese Frage groß beantworten" } : {})}>
             {seiten.frageBild && <Bild kennung={seiten.frageBild} />}
             {seiten.frage && <div className={"frage-text" + (seiten.frage.length > 90 ? " lang" : "")}>
               <Formel text={seiten.frage} /></div>}
           </div>
 
-          {startseite && aufgedeckt ? (
-            <div className="abruf-einstieg-loesung">
-              <div className="klein matt unten-4">
-                Lösung · du warst {STUFEN.find((x) => x[0] === aufgedeckt)?.[1].toLowerCase()}
-              </div>
-              {seiten.antwortBild && <Bild kennung={seiten.antwortBild} />}
-              {seiten.antwort && <div className="antwort-text"><Formel text={seiten.antwort} /></div>}
-              <div className="reihe oben-12" style={{ justifyContent: "flex-end", gap: 8 }}>
-                <Knopf art="voll" symbol="weiter" onClick={weiter}>Weiter</Knopf>
-              </div>
+          {startseite && konfidenz ? (
+            /* Das Antwortfeld, klein; ein Tipp hinein macht die Karte groß. */
+            <div className="abruf-einstieg-antwort">
+              <input className="feld" readOnly placeholder="Antwort tippen …"
+                onFocus={(e) => { e.target.blur(); wachsen(); }} onClick={() => wachsen()} />
+              <Knopf art="voll" onClick={() => wachsen()}>Aufdecken</Knopf>
             </div>
           ) : (
             <>
@@ -127,7 +133,7 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
               <div className="gitter konfidenz-gitter">
                 {STUFEN.map(([wert, name, symbol, farbe]) => (
                   <button key={wert} type="button" className="antwort" style={{ justifyContent: "center" }}
-                    onClick={() => (startseite ? setAufgedeckt(wert) : insAbrufen(wert))}>
+                    onClick={() => (startseite ? setKonfidenz(wert) : insAbrufen(wert))}>
                     <Symbol name={symbol} groesse={17} style={{ color: farbe }} />
                     <span>{name}</span>
                   </button>

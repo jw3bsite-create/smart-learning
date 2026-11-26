@@ -22,14 +22,15 @@ import Formel from "./Formel.jsx";
 const BREITE = 0.84;   // Anteil der Kartenbreite an der Fläche; der Rest zeigt die Nachbarn
 const ABSTAND = 12;    // Pixel zwischen den Karten
 
-export default function KartenVorschau({ setId, karten }) {
+export default function KartenVorschau({ setId = null, karten, reihenfolgeBehalten = false }) {
   const { zustaende } = useDaten();
   /* Was heute ansteht, zuerst; sonst die Reihenfolge des Stapels. */
   const reihe = useMemo(() => {
+    if (reihenfolgeBehalten) return karten;
     const jetzt = Date.now();
     const faellig = (k) => ["td", "dt"].some((r) => istFaellig(zustaende[k.id + ":" + r], jetzt));
     return [...karten.filter(faellig), ...karten.filter((k) => !faellig(k))];
-  }, [karten, zustaende]);
+  }, [karten, zustaende, reihenfolgeBehalten]);
   const anzahlFaellig = useMemo(() => reihe.filter((k) =>
     ["td", "dt"].some((r) => istFaellig(zustaende[k.id + ":" + r]))).length, [reihe, zustaende]);
 
@@ -116,7 +117,7 @@ export default function KartenVorschau({ setId, karten }) {
                 {vorn && (
                   <button type="button" className="vorschau-vollbild" title="Karteikarten öffnen" aria-label="Karteikarten öffnen"
                     onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.stopPropagation(); gehe("/stapel/" + setId + "/karten"); }}>
+                    onClick={(e) => { e.stopPropagation(); gehe("/stapel/" + (setId || k.setId) + "/karten"); }}>
                     <Symbol name="vollbild" groesse={18} />
                   </button>
                 )}

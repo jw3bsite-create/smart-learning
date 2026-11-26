@@ -57,6 +57,7 @@ export const STANDARD_EINSTELLUNGEN = {
   zuletztStapel: null,
   sitzungsUmfang: 30,            // früher: Aufgaben je Abrufsitzung (seit 25.11.2026 jedes Mal gewählt)
   stapelOben: "abrufen",
+  startseiteModus: "abrufen",    // was auf der Startseite steht: "abrufen" | "karteikarten" (26.11.2026)
   verlaufPfeile: "unten",
   verlaufPfeileGroesse: 1,       // Größe der Pfeile, 0,7 bis 1,8
   erstellen: "plus",             // Erstellen: "plus" (runder Knopf) | "vereint" (Fächer+Stapel, Reiter Erstellen)

@@ -547,9 +547,13 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     Größe `navGroesse` (→ `--nav-skala` am Wurzelelement), `erstellen`:
     "plus" (runder Knopf, `PLUS_WEGE`) | "vereint" (Reiter Erstellen,
     Stapel als Leiste auf der Fächer-Seite). Erstellen-Blatt: `ui/Erstellen.jsx`.
-83. **Startseite-Einstieg** (`AbrufEinstieg startseite`): Einschätzung deckt
-    die Lösung auf, „Weiter“ → nächste; nichts wird verbucht. Tipp auf die
-    Frage → `/abrufen/alle/start/<karte:richtung>` (ohne Einschätzung).
+83. **Startseite-Einstieg** (`AbrufEinstieg startseite`, Stand 26.11. abends):
+    Einschätzung → kleines Antwortfeld; Tipp hinein oder auf die Frage lässt
+    die Kachel per `wachsen()` auf Vollbild wachsen, dann
+    `/abrufen/alle/start/<karte:richtung>[/<k>]` — normales, verbuchtes Abrufen.
+    `startseiteModus: "karteikarten"` zeigt stattdessen `KartenVorschau`
+    (anstehende Karten, `reihenfolgeBehalten`). Ziel-Balken: Erreicht und
+    Verschenkt sind ein Stück (`.ziel-stueck`, gemeinsame Rundung).
 84. **Ausstehende Leistungen** (`notenfach.ausstehend = { anzahl, sorte }`,
     `fachBestfall`, `ausstehendVon`): verschenkt = 15 − Bestfall; Rot schließt
     im Balken direkt an „erreicht“ an, danach die Hochrechnung.

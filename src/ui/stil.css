@@ -1556,7 +1556,10 @@ html.zieht { cursor: grabbing; }
 /* Ziele (ui/Ziele.jsx): erreicht voll, hochgerechnet blass, Ziel als Strich. */
 .ziel-balken { position: relative; border-radius: 999px; background: var(--grund-3); overflow: visible; }
 .ziel-balken > span { position: absolute; top: 0; bottom: 0; border-radius: 999px; }
-.ziel-voll { left: 0; background: var(--akzent); transition: width calc(var(--wechsel) * 4) ease-out; }
+/* Erreicht und verschenkt als ein Stück: gemeinsame Rundung, innen nahtlos. */
+.ziel-balken > .ziel-stueck { left: 0; display: flex; overflow: hidden; transition: width calc(var(--wechsel) * 4) ease-out; }
+.ziel-stueck > span { flex-basis: 0; min-width: 0; height: 100%; }
+.ziel-voll { background: var(--akzent); }
 .ziel-hoch { background: var(--akzent); opacity: 0.28; }
 .ziel-balken.auf-kurs .ziel-voll, .ziel-balken.auf-kurs .ziel-hoch { background: var(--gruen); }
 .ziel-strich { width: 3px; top: -4px !important; bottom: -4px !important; margin-left: -1.5px;
@@ -1600,7 +1603,7 @@ html.zieht { cursor: grabbing; }
   min-width: calc(36px * var(--pfeil-skala, 1)); padding: 2px 8px; }
 
 /* Verschenkte Punkte: rot am rechten Ende des Ziel-Balkens (ui/Ziele.jsx). */
-.ziel-balken > .ziel-verloren { background: var(--rot); opacity: 0.85; }
+.ziel-stueck > .ziel-verloren { background: var(--rot); }
 .verloren-text { color: var(--rot); }
 /* Startseite: kompakter Streifen, Texte erst nach einem Tipp. */
 .ziel-streifen { cursor: default; }
@@ -1669,3 +1672,13 @@ html.zieht { cursor: grabbing; }
 @media (max-width: 860px) {
   .buehne { min-height: calc(100dvh + 1px); }
 }
+
+/* Startseite: kleines Antwortfeld; die Karte wächst beim Tippen auf volle Größe. */
+.abruf-einstieg-antwort { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+.abruf-einstieg-antwort .feld { flex: 1; min-width: 0; cursor: text; }
+.abruf-einstieg.waechst { transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease,
+  border-radius 0.25s ease; overflow: hidden; }
+/* Startseite: „Heute“ in einer schmalen Zeile. */
+.heute-zeile { display: flex; align-items: center; gap: 14px; padding: 10px 14px; flex-wrap: wrap; }
+.heute-zeile .heute-wert { display: flex; align-items: baseline; gap: 6px; }
+.heute-zeile .heute-wert strong { font-family: var(--schrift-karten); font-size: 20px; }

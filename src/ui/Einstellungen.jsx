@@ -1742,6 +1742,19 @@ export default function Einstellungen({ aufAbgleich, teil = null }) {
               </div>
             </Abschnitt>
 
+            <Abschnitt titel="Auf der Startseite"
+              hinweis="Zum Ausprobieren: Abrufen im kleinen Fenster oder die anstehenden Karten zum Durchblättern.">
+              <div className="reihe umbruch" style={{ gap: 8 }} role="radiogroup" aria-label="Auf der Startseite">
+                {[["abrufen", "Abrufen"], ["karteikarten", "Karteikarten"]].map(([wert, name]) => {
+                  const an = (einstellungen.startseiteModus || "abrufen") === wert;
+                  return (
+                    <Knopf key={wert} art={an ? "voll" : ""} role="radio" aria-checked={an}
+                      onClick={() => setzeEinstellung("startseiteModus", wert)}>{name}</Knopf>
+                  );
+                })}
+              </div>
+            </Abschnitt>
+
             <Abschnitt titel="Übungsrunden"
               hinweis="Wie viele Karten eine Runde in Lernen, Schreiben und Test hat. Beim Abrufen wählst du die Größe jedes Mal neu.">
               <label className="beschriftung">Karten je Runde: {einstellungen.rundenGroesse}</label>

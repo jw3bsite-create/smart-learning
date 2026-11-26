@@ -68,7 +68,7 @@ try {
     for (let i = 0; i < 40 && (await ausDb("sets")).length === 0; i++) await warte(250);
     soll((await ausDb("sets")).length > 0, "keine Stapel angelegt");
     await gehe("/start");
-    await seite.getByText("Heute offen").waitFor({ timeout: 5000 });
+    await seite.locator(".heute-zeile").waitFor({ timeout: 5000 });   // die schmale Heute-Zeile (26.11.2026)
   });
 
   await schritt("Abrufen: bewerten und die Bewertung zurücknehmen", async () => {

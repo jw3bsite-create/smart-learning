@@ -22,6 +22,9 @@ import { useLernzeiten } from "./Lernzeit.jsx";
 import { summe, tagesBeginn, dauerText } from "../core/lernzeit.js";
 import { UmzugNeu, UmzugHinweis } from "./Umzug.jsx";
 import AbrufEinstieg from "./AbrufEinstieg.jsx";
+import KartenVorschau from "./KartenVorschau.jsx";
+import { baueSitzung } from "../core/warteschlange.js";
+import { gewichtNachKlausur } from "../core/klausuren.js";
 import { ZielStreifen } from "./Ziele.jsx";
 
 function gruss(stunde) {
@@ -43,8 +46,22 @@ function Abschnitt({ titel, children, rechts }) {
   );
 }
 
+/* Karteikarten auf der Startseite: die anstehenden Karten aller Fächer,
+   gewichtet nach der Nähe der Klausuren, zum Durchblättern wie im Stapel. */
+function StartKarten() {
+  const { karten, zustaende, stapelVon, faecher, stapel, ordner } = useDaten();
+  const liste = useMemo(() => {
+    const gewicht = gewichtNachKlausur(faecher, stapel, ordner);
+    const s = baueSitzung({ karten, zustaende, stapelVon, faecherVon: () => faecher, umfang: 100000, gewicht });
+    const gesehen = new Set();
+    return s.aufgaben.map((a) => a.karte).filter((k) => !gesehen.has(k.id) && gesehen.add(k.id));
+  }, [karten, zustaende, stapelVon, faecher, stapel, ordner]);
+  if (!liste.length) return null;
+  return <KartenVorschau karten={liste} reihenfolgeBehalten />;
+}
+
 export default function Startseite() {
-  const { faecher, stapel, karten, zustaende, stapelVon, reviews } = useDaten();
+  const { faecher, stapel, karten, zustaende, stapelVon, reviews, einstellungen } = useDaten();
 
   const jetzt = new Date();
   const heute = fachZaehlung(karten, zustaende, stapelVon, null);
@@ -110,47 +127,34 @@ export default function Startseite() {
           {/* ------------------------- Gleich abrufen ------------------------- */}
           {/* Die erste Frage steht gleich da, mit „Wie sicher bist du dir?“ —
               gewichtet nach der Nähe der Klausuren (Wunsch des Nutzers, 26.11.2026). */}
-          {offen > 0 && <div className="oben-16"><AbrufEinstieg startseite /></div>}
+          {offen > 0 && (
+            <div className="oben-16">
+              {/* Abrufen oder Karteikarten — einstellbar unter Lernen (26.11.2026). */}
+              {einstellungen.startseiteModus === "karteikarten"
+                ? <StartKarten /> : <AbrufEinstieg startseite />}
+            </div>
+          )}
 
           {/* ------------------------------ Heute ----------------------------- */}
-          <div className="zahl-kachel held oben-16">
-            <div className="reihe umbruch" style={{ gap: 20, alignItems: "flex-end" }}>
-              <div style={{ minWidth: 140 }}>
-                <div className="klein matt">Heute offen</div>
-                <div className="zahl">{offen}</div>
-                <div className="klein blass">
-                  {heute.faellig} fällig · {heute.neu} neu
-                </div>
-              </div>
-              <div style={{ minWidth: 140 }}>
-                <div className="reihe klein matt" style={{ gap: 6 }}>
-                  <FlammeZeichen an={stand.heuteGeschafft} groesse={17} />
-                  Strähne
-                </div>
-                <div className="zahl">{stand.laenge}</div>
-                <div className="klein blass">
-                  {stand.heuteGeschafft ? "heute geschafft"
-                    : anzahl(stand.fehlendHeute, "Abruf fehlt", "Abrufe fehlen") + " heute"}
-                </div>
-              </div>
-              {heuteZeit && (
-                <div {...KLICKBAR} className="zahl-verweis" style={{ minWidth: 140 }}
-                  onClick={() => gehe("/statistik")} title="Mehr unter Fortschritt">
-                  <div className="reihe klein matt" style={{ gap: 6 }}>
-                    <Symbol name="uhr" groesse={15} /> Heute gelernt
-                  </div>
-                  <div className="zahl">{dauerText(heuteZeit.lernen)}</div>
-                  <div className="klein blass">{dauerText(heuteZeit.erstellen)} erstellt</div>
-                </div>
-              )}
-              <div className="dehnen" />
-              {/* Abrufen steht schon in der Fragekarte darüber — hier nur, wenn nichts ansteht. */}
-              {offen === 0 && (
-                <Knopf art="gross" symbol="wuerfel" onClick={() => gehe("/fragen")}>
-                  Nichts fällig. Fragen üben
-                </Knopf>
-              )}
-            </div>
+          {/* Eine schmale Zeile statt einer großen Kachel (Wunsch des Nutzers, 26.11.2026). */}
+          <div className="zahl-kachel heute-zeile oben-16">
+            <span className="heute-wert" title={heute.faellig + " fällig · " + heute.neu + " neu"}>
+              <strong>{offen}</strong><span className="klein matt">offen</span>
+            </span>
+            <span className="heute-wert" title={stand.heuteGeschafft ? "heute geschafft"
+              : anzahl(stand.fehlendHeute, "Abruf fehlt", "Abrufe fehlen") + " heute"}>
+              <FlammeZeichen an={stand.heuteGeschafft} groesse={16} />
+              <strong>{stand.laenge}</strong><span className="klein matt">Strähne</span>
+            </span>
+            {heuteZeit && (
+              <span {...KLICKBAR} className="heute-wert" onClick={() => gehe("/statistik")} title="Mehr unter Fortschritt">
+                <Symbol name="uhr" groesse={14} />
+                <strong>{dauerText(heuteZeit.lernen)}</strong><span className="klein matt">heute</span>
+              </span>
+            )}
+            {offen === 0 && (
+              <Knopf art="klein" symbol="wuerfel" onClick={() => gehe("/fragen")}>Fragen üben</Knopf>
+            )}
           </div>
 
           {/* ---------------------------- Zuletzt ----------------------------- */}

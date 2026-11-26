@@ -27,7 +27,7 @@ export const FRAGEN = [
     antwort: [
       "Welche Karten fällig sind, entscheidet der Plan. Aus den fälligen wird für jede Runde zufällig gezogen, aber gewichtet: Je näher die Klausur eines Fachs (in den letzten 30 Tagen bis aufs Fünffache am Klausurtag), desto öfter kommen seine Karten, bei zugeordneten Stapeln nur diese. Lange Überfälliges bekommt einen kleinen Zuschlag.",
       "Was in einer Runde nicht gezogen wird, bleibt fällig und kommt beim nächsten Mal.",
-      "Auf der Startseite steht die erste so gezogene Frage gleich mit „Wie sicher bist du dir?“. Eine Einschätzung deckt die Lösung dort auf, „Weiter“ holt die nächste — zum Warmwerden, es wird nichts verbucht. Ein Tipp auf die Frage selbst führt ins richtige Abrufen.",
+      "Auf der Startseite steht die erste so gezogene Frage gleich mit „Wie sicher bist du dir?“. Nach der Einschätzung erscheint ein kleines Antwortfeld; ein Tipp hinein (oder auf die Frage) lässt die Karte groß werden, und es geht ganz normal im Abrufen weiter. Unter Einstellungen → Lernen kannst du stattdessen die anstehenden Karten zum Durchblättern zeigen lassen.",
     ],
   },
   {
