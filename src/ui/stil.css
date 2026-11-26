@@ -1579,3 +1579,20 @@ html.zieht { cursor: grabbing; }
   gap: 18px; pointer-events: auto; }
 .verlauf-knoepfe.unten .knopf { min-height: calc(28px * var(--pfeil-skala, 1));
   min-width: calc(36px * var(--pfeil-skala, 1)); padding: 2px 8px; }
+
+/* Verschenkte Punkte: rot am rechten Ende des Ziel-Balkens (ui/Ziele.jsx). */
+.ziel-balken > .ziel-verloren { background: var(--rot); opacity: 0.85; }
+.verloren-text { color: var(--rot); }
+/* Startseite: kompakter Streifen, Texte erst nach einem Tipp. */
+.ziel-streifen { cursor: default; }
+.ziel-streifen-kopf { display: block; width: 100%; padding: 0; margin: 0; background: none; border: 0;
+  color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ziel-streifen-mehr { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rand); text-align: left; }
+.ziel-streifen.offen { border-color: var(--akzent); }
+
+/* Probe-Modus bei den Punkten (ui/Probe.jsx). */
+.probe-hinweis { display: flex; align-items: center; gap: 12px; border: 1px dashed var(--gelb);
+  background: color-mix(in srgb, var(--gelb) 10%, transparent); margin-top: 0; }
+
+/* Finger weggezogen: Die Kachel richtet sich wieder auf, statt gedrückt zu bleiben. */
+.druck-weg, .druck-weg:active { transform: none !important; }

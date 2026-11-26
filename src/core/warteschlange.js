@@ -71,7 +71,7 @@ export function zustaendeImPlan(karten, zustaende, stapelVon, fachId = null) {
  */
 export function baueSitzung({
   karten, zustaende, stapelVon, faecherVon, fach = null, faecherIds = null,
-  umfang = 30, zeit = Date.now(), nurWiederholung = false,
+  umfang = 30, zeit = Date.now(), nurWiederholung = false, gewicht = null, zufall = Math.random,
 }) {
   const faellige = [];
   const neue = [];
@@ -117,8 +117,14 @@ export function baueSitzung({
     }
   }
 
-  const genommenNeu = mische(neue).slice(0, Math.max(0, neuErlaubt));
-  const genommenFaellig = faellige.slice(0, umfang);
+  /* Mit `gewicht` (Klausurnähe, core/klausuren.js) wird unter den Fälligen
+     gewichtet zufällig gezogen statt streng nach Überfälligkeit — so kommen
+     die Karten der nächsten Klausur häufiger dran, ohne dass etwas Fälliges
+     verloren geht: Was diesmal nicht gezogen wird, bleibt fällig. */
+  const genommenNeu = gewicht ? gewichtetZiehen(neue, Math.max(0, neuErlaubt), gewicht, zufall)
+    : mische(neue).slice(0, Math.max(0, neuErlaubt));
+  const genommenFaellig = gewicht ? gewichtetZiehen(faellige, umfang, gewicht, zufall)
+    : faellige.slice(0, umfang);
 
   // Bis zum Umfang auffüllen: erst Wiederholungen, dann Neues.
   const zusammen = [...genommenFaellig];
@@ -128,11 +134,34 @@ export function baueSitzung({
   }
 
   return {
-    aufgaben: mische(zusammen),
+    /* Mit Gewicht auch die Reihenfolge gewichtet zufällig: Karten einer nahen
+       Klausur kommen eher früh, die Runde bleibt trotzdem gemischt. */
+    aufgaben: gewicht ? gewichtetReihen(zusammen, gewicht, zufall) : mische(zusammen),
     faellig: faellige.length,
     neu: neue.length,
     neuHeuteMoeglich: neuErlaubt,
   };
+}
+
+/**
+ * Zieht `anzahl` Einträge zufällig, aber gewichtet, ohne Zurücklegen
+ * (Efraimidis–Spirakis: Schlüssel = Zufall^(1/Gewicht), die größten gewinnen).
+ */
+export function gewichtetZiehen(liste, anzahl, gewicht, zufall = Math.random) {
+  if (anzahl >= liste.length) return [...liste];
+  return liste
+    .map((e) => ({ e, s: Math.pow(Math.max(1e-12, zufall()), 1 / Math.max(1e-6, gewicht(e))) }))
+    .sort((a, b) => b.s - a.s)
+    .slice(0, Math.max(0, anzahl))
+    .map((x) => x.e);
+}
+
+/** Alle Einträge in gewichtet zufälliger Reihenfolge (schwere eher vorn). */
+export function gewichtetReihen(liste, gewicht, zufall = Math.random) {
+  return liste
+    .map((e) => ({ e, s: Math.pow(Math.max(1e-12, zufall()), 1 / Math.max(1e-6, gewicht(e))) }))
+    .sort((a, b) => b.s - a.s)
+    .map((x) => x.e);
 }
 
 /** Was in einem Fach ansteht — für die Übersicht. */

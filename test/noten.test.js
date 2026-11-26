@@ -424,3 +424,18 @@ test("der Bestfall: 15 Punkte in jedem offenen Fach", () => {
   assert.equal(b.offeneBrauchen, 16.5);
   assert.equal(b.bestfall, 13);
 });
+
+import { halbjahrVerschenkt } from "../src/core/noten.js";
+
+test("verschenkte Punkte: was die Noten unter 15 liegen, auf alle Fächer umgelegt", () => {
+  const faecher = [
+    fach("12.1", "Deutsch", [{ art: "schriftlich", punkte: 12 }]),
+    fach("12.1", "Mathe", [{ art: "schriftlich", punkte: 9 }]),
+    fach("12.1", "GGK"),
+  ];
+  assert.equal(halbjahrVerschenkt(faecher), 3, "(3 + 6) / 3");
+  assert.equal(abiStand(faecher, null).verschenkt, 30, "× 10 fürs Abi");
+  // Erreicht + verschenkt + Hochrechnung passen zusammen in 900.
+  const s = abiStand(faecher, null);
+  assert.ok(s.hochgerechnet + s.verschenkt <= 900);
+});

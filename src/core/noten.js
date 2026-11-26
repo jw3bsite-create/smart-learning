@@ -456,6 +456,23 @@ export function punkteFuerNote(note) {
 export const noteKomma = (n) => (n === null || n === undefined ? "—" : n.toFixed(1).replace(".", ","));
 
 /**
+ * Verschenkte Punkte eines Halbjahres (Wunsch des Nutzers, 25.11.2026): was
+ * die eingetragenen Noten unter 15 liegen, umgelegt auf alle Fächer des
+ * Halbjahres. Fächer ohne Note verschenken noch nichts. Gleich 15 minus dem
+ * Besten, was noch geht (`halbjahrBedarf(...).bestfall`).
+ */
+export function halbjahrVerschenkt(faecher) {
+  const alle = (faecher || []).filter((f) => f && !f.deleted);
+  if (!alle.length) return 0;
+  let verloren = 0;
+  for (const f of alle) {
+    const p = fachPunkte(f).punkte;
+    if (p !== null) verloren += PUNKTE_MAX - p;
+  }
+  return verloren / alle.length;
+}
+
+/**
  * Wo das Abi steht: was die Halbjahre schon eingebracht haben, was
  * hochgerechnet herauskäme und was ab jetzt im Schnitt nötig ist.
  */
@@ -469,6 +486,8 @@ export function abiStand(alle, ziel = null, laufend = null) {
   /* Was noch kommt, in „Schnitt-Einheiten“: offene Halbjahre und die Prüfungen. */
   const rest = offeneHalbjahre * JE_HALBJAHR + PRUEFUNGEN;
   const hochgerechnet = schnitt === null ? null : erreicht + schnitt * rest;
+  /* Verschenkt: je Halbjahr (15 − Bestfall) × 10. Rot am rechten Ende des Balkens. */
+  const verschenkt = HALBJAHRE.reduce((a, h) => a + halbjahrVerschenkt(faecherIm(alle, h.id)) * JE_HALBJAHR, 0);
   const zielPunkte = ziel === null || ziel === undefined ? null : Number(ziel);
   /* Was ab jetzt im Schnitt nötig ist. Mit bekanntem laufendem Halbjahr
      zählt es als offen, auch wenn schon Noten darin stehen (25.11.2026):
@@ -479,7 +498,7 @@ export function abiStand(alle, ziel = null, laufend = null) {
     : laufend ? halbjahrZielAusAbi(alle, laufend, zielPunkte)
       : (zielPunkte - erreicht) / rest;
   return {
-    halbjahre, erreicht, schnitt, hochgerechnet, rest, offeneHalbjahre,
+    halbjahre, erreicht, schnitt, hochgerechnet, rest, offeneHalbjahre, verschenkt,
     ziel: zielPunkte, noetig,
     note: abiNote(hochgerechnet), zielNote: abiNote(zielPunkte),
   };

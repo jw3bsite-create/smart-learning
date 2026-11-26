@@ -22,6 +22,7 @@ import {
 import { SymbolKnopf, Knopf, Leer, Dialog, Rueckfrage, HilfeLink } from "./basis.jsx";
 import ZahlFeld from "./ZahlFeld.jsx";
 import { AbiZiel, HalbjahrZiel, useZiele, laufendesHalbjahr } from "./Ziele.jsx";
+import { ProbeAnbieter, useProbe, useNotenfaecher, ProbeHinweis } from "./Probe.jsx";
 import { anzahl } from "../core/util.js";
 
 /* ----------------------------- Kleinteile ------------------------------ */
@@ -145,6 +146,7 @@ function LeistungZeile({ notenfach, leistung, anfangsOffen = false, aufAendern, 
     <div ref={zeile} className="karten-zeile" style={{ display: "block", padding: "10px 14px" }}>
       <div className="reihe" onClick={() => setOffen((w) => !w)} style={{ cursor: "pointer" }}>
         <span className="marke">{ARTEN[leistung.art]?.kurz || "?"}</span>
+        {leistung.probe && <span className="marke gelb" title="Nur zum Ausprobieren">Probe</span>}
         <div className="dehnen klein">
           {name}
           {gewicht !== 1 && <span className="blass"> · Gewicht {zahlZeigen(gewicht)}</span>}
@@ -287,9 +289,17 @@ function SortenTeil({ notenfach }) {
 
 function FachAnsicht({ notenfach, aufSchliessen }) {
   const {
-    notenfaecher, faecher, notenfachAendern, notenfachLoeschen,
-    leistungAnlegen, leistungAendern, leistungLoeschen,
+    faecher, notenfachAendern, notenfachLoeschen,
+    leistungAnlegen: echtAnlegen, leistungAendern: echtAendern, leistungLoeschen: echtLoeschen,
   } = useDaten();
+  const notenfaecher = useNotenfaecher();
+  /* Im Probe-Modus landet Neues als Probe; Probenoten ändert und löscht der
+     Probe-Modus, echte Noten bleiben echt. */
+  const probe = useProbe();
+  const leistungAnlegen = (fid, angaben) => (probe?.aktiv ? probe.anlegen(fid, angaben) : echtAnlegen(fid, angaben));
+  const istProbe = (lid) => (notenfach.leistungen || []).some((l) => l.id === lid && l.probe);
+  const leistungAendern = (fid, lid, aend) => (istProbe(lid) ? probe.aendern(fid, lid, aend) : echtAendern(fid, lid, aend));
+  const leistungLoeschen = (fid, lid) => (istProbe(lid) ? probe.loeschen(fid, lid) : echtLoeschen(fid, lid));
   const [loeschen, setLoeschen] = useState(false);
   const [neu, setNeu] = useState(null);
 
@@ -316,6 +326,8 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
         </div>
         <Punkte wert={stand.punkte} gross />
       </div>
+
+      <ProbeHinweis />
 
       {/* ------------------------- Der Verlauf --------------------------- */}
       {verlauf.some((v) => v.punkte !== null) && (
@@ -446,7 +458,13 @@ function FachAnsicht({ notenfach, aufSchliessen }) {
 /* ------------------------------ Übersicht ------------------------------ */
 
 export default function Noten() {
-  const { notenfaecher, notenfachAnlegen, faecher } = useDaten();
+  return <ProbeAnbieter><NotenSeite /></ProbeAnbieter>;
+}
+
+function NotenSeite() {
+  const { notenfachAnlegen, faecher } = useDaten();
+  const notenfaecher = useNotenfaecher();
+  const probe = useProbe();
   const { einstellungen, setzeEinstellung } = useDaten();
   /* Öffnet beim laufenden Halbjahr. Ein Tipp auf ein Halbjahr legt es als
      laufendes fest — für Ziele, Startseite und das nächste Öffnen. */
@@ -500,6 +518,10 @@ export default function Noten() {
     <div className="mitte">
       <div className="kopfzeile">
         <h1>Punkte</h1>
+        {/* Probe-Modus: „Was wäre mein Schnitt, wenn …?“ (ui/Probe.jsx) */}
+        <SymbolKnopf symbol="wuerfel" art={"leer" + (probe.aktiv ? " aktiv" : "")}
+          titel={probe.aktiv ? "Probe beenden, Probenoten löschen" : "Probe: Noten zum Ausprobieren eintragen"}
+          aria-pressed={probe.aktiv} onClick={() => (probe.aktiv ? probe.aus() : probe.an())} />
         <div className="kopf-werkzeuge">
           {vorschlaege.length > 0 && (
             <Knopf symbol="herunter" onClick={uebernahmeOeffnen}>Übernehmen</Knopf>
@@ -507,6 +529,8 @@ export default function Noten() {
           <Knopf art="voll" symbol="plus" onClick={() => setAnlegen(true)}>Fach</Knopf>
         </div>
       </div>
+
+      <ProbeHinweis />
 
       {/* ------------------------ Das große Ziel ------------------------- */}
       <AbiZiel />

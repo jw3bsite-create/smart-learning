@@ -12,6 +12,7 @@
 import React, { useMemo, useRef } from "react";
 import { useDaten } from "../core/store.jsx";
 import { baueSitzung } from "../core/warteschlange.js";
+import { gewichtNachKlausur } from "../core/klausuren.js";
 import { seitenFuer } from "../core/kartenseiten.js";
 import { KONFIDENZ } from "../core/fsrs.js";
 import { anzahl } from "../core/util.js";
@@ -19,16 +20,27 @@ import { gehe } from "../App.jsx";
 import { Symbol, Sinnbild, Knopf, Bild } from "./basis.jsx";
 import Formel from "./Formel.jsx";
 
-export default function AbrufEinstieg({ setId, derStapel, auswahlFach }) {
-  const { karten, zustaende, faecher, fachVon } = useDaten();
-  const fach = fachVon(derStapel.subjectId);
+/*
+ * Ohne Stapel (`startseite`): über alle Fächer, die erste Karte gewichtet nach
+ * der Nähe der Klausuren (Wunsch des Nutzers, 26.11.2026) — der Tipp führt nach
+ * `/abrufen/alle/start/…`.
+ */
+export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlFach = null, startseite = false }) {
+  const { karten, zustaende, faecher, fachVon, stapelVon, stapel, ordner } = useDaten();
+  const fach = derStapel ? fachVon(derStapel.subjectId) : null;
   const gemerkt = useRef(null);
+  const gewicht = useMemo(() => gewichtNachKlausur(faecher, stapel, ordner), [faecher, stapel, ordner]);
 
-  const sitzung = useMemo(() => (fach ? baueSitzung({
-    karten, zustaende, fach,
-    stapelVon: (id) => (id === setId ? derStapel : null),
-    faecherVon: () => faecher, umfang: 100000,
-  }) : null), [karten, zustaende, setId, derStapel, fach]);
+  const sitzung = useMemo(() => {
+    if (startseite) {
+      return baueSitzung({ karten, zustaende, stapelVon, faecherVon: () => faecher, umfang: 100000, gewicht });
+    }
+    return fach ? baueSitzung({
+      karten, zustaende, fach,
+      stapelVon: (id) => (id === setId ? derStapel : null),
+      faecherVon: () => faecher, umfang: 100000,
+    }) : null;
+  }, [karten, zustaende, setId, derStapel, fach, startseite, gewicht]);
 
   /* Dieselbe Karte bleiben, solange sie ansteht — die Sitzung ist gemischt
      und würde sonst bei jeder Änderung eine andere zeigen. */
@@ -36,14 +48,17 @@ export default function AbrufEinstieg({ setId, derStapel, auswahlFach }) {
   const aufgabe = aufgaben.find((a) => a.schluessel === gemerkt.current) || aufgaben[0] || null;
   gemerkt.current = aufgabe?.schluessel || null;
 
-  const weg = "/abrufen/" + derStapel.subjectId + "/stapel/" + setId;
+  if (startseite && !aufgabe) return null;   // dann der übliche Knopf der Startseite
+  const weg = startseite ? "/abrufen/alle" : "/abrufen/" + derStapel.subjectId + "/stapel/" + setId;
   const seiten = aufgabe ? seitenFuer(aufgabe.karte, aufgabe.richtung) : null;
 
   return (
-    <div className="kachel abruf-einstieg">
+    <div className={"kachel abruf-einstieg" + (startseite ? " auf-start" : "")}>
       <div className="reihe unten-8" style={{ gap: 8 }}>
         <Sinnbild name="blitz" ton="blau" />
         <span className="dehnen klein matt">
+          {/* Auf der Startseite ohne Fach: Wie beim Verschachteln bleibt die
+              Herkunft verdeckt, bis geantwortet ist. */}
           Abrufen{aufgabe ? " · " + anzahl(aufgaben.length, "Karte steht an", "Karten stehen an") : ""}
         </span>
         {auswahlFach}

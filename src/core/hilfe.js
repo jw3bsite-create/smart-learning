@@ -22,6 +22,15 @@ export const GRUPPEN = [
 export const FRAGEN = [
   /* ------------------------------- Lernen -------------------------------- */
   {
+    id: "klausurgewicht", gruppe: "lernen",
+    frage: "Warum kommen manche Fächer öfter dran?",
+    antwort: [
+      "Welche Karten fällig sind, entscheidet der Plan. Aus den fälligen wird für jede Runde zufällig gezogen, aber gewichtet: Je näher die Klausur eines Fachs (in den letzten 30 Tagen bis aufs Fünffache am Klausurtag), desto öfter kommen seine Karten, bei zugeordneten Stapeln nur diese. Lange Überfälliges bekommt einen kleinen Zuschlag.",
+      "Was in einer Runde nicht gezogen wird, bleibt fällig und kommt beim nächsten Mal.",
+      "Auf der Startseite steht die erste so gezogene Frage gleich mit „Wie sicher bist du dir?“. Ein Tipp darauf führt ins Abrufen über alle Fächer.",
+    ],
+  },
+  {
     id: "abrufen", gruppe: "lernen",
     frage: "Was macht das Abrufen besonders?",
     antwort: [
@@ -188,7 +197,17 @@ export const FRAGEN = [
       "Bei Fächern ohne Note steht, was sie im Schnitt bringen müssen. Reichen selbst 15 P nicht, steht da, welchen Halbjahresschnitt du mit 15 P überall höchstens erreichst.",
       "Die Halbjahresziele folgen von selbst deinem Abi-Ziel: Jedes Halbjahr bekommt den Schnitt, den du ab dort bis zum Abi brauchst, die früheren Halbjahre eingerechnet. Ein eigenes Ziel kannst du trotzdem setzen; „Automatisch“ im Dialog holt die Rechnung zurück.",
       "Im Halbjahr: Fächer ohne Note zeigen, wie viel sie im Schnitt bringen müssen, damit das Halbjahr aufs Ziel kommt. Fächer, die darüber liegen, gleichen aus. Fächer mit Noten zeigen, welche Punktzahl die nächste Klassenarbeit braucht, damit das Fach selbst aufs Ziel kommt.",
+      "Rot am rechten Ende der Balken: deine verschenkten Punkte, also was die eingetragenen Noten unter 15 liegen, aufs Halbjahr umgelegt (fürs Abi × 10). Fächer ohne Note verschenken noch nichts.",
+      "Auf der Startseite stehen nur Zahlen und Balken. Ein Tipp darauf zeigt die Sätze dazu.",
       "Alles ist ein Richtwert zur Orientierung, nicht die Abiturnote.",
+    ],
+  },
+  {
+    id: "probe", gruppe: "punkte",
+    frage: "Wie probiere ich aus, was eine Note mit meinem Schnitt macht?",
+    antwort: [
+      "Bei den Punkten oben neben der Überschrift das Würfel-Symbol antippen. Solange der Probe-Modus an ist, sind neu eingetragene Noten nur Probe: Sie stehen mit der Marke „Probe“ da und zählen in allen Schnitten, Zielen und Balken der Punkte-Seite mit.",
+      "Nochmal tippen oder „Beenden“ löscht alle Probenoten wieder. In deinen echten Noten, im Abgleich und auf der Startseite tauchen sie nie auf.",
     ],
   },
   {

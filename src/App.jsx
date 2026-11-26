@@ -170,8 +170,10 @@ function VerlaufKnoepfe({ art, skala = 1 }) {
   const s = Math.min(1.8, Math.max(0.7, Number(skala) || 1));
   const knoepfe = (
     <div className={"verlauf-knoepfe " + art} style={{ "--pfeil-skala": s }}>
+      {/* Zurück nur bis zur Startseite (Wunsch des Nutzers, 26.11.2026):
+          Dort ist Schluss, auch wenn der Verlauf davor noch etwas kennt. */}
       <SymbolKnopf symbol="zurueck" titel="Zurück" art="leer klein" groesse={Math.round(16 * s)}
-        disabled={!(window.history.state?.slTiefe > 0)}
+        disabled={!(window.history.state?.slTiefe > 0) || (window.location.hash.slice(1) || START) === START}
         onClick={() => window.history.back()} />
       <SymbolKnopf symbol="weiter" titel="Vor" art="leer klein" groesse={Math.round(16 * s)}
         disabled={!naechsterWeg()}
@@ -390,12 +392,15 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
   /* Das Abrufen ist der verbindliche Lernweg und bekommt die ganze Fläche. */
   if (teile[0] === "abrufen") {
     // /abrufen/<fach>/ordner/<id,id>: nur diese Ordner (core/fachordner.js)
-    return gefangen(<Abrufen fachId={teile[1] || null}
+    /* /abrufen/alle/…: alle Fächer ohne Fächerwahl (von der Startseite). */
+    const alle = teile[1] === "alle";
+    const start = teile.indexOf("start");
+    return gefangen(<Abrufen fachId={alle ? null : teile[1] || null} alleFaecher={alle}
       ordnerAuswahl={teile[2] === "ordner" && teile[3] ? teile[3].split(",") : null}
       stapelAuswahl={teile[2] === "stapel" && teile[3] ? teile[3].split(",") : null}
       // …/start/<karte:richtung>/<konfidenz>: aus dem Stapel, Einschätzung schon gesetzt
-      startSchluessel={teile[4] === "start" && teile[5] ? decodeURIComponent(teile[5]) : null}
-      startKonfidenz={teile[4] === "start" && teile[6] ? Number(teile[6]) : null}
+      startSchluessel={start > 0 && teile[start + 1] ? decodeURIComponent(teile[start + 1]) : null}
+      startKonfidenz={start > 0 && teile[start + 2] ? Number(teile[start + 2]) : null}
       aufSchliessen={() => zurueck("/faecher")} />);
   }
 

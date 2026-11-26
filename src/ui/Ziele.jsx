@@ -13,10 +13,11 @@ import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import {
   ABI_MAX, PUNKTE_MAX, HALBJAHRE, abiStand, abiNote, abiPunkteFuer, punkteFuerNote, alsNote,
-  noteKomma, punkteText, halbjahrBedarf, faecherIm, halbjahrSchnitt, halbjahrZiel,
+  noteKomma, punkteText, halbjahrBedarf, faecherIm, halbjahrSchnitt, halbjahrZiel, halbjahrVerschenkt,
 } from "../core/noten.js";
 import { Knopf, Dialog, HilfeLink } from "./basis.jsx";
 import ZahlFeld from "./ZahlFeld.jsx";
+import { useNotenfaecher } from "./Probe.jsx";
 
 /** Die Ziele aus den Einstellungen und ein Setzer dafür. */
 export function useZiele() {
@@ -32,11 +33,19 @@ const prozent = (wert, max) => Math.max(0, Math.min(100, (100 * (wert || 0)) / m
  * Ein Balken mit bis zu drei Dingen: was erreicht ist (voll), was
  * hochgerechnet dazukäme (blass) und das Ziel (ein Strich).
  */
-export function ZielBalken({ erreicht, hochgerechnet = null, ziel = null, max, hoehe = 12, titel }) {
+/*
+ * Dazu rot am rechten Ende: was schon verschenkt ist — Punkte, die mit den
+ * eingetragenen Noten nicht mehr zu holen sind (`halbjahrVerschenkt`,
+ * Wunsch des Nutzers vom 25./26.11.2026).
+ */
+export function ZielBalken({ erreicht, hochgerechnet = null, ziel = null, verschenkt = 0, max, hoehe = 12, titel }) {
   const ueber = ziel !== null && hochgerechnet !== null && hochgerechnet >= ziel;
   return (
     <div className={"ziel-balken" + (ueber ? " auf-kurs" : "")} style={{ height: hoehe }}
-      role="img" aria-label={titel}>
+      role="img" aria-label={titel + (verschenkt > 0 ? ", " + punkteText(verschenkt) + " Punkte verschenkt" : "")}>
+      {verschenkt > 0 && (
+        <span className="ziel-verloren" style={{ left: prozent(max - verschenkt, max), width: prozent(verschenkt, max) }} />
+      )}
       {hochgerechnet !== null && hochgerechnet > erreicht && (
         <span className="ziel-hoch" style={{ left: prozent(erreicht, max), width: prozent(hochgerechnet - erreicht, max) }} />
       )}
@@ -172,7 +181,8 @@ function HalbjahrReihe({ alle, ziele }) {
 
 /** Die große Kachel auf der Punkte-Seite. */
 export function AbiZiel() {
-  const { notenfaecher, einstellungen } = useDaten();
+  const { einstellungen } = useDaten();
+  const notenfaecher = useNotenfaecher();
   const [ziele, setzen] = useZiele();
   const [dialog, setDialog] = useState(false);
   const laufend = laufendesHalbjahr(notenfaecher, einstellungen.aktuellesHalbjahr).id;
@@ -194,12 +204,13 @@ export function AbiZiel() {
         <Knopf art="klein" onClick={() => setDialog(true)}>{stand.ziel === null ? "Ziel setzen" : "Ziel ändern"}</Knopf>
       </div>
       <ZielBalken erreicht={stand.erreicht} hochgerechnet={stand.hochgerechnet} ziel={stand.ziel}
-        max={ABI_MAX} titel="Abiturpunkte" />
+        verschenkt={stand.verschenkt} max={ABI_MAX} titel="Abiturpunkte" />
       <div className="klein matt oben-8">
         {stand.hochgerechnet !== null
           ? <>Hochgerechnet <strong>{Math.round(stand.hochgerechnet)}</strong> (≈ {noteKomma(stand.note)})</>
           : "Noch keine Punkte eingetragen"}
         {stand.ziel !== null && <> · Ziel <strong>{stand.ziel}</strong> (≈ {noteKomma(stand.zielNote)})</>}
+        {stand.verschenkt > 0 && <> · <span className="verloren-text">{Math.round(stand.verschenkt)} verschenkt</span></>}
       </div>
       {(stand.ziel !== null || Object.keys(ziele).some((k) => k !== "abi" && ziele[k] !== null)) && (
         <>
@@ -224,7 +235,7 @@ export function AbiZiel() {
 
 /** Ziel und Bedarf eines Halbjahres — in der Schnitt-Kachel des Halbjahres. */
 export function HalbjahrZiel({ halbjahr, schnitt }) {
-  const { notenfaecher } = useDaten();
+  const notenfaecher = useNotenfaecher();
   const [ziele, setzen] = useZiele();
   const [dialog, setDialog] = useState(false);
   const gilt = halbjahrZiel(notenfaecher, halbjahr, ziele);
@@ -236,7 +247,9 @@ export function HalbjahrZiel({ halbjahr, schnitt }) {
 
   return (
     <div className="oben-12">
-      <ZielBalken erreicht={schnitt ?? 0} ziel={ziel} max={PUNKTE_MAX} hoehe={8} titel={"Schnitt " + name} />
+      {/* Ohne Ziel-Strich (Wunsch des Nutzers, 26.11.): das Ziel steht darunter in Worten. */}
+      <ZielBalken erreicht={schnitt ?? 0} verschenkt={halbjahrVerschenkt(faecherIm(notenfaecher, halbjahr))}
+        max={PUNKTE_MAX} hoehe={8} titel={"Schnitt " + name} />
       <div className="reihe klein oben-8" style={{ gap: 8, flexWrap: "wrap" }}>
         <span className="dehnen matt">
           {ziel === null ? "Kein Ziel für dieses Halbjahr"
@@ -264,63 +277,91 @@ export function HalbjahrZiel({ halbjahr, schnitt }) {
  * steht hier nichts.
  */
 export function ZielStreifen({ aufOeffnen }) {
-  const { notenfaecher, einstellungen } = useDaten();
+  const { einstellungen } = useDaten();
+  const notenfaecher = useNotenfaecher();
   const [ziele] = useZiele();
+  /* Auf der Startseite nur Zahlen und Balken; die Sätze dazu erst nach einem
+     Tipp (Wunsch des Nutzers, 26.11.2026: sonst wirkt es überladen). */
+  const [auf, setAuf] = useState(false);
   const laufend = laufendesHalbjahr(notenfaecher, einstellungen.aktuellesHalbjahr).id;
   const stand = useMemo(() => abiStand(notenfaecher, ziele.abi ?? null, laufend),
     [notenfaecher, ziele.abi, laufend]);
   if (stand.schnitt === null && stand.ziel === null) return null;
   return (
-    <button type="button" className="ziel-streifen unten-16" onClick={aufOeffnen}>
-      <div className="reihe" style={{ gap: 10, marginBottom: 8 }}>
-        <span className="klein dehnen" style={{ textAlign: "left" }}>
-          <span className="matt">Abi {Math.round(stand.erreicht)} / {ABI_MAX}</span>
-          {stand.ziel !== null && <> · Ziel <strong>{stand.ziel}</strong>
-            <span className="matt"> (≈ {noteKomma(stand.zielNote)})</span></>}
-        </span>
-        {stand.schnitt !== null && (
-          <span className="klein">
-            <strong>{punkteText(stand.schnitt)} P</strong>
-            <span className="matt"> · {noteKomma(alsNote(stand.schnitt))}</span>
+    <div className={"ziel-streifen unten-16" + (auf ? " offen" : "")}>
+      <button type="button" className="ziel-streifen-kopf" aria-expanded={auf} onClick={() => setAuf((x) => !x)}>
+        <div className="reihe" style={{ gap: 10, marginBottom: 8 }}>
+          <span className="klein dehnen" style={{ textAlign: "left" }}>
+            <span className="matt">Abi {Math.round(stand.erreicht)} / {ABI_MAX}</span>
+            {stand.ziel !== null && <> · Ziel <strong>{stand.ziel}</strong>
+              <span className="matt"> (≈ {noteKomma(stand.zielNote)})</span></>}
           </span>
-        )}
-      </div>
-      <ZielBalken erreicht={stand.erreicht} hochgerechnet={stand.hochgerechnet} ziel={stand.ziel}
-        max={ABI_MAX} hoehe={8} titel="Abiturpunkte" />
-      <div className="klein matt oben-4" style={{ textAlign: "left" }}>
-        {stand.hochgerechnet !== null && <>Hochgerechnet {Math.round(stand.hochgerechnet)} (≈ {noteKomma(stand.note)})</>}
-        {stand.hochgerechnet !== null && stand.ziel !== null && " · "}
-        {stand.ziel !== null && abiNoetigText(stand.noetig)}
-      </div>
-      <LaufendesHalbjahr ziele={ziele} />
-    </button>
+          {stand.schnitt !== null && (
+            <span className="klein">
+              <strong>{punkteText(stand.schnitt)} P</strong>
+              <span className="matt"> · {noteKomma(alsNote(stand.schnitt))}</span>
+            </span>
+          )}
+        </div>
+        {/* Ohne Ziel-Strich: Er stand unter dem Schnitt und sah aus, als gehöre er dazu. */}
+        <ZielBalken erreicht={stand.erreicht} hochgerechnet={stand.hochgerechnet} verschenkt={stand.verschenkt}
+          max={ABI_MAX} hoehe={8} titel="Abiturpunkte" />
+        <LaufendesHalbjahr ziele={ziele} kopf />
+      </button>
+      {auf && (
+        <div className="ziel-streifen-mehr klein">
+          <div className="matt">
+            {stand.hochgerechnet !== null && <>Hochgerechnet <strong>{Math.round(stand.hochgerechnet)}</strong> (≈ {noteKomma(stand.note)})</>}
+            {stand.verschenkt > 0 && <> · <span className="verloren-text">{Math.round(stand.verschenkt)} verschenkt</span></>}
+          </div>
+          {stand.ziel !== null && <div className="matt oben-4">{abiNoetigText(stand.noetig)}</div>}
+          <LaufendesHalbjahr ziele={ziele} />
+          {Object.values(ziele).some((z) => z !== null && z !== undefined) && (
+            <HalbjahrReihe alle={notenfaecher} ziele={ziele} />
+          )}
+          <div className="reihe oben-12" style={{ justifyContent: "flex-end" }}>
+            <Knopf art="klein" onClick={aufOeffnen}>Zu den Punkten</Knopf>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
 /* Das jüngste Halbjahr mit Fächern — das, das gerade läuft — mit seinem Ziel. */
-function LaufendesHalbjahr({ ziele }) {
-  const { notenfaecher, einstellungen } = useDaten();
+function LaufendesHalbjahr({ ziele, kopf = false }) {
+  const { einstellungen } = useDaten();
+  const notenfaecher = useNotenfaecher();
   const h = laufendesHalbjahr(notenfaecher, einstellungen.aktuellesHalbjahr);
   const faecher = faecherIm(notenfaecher, h.id);
   const schnitt = halbjahrSchnitt(faecher);
   const ziel = halbjahrZiel(notenfaecher, h.id, ziele).wert;
   if (schnitt === null && ziel === null) return null;
+  if (kopf) {
+    return (
+      <div className="oben-12">
+        <div className="reihe klein" style={{ gap: 10, marginBottom: 6 }}>
+          <span className="matt dehnen" style={{ textAlign: "left" }}>
+            {h.name}{ziel !== null && <> · Ziel {punkteText(ziel)} P</>}
+          </span>
+          {schnitt !== null && <strong>{punkteText(schnitt)} P</strong>}
+        </div>
+        <ZielBalken erreicht={schnitt ?? 0} verschenkt={halbjahrVerschenkt(faecher)}
+          max={PUNKTE_MAX} hoehe={6} titel={"Schnitt " + h.name} />
+      </div>
+    );
+  }
   const bedarf = halbjahrBedarf(faecher, ziel);
+  const verloren = halbjahrVerschenkt(faecher);
   return (
-    <div className="oben-12">
-      <div className="reihe klein" style={{ gap: 10, marginBottom: 6 }}>
-        <span className="matt dehnen" style={{ textAlign: "left" }}>
-          {h.name}{ziel !== null && <> · Ziel {punkteText(ziel)} P</>}
-        </span>
-        {schnitt !== null && <strong>{punkteText(schnitt)} P</strong>}
-      </div>
-      <ZielBalken erreicht={schnitt ?? 0} ziel={ziel} max={PUNKTE_MAX} hoehe={6} titel={"Schnitt " + h.name} />
-      {/* Der Satz zum Halbjahr gilt als Erklärtext: „Minimal“ blendet ihn aus. */}
-      <div className="erklaerung" style={{ textAlign: "left" }}>
-        <BrauchstDu alle={notenfaecher} ziele={ziele} klasse="klein matt oben-4" />
-      </div>
-      {bedarf?.offen > 0 && (
-        <div className="klein blass oben-4" style={{ textAlign: "left" }}>{offeneText(bedarf)}</div>
+    <div className="oben-8">
+      <BrauchstDu alle={notenfaecher} ziele={ziele} klasse="matt" />
+      {bedarf?.offen > 0 && <div className="blass oben-4">{offeneText(bedarf)}</div>}
+      {verloren > 0 && (
+        <div className="blass oben-4">
+          In {h.name} <span className="verloren-text">{punkteText(verloren)} P verschenkt</span>
+          {" "}(was die Noten unter 15 liegen, aufs Halbjahr umgelegt).
+        </div>
       )}
     </div>
   );

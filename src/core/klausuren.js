@@ -146,3 +146,37 @@ export function stapelSortieren(liste, art, info) {
   }[art] || (() => 0);
   return [...liste].sort((a, b) => vergleich(a, b) || nachName(a, b));
 }
+
+/*
+ * Wie stark eine Klausur ihre Karten nach vorn zieht (Wunsch des Nutzers,
+ * 26.11.2026): Beim Zusammenstellen einer Runde wird unter den fälligen
+ * Karten zufällig gezogen, aber gewichtet. Bis 30 Tage vor der Klausur
+ * wächst das Gewicht gleichmäßig bis aufs Fünffache am Klausurtag. Ohne
+ * Klausur, nach ihr oder weiter weg: 1. Welche Karten überhaupt fällig sind,
+ * entscheidet weiter FSRS; das Gewicht ändert nur, welche davon zuerst kommen.
+ */
+export const KLAUSUR_VORLAUF_TAGE = 30;
+export const KLAUSUR_HOECHSTGEWICHT = 5;
+
+export function klausurGewicht(tage) {
+  if (tage === null || tage === undefined || !Number.isFinite(tage) || tage < 0) return 1;
+  const naehe = Math.max(0, (KLAUSUR_VORLAUF_TAGE - tage) / KLAUSUR_VORLAUF_TAGE);
+  return 1 + (KLAUSUR_HOECHSTGEWICHT - 1) * naehe;
+}
+
+/**
+ * Das Gewicht je Aufgabe für `baueSitzung`: Klausurnähe (über die Stapel
+ * der Klausur, sonst das ganze Fach) mal einem kleinen Zuschlag für
+ * Überfälliges — bis zu doppelt nach zwei Wochen, damit lange Liegengebliebenes
+ * nicht hinter einer nahen Klausur verschwindet.
+ */
+export function gewichtNachKlausur(faecher, stapel, ordner, zeit = Date.now()) {
+  const je = klausurJeStapel(faecher, stapel, ordner, zeit);
+  return (e) => {
+    const k = je.get(e?.stapel?.id);
+    const g = klausurGewicht(k ? tageBis(k.klausur, zeit) : null);
+    const ueber = e?.zustand?.due ? Math.max(0, (zeit - e.zustand.due) / TAG) : 0;
+    return g * (1 + Math.min(14, ueber) / 14);
+  };
+}
+

@@ -28,7 +28,7 @@ import StapeldateiEinfuhr from "./Stapeldatei.jsx";
  * dieselben Karten längst geplant hat. Dieselbe Karte darf nicht an zwei
  * Stellen zwei Wahrheiten haben.
  */
-export function StapelKachel({ stapel, karten, zustaende, aufMenue, klausur = null }) {
+export function StapelKachel({ stapel, karten, zustaende, aufMenue, klausur = null, aufLoeschen = null }) {
   const stand = stapelStand(karten, zustaende, stapel);
   const anteile = anteileNachStufe(stand.zustaende);
   const { faellig: faellige, neu } = stand;
@@ -38,6 +38,11 @@ export function StapelKachel({ stapel, karten, zustaende, aufMenue, klausur = nu
       onClick={() => gehe("/stapel/" + stapel.id)}>
       <div className="reihe">
         <div className="titel dehnen">{stapel.title || "Ohne Titel"}</div>
+        {/* Beim Aufräumen (Filter „Ohne Fach“, „Nie gelernt“) direkt sichtbar. */}
+        {aufLoeschen && (
+          <SymbolKnopf symbol="muell" titel="In den Papierkorb"
+            onClick={(e) => { e.stopPropagation(); aufLoeschen(stapel); }} />
+        )}
         <Menue knopf={<SymbolKnopf symbol="mehr" titel="Mehr" />}>
           {aufMenue(stapel)}
         </Menue>
@@ -180,6 +185,11 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
   const [loescht, setLoescht] = useState(null);
   /* Sortierung, gemerkt pro Gerät (Wunsch des Nutzers, 25.11.2026). */
   const [sortierung, setSortierung] = useMerker("stapelSortierung", "geaendert");
+  /* Zum Aufräumen (Wunsch des Nutzers, 26.11.2026): Stapel ohne Fach und
+     Stapel, aus denen nie etwas gelernt oder abgerufen wurde — etwa
+     versehentlich angelegte. Quer durch alle Ordner, mit Papierkorb direkt. */
+  const [zeigen, setZeigen] = useState("alle");
+  const [alleWeg, setAlleWeg] = useState(false);
 
   /* Für Sortierung und Marken: nächste Klausur je Stapel, wann zuletzt gelernt. */
   const klausuren = useMemo(() => klausurJeStapel(faecher, stapel, ordner), [faecher, stapel, ordner]);
@@ -212,9 +222,12 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
       klausurDatum: klausuren.get(s.id)?.klausur.datum ?? null,
     };
   };
-  const auswahl = (ordnerId
-    ? stapel.filter((s) => (flach ? zweig.has(s.folderId) : s.folderId === ordnerId))
-    : stapel).filter((s) => !s.deleted);
+  const aufraeumen = zeigen !== "alle";
+  const auswahl = (aufraeumen
+    ? stapel.filter((s) => (zeigen === "ohneFach" ? !s.subjectId : !zuletzt.has(s.id)))
+    : ordnerId
+      ? stapel.filter((s) => (flach ? zweig.has(s.folderId) : s.folderId === ordnerId))
+      : stapel).filter((s) => !s.deleted);
   /* Einmal je Stapel rechnen, nicht bei jedem Vergleich. */
   const infos = new Map(auswahl.map((s) => [s.id, info(s)]));
   const sichtbareStapel = stapelSortieren(auswahl, sortierung, (s) => infos.get(s.id));
@@ -306,7 +319,7 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
         )}
       </div>
 
-      {zuLernen.length > 0 && (
+      {zuLernen.length > 0 && !aufraeumen && (
         <div className="unten-32">
           <h3 className="matt unten-12">Heute dran</h3>
           <div className="gitter">
@@ -329,7 +342,7 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
         </div>
       )}
 
-      {unterordner.length > 0 && (
+      {unterordner.length > 0 && !aufraeumen && (
         <div className="gitter unten-24">
           {unterordner.map((o) => {
             /* Auch die Stapel in Unterordnern zählen: Ein Ordner, der nur
@@ -356,17 +369,34 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
         </div>
       )}
 
-      {sichtbareStapel.length > 0 && (
-        <div className="reihe unten-12" style={{ gap: 8 }}>
+      {(sichtbareStapel.length > 0 || aufraeumen) && (
+        <div className="reihe umbruch unten-12" style={{ gap: 8 }}>
           <h3 className="dehnen" style={{ margin: 0 }}>{anzahl(sichtbareStapel.length, "Stapel", "Stapel")}</h3>
+          <select className="feld" style={{ width: "auto" }} value={zeigen} aria-label="Zeigen"
+            onChange={(e) => setZeigen(e.target.value)}>
+            <option value="alle">Alle</option>
+            <option value="ohneFach">Ohne Fach</option>
+            <option value="nieGelernt">Nie gelernt</option>
+          </select>
           <select className="feld" style={{ width: "auto" }} value={sortierung} aria-label="Sortieren nach"
             onChange={(e) => setSortierung(e.target.value)}>
             {SORTIERUNGEN.map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
           </select>
         </div>
       )}
+      {aufraeumen && sichtbareStapel.length > 1 && (
+        <div className="reihe unten-12" style={{ gap: 8 }}>
+          <span className="klein matt dehnen">
+            {zeigen === "ohneFach" ? "Stapel ohne Fach kommen im Abrufen nicht vor." : "Aus diesen Stapeln wurde noch nie etwas gelernt oder abgerufen."}
+          </span>
+          <Knopf art="klein" symbol="muell" onClick={() => setAlleWeg(true)}>Alle in den Papierkorb</Knopf>
+        </div>
+      )}
 
-      {sichtbareStapel.length === 0 ? (
+      {aufraeumen && sichtbareStapel.length === 0 ? (
+        <Leer symbol="haken" titel="Nichts aufzuräumen"
+          text={zeigen === "ohneFach" ? "Jeder Stapel gehört zu einem Fach." : "Aus jedem Stapel wurde schon gelernt."} />
+      ) : sichtbareStapel.length === 0 ? (
         <Leer titel="Noch nichts hier"
           text="Leg einen Stapel an: von Hand, aus einer Liste oder aus einem Foto.">
           <div className="reihe" style={{ justifyContent: "center", flexWrap: "wrap" }}>
@@ -378,7 +408,8 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
         <div className="gitter">
           {sichtbareStapel.map((s) => (
             <StapelKachel key={s.id} stapel={s} karten={kartenNachStapel.get(s.id) || []}
-              zustaende={zustaende} aufMenue={menuePunkte} klausur={klausuren.get(s.id) || null} />
+              zustaende={zustaende} aufMenue={menuePunkte} klausur={klausuren.get(s.id) || null}
+              aufLoeschen={aufraeumen ? (x) => setLoescht({ art: "stapel", ...x }) : null} />
           ))}
         </div>
       )}
@@ -406,6 +437,17 @@ export default function Bibliothek({ ordnerId = null, suchbegriff = null }) {
             </div>
           ))}
         </Dialog>
+      )}
+
+      {alleWeg && (
+        <Rueckfrage titel={anzahl(sichtbareStapel.length, "Stapel", "Stapel") + " in den Papierkorb?"}
+          text="Alle hier gezeigten Stapel wandern in den Papierkorb und lassen sich von dort sechzig Tage lang zurückholen."
+          bestaetigung="In den Papierkorb"
+          aufNein={() => setAlleWeg(false)}
+          aufJa={async () => {
+            for (const s of sichtbareStapel) await stapelLoeschen(s.id);
+            setAlleWeg(false);
+          }} />
       )}
 
       {loescht && (

@@ -521,6 +521,23 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     echte). Endspurt nimmt nur die Stapel der nächsten Klausur.
     Stapel sortieren: `SORTIERUNGEN`/`stapelSortieren`, gemerkt als
     `stapelSortierung`.
+77. **Klausurnähe gewichtet das Abrufen** (seit 26.11.2026, Wunsch des
+    Nutzers): `baueSitzung({ gewicht })` zieht unter den Fälligen gewichtet
+    zufällig (`gewichtetZiehen`) und ordnet gewichtet (`gewichtetReihen`);
+    Gewicht aus `gewichtNachKlausur` (Klausur bis 30 Tage vorher bis ×5, dazu
+    bis ×2 für Überfälliges). Keine Selbstauswahl: Fällig bleibt fällig.
+    `/abrufen/alle[/start/<karte:richtung>/<k>]` ruft alle Fächer ab (von der
+    Startseite, dort die erste Frage per `AbrufEinstieg startseite`).
+78. **Verschenkte Punkte** (`halbjahrVerschenkt`, `abiStand().verschenkt`):
+    Σ (15 − Fachpunkte) / alle Fächer des Halbjahres, fürs Abi × 10. Rot am
+    rechten Balkenende; erreicht + verschenkt + Hochrechnung ≤ 900. Startseite:
+    nur Zahlen und Balken, Sätze erst nach Tipp; kleine Balken ohne Ziel-Strich.
+79. **Probe-Modus bei den Punkten** (`ui/Probe.jsx`): Probenoten nur in
+    localStorage (`kk:punkteProbe`), über `useNotenfaecher()` in Punkte-Seite
+    und Ziel-Bausteinen eingemischt, nie in `notenfaecher` geschrieben.
+80. **Antippen abbrechen** (`main.jsx`): Zieht man den Finger von einer
+    Kachel/einem Knopf weg, schluckt ein Klick-Abfang den Klick. Zurück-Pfeil
+    endet an der Startseite.
 
 ## Stapel aus Lernmaterial (im Chat)
 

@@ -38,7 +38,7 @@ import {
   sitzungBeginnen, antworten, zusammenfassung, zeitenAusVerlauf, stapelMedian, referenz, kappen, ersterVersuch,
 } from "../core/wiedervorlage.js";
 import { useStoppuhr } from "../ui/stoppuhr.js";
-import { ganzesFach, stapelDerKlausur } from "../core/klausuren.js";
+import { ganzesFach, stapelDerKlausur, gewichtNachKlausur } from "../core/klausuren.js";
 import { abrufStapel, OBEN } from "../core/fachordner.js";
 import { gehe } from "../App.jsx";
 import {
@@ -216,7 +216,7 @@ function Antwortvorschau({ eingabe }) {
 
 export default function Abrufen({
   fachId = null, ordnerAuswahl = null, stapelAuswahl = null, startSchluessel = null, startKonfidenz = null,
-  aufSchliessen,
+  alleFaecher = false, aufSchliessen,
 }) {
   const daten = useDaten();
   const {
@@ -260,7 +260,9 @@ export default function Abrufen({
   // Verschachteln: mehrere Fächer in einer Sitzung, Herkunft verborgen (§3.5).
   const [gewaehlteFaecher, setGewaehlteFaecher] = useMerker("interleaving:faecher", []);
   const [herkunftVerbergen, setHerkunftVerbergen] = useMerker("interleaving:verbergen", true);
-  const [gestartet, setGestartet] = useState(Boolean(fachId));
+  /* „alle“ (von der Startseite): alle Fächer, ohne die Fächerwahl davor. */
+  const [gestartet, setGestartet] = useState(Boolean(fachId) || alleFaecher);
+  const faecherAuswahl = fachId || alleFaecher ? null : gewaehlteFaecher;
   // Mehrschritt-Karten: welcher Schritt ist dran, und wie lief es bisher?
   const [schrittNr, setSchrittNr] = useState(0);
   const [schrittErgebnisse, setSchrittErgebnisse] = useState([]);
@@ -302,24 +304,27 @@ export default function Abrufen({
   const cramStapelVon = useCallback((id) => (!klausurStapel || klausurStapel.has(id) ? stapelVon(id) : null),
     [klausurStapel, stapelVon]);
 
+  /* Je näher die Klausur, desto öfter kommen ihre Karten (core/klausuren.js). */
+  const gewicht = useMemo(() => gewichtNachKlausur(faecher, stapel, ordner), [faecher, stapel, ordner]);
+
   const sitzungBauen = useCallback(() => (cram && fach
     ? baueCramSitzung({ karten, zustaende, stapelVon: cramStapelVon, fach, umfang: 40 })
     : baueSitzung({
       karten, zustaende, stapelVon, faecherVon, fach,
-      faecherIds: fachId ? null : gewaehlteFaecher,
-      umfang: umfangVon(groesse),
-    })), [karten, zustaende, stapelVon, faecherVon, fach, fachId, gewaehlteFaecher, groesse, cram]);
+      faecherIds: faecherAuswahl,
+      umfang: umfangVon(groesse), gewicht,
+    })), [karten, zustaende, stapelVon, faecherVon, fach, faecherAuswahl, groesse, cram, gewicht]);
 
   /* Was ansteht, bevor die Größe gewählt ist — für die Zahl über der Wahl.
      Steht nichts an, gibt es nichts zu wählen. */
   const anstehend = useMemo(() => (gestartet && !groesse && !cram ? baueSitzung({
     karten, zustaende, stapelVon, faecherVon, fach,
-    faecherIds: fachId ? null : gewaehlteFaecher, umfang: 100000,
+    faecherIds: faecherAuswahl, umfang: 100000,
   }).aufgaben.length : null), [gestartet, groesse, cram, fachId, auswahlSchluessel]);
   useEffect(() => { if (anstehend === 0) setGroesse(vorgabeGroesse); }, [anstehend]);
 
   /* Weitermachen, wenn alles durch ist. */
-  const weitereEingaben = { karten, zustaende, stapelVon, fach, faecherIds: fachId ? null : gewaehlteFaecher };
+  const weitereEingaben = { karten, zustaende, stapelVon, fach, faecherIds: faecherAuswahl };
   const neuBeginnen = (s) => {
     setSitzung(s); setStelle(0); setPhase("konfidenz"); setKonfidenz(null); setEingabe("");
     setErgebnisse([]); setFertig(false); schritteZuruecksetzen();
@@ -355,7 +360,8 @@ export default function Abrufen({
         neu = { ...neu, aufgaben: [neu.aufgaben[i], ...neu.aufgaben.filter((_, j) => j !== i)] };
         vorgewaehlt = true;
       } else {
-        const ganz = baueSitzung({ karten, zustaende, stapelVon, faecherVon, fach, umfang: 100000 });
+        const ganz = baueSitzung({ karten, zustaende, stapelVon, faecherVon, fach,
+          faecherIds: faecherAuswahl, umfang: 100000 });
         const a = ganz.aufgaben.find((x) => x.schluessel === startSchluessel);
         if (a) {
           neu = { ...neu, aufgaben: [a, ...neu.aufgaben.slice(0, Math.max(0, neu.aufgaben.length - 1))] };
@@ -608,7 +614,8 @@ export default function Abrufen({
 
   /* ------------------------------- Anzeigen ----------------------------- */
 
-  const titel = fach ? "Abrufen — " + fach.name + (auswahlName ? " · " + auswahlName : "") : "Abrufen";
+  const titel = fach ? "Abrufen — " + fach.name + (auswahlName ? " · " + auswahlName : "")
+    : alleFaecher ? "Abrufen — alle Fächer" : "Abrufen";
 
   /* Ohne Fachwahl: erst fragen, worüber. Das ist die einzige Wahl, die der
      Nutzer hat — welche Karten drankommen, entscheidet er nie. */

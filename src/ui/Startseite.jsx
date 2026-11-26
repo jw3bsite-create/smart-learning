@@ -21,6 +21,7 @@ import { FlammeZeichen } from "./Flamme.jsx";
 import { useLernzeiten } from "./Lernzeit.jsx";
 import { summe, tagesBeginn, dauerText } from "../core/lernzeit.js";
 import { UmzugNeu, UmzugHinweis } from "./Umzug.jsx";
+import AbrufEinstieg from "./AbrufEinstieg.jsx";
 import { ZielStreifen } from "./Ziele.jsx";
 
 function gruss(stunde) {
@@ -106,6 +107,11 @@ export default function Startseite() {
         </Leer>
       ) : (
         <>
+          {/* ------------------------- Gleich abrufen ------------------------- */}
+          {/* Die erste Frage steht gleich da, mit „Wie sicher bist du dir?“ —
+              gewichtet nach der Nähe der Klausuren (Wunsch des Nutzers, 26.11.2026). */}
+          {offen > 0 && <div className="oben-16"><AbrufEinstieg startseite /></div>}
+
           {/* ------------------------------ Heute ----------------------------- */}
           <div className="zahl-kachel held oben-16">
             <div className="reihe umbruch" style={{ gap: 20, alignItems: "flex-end" }}>
@@ -139,7 +145,7 @@ export default function Startseite() {
               )}
               <div className="dehnen" />
               {offen > 0 ? (
-                <Knopf art="voll gross" symbol="blitz" onClick={() => gehe("/abrufen")}>
+                <Knopf art="voll gross" symbol="blitz" onClick={() => gehe("/abrufen/alle")}>
                   Abrufen
                 </Knopf>
               ) : (
