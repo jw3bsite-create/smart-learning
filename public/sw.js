@@ -38,9 +38,27 @@ function vorrat() {
  * Eine neue Fassung wartet, bis die Seite darum bittet (siehe
  * src/core/aktualisierung.js). Früher übernahm sie sofort und räumte die
  * Dateien der alten weg, während ein offenes Fenster sie noch brauchte.
+ *
+ * Auf „STAND" nennt sie ihren Stand und die Zahl der offenen Fenster. Daraus
+ * entscheidet die Seite, ob still übernommen wird (ihr Code gehört schon zu
+ * dieser Fassung), neu geladen wird (nichts angefangen) oder der Hinweis
+ * kommt. Die Fenster zählt sie selbst, denn nur sie kann es: Der Seite ist
+ * verborgen, wie viele ihrer Art offen sind.
  */
 self.addEventListener("message", (e) => {
-  if (e.data === "SKIP_WAITING") self.skipWaiting();
+  if (e.data === "SKIP_WAITING") {
+    self.skipWaiting();
+    return;
+  }
+  if (e.data && e.data.typ === "STAND") {
+    const port = e.ports && e.ports[0];
+    if (!port) return;
+    // `includeUncontrolled`: Die offenen Fenster gehören noch der alten
+    // Fassung, diese hier beaufsichtigt noch keines.
+    e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true })
+      .then((fenster) => port.postMessage({ stand: STAND, fenster: fenster.length }))
+      .catch(() => port.postMessage({ stand: STAND, fenster: 0 })));
+  }
 });
 
 /* Eine Push-Nachricht vom Absender auf GitHub (werkzeug/push-senden.mjs).
@@ -121,9 +139,20 @@ self.addEventListener("fetch", (e) => {
     return;
   }
 
-  // Seitenaufrufe: erst Netz, sonst die abgelegte Startseite.
+  /*
+   * Seitenaufrufe: erst Netz, sonst die abgelegte Startseite — und zwar am
+   * Zwischenspeicher des Browsers vorbei (`cache: "reload"`).
+   *
+   * Die Startseite ist das Verzeichnis der Fassung: in ihr stehen die Namen
+   * der Bausteine, und die tragen ihren Inhalt im Namen. GitHub Pages lässt
+   * sie zehn Minuten liegen; wer die App schloss und gleich wieder öffnete,
+   * bekam darum dieselbe alte Seite und mit ihr dieselbe alte App. Kennt ein
+   * Browser die Angabe nicht, wird gewöhnlich geholt.
+   */
   if (req.mode === "navigate") {
-    e.respondWith(fetch(req).catch(() => ausSpeicher(STARTSEITE)));
+    const frisch = fetch(req.url, { cache: "reload", credentials: "same-origin" })
+      .catch(() => fetch(req));
+    e.respondWith(frisch.catch(() => ausSpeicher(STARTSEITE)));
     return;
   }
 

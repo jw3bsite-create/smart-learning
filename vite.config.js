@@ -3,6 +3,16 @@ import react from "@vitejs/plugin-react";
 import { readdirSync, readFileSync, writeFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
+/*
+ * Der Stand dieses Baus — eine Kennung, die App und Dienst-Arbeiter teilen.
+ *
+ * Der Dienst-Arbeiter traegt sie als STAND (unten eingesetzt), die App als
+ * `__ANCHOR_STAND__` (ueber `define`). Nur so kann die Seite erkennen, ob eine
+ * wartende Fassung dieselbe ist, mit der sie gerade laeuft — und dann still
+ * uebernehmen statt zu fragen (src/core/aktualisierung.js).
+ */
+const STAND = Date.now().toString(36);
+
 /**
  * Setzt in den fertigen Dienst-Arbeiter ein, was er einlagern soll.
  *
@@ -41,12 +51,11 @@ function dienstArbeiter() {
         .filter((d) => !/^assets\/pdf[.-]/.test(d));
 
       const ziel = join(wurzel, "sw.js");
-      const stand = Date.now().toString(36);
       const text = readFileSync(ziel, "utf8")
-        .replace('"__STAND__"', JSON.stringify(stand))
+        .replace('"__STAND__"', JSON.stringify(STAND))
         .replace('"__DATEIEN__"', JSON.stringify(dateien, null, 2));
       writeFileSync(ziel, text);
-      console.log(`Dienst-Arbeiter: ${dateien.length} Dateien im Vorrat (Stand ${stand}).`);
+      console.log(`Dienst-Arbeiter: ${dateien.length} Dateien im Vorrat (Stand ${STAND}).`);
     },
   };
 }
@@ -61,6 +70,9 @@ export default defineConfig({
    * `./` traegt derselbe Bau an jeder Stelle.
    */
   base: "./",
+  // Der Stand des Baus, wortwoertlich eingesetzt. Die App vergleicht ihn mit
+  // dem des Dienst-Arbeiters.
+  define: { __ANCHOR_STAND__: JSON.stringify(STAND) },
   // 5180 ist der gewohnte Platz; PORT setzt ihn um, wenn er schon belegt ist.
   // strictPort: Weicht der Server bei belegtem Port still auf einen anderen
   // aus, wartet der Starter auf 5180 und findet dort nie etwas.

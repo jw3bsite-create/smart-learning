@@ -27,7 +27,7 @@ Sprache, soweit sie die Sache benennen (`karten`, `zustaende`, `abrufVerbuchen`)
 ```
 npm install
 npm run dev      # http://localhost:5180
-npm test         # 500 Prüfungen (Kern, Speicher, Abgleich, Dialoge, Push, Abschnitte)
+npm test         # 590 Prüfungen (Kern, Speicher, Abgleich, Dialoge, Push, Abschnitte)
 npm run test:oberflaeche   # die gebaute App in Edge, am Handymaß (playwright-core)
 npm run lint
 node test-oberflaeche/fotos.mjs <ordner> /start "/einstellungen@Erinnerung"
@@ -86,7 +86,7 @@ src/core/     Rechnender Kern, ohne React, ohne Browserfenster, vollständig pr�
   migrationen.js Nummerierte Umstellungen am Datenbestand, mit Kopie davor
   sicherung.js   Sicherungsdatei: Format, Prüfung, Zusammenführen
   notsicherung.js  Alles in eine Datei, wenn die App nicht mehr steht
-  aktualisierung.js  Neue Fassungen melden statt still umschalten
+  aktualisierung.js  Neue Fassungen: beim Start übernehmen, im Betrieb melden
   datei.js       Eine Datei zum Herunterladen anbieten
   beispiel.js    Beispielbestand: Maschinerie und durchgerechnete Historie
   beispiel-stoff.js  Der Stoff dazu (Kant, Hauptstädte) — reine Daten
@@ -95,7 +95,7 @@ prompts/      Die Systemanweisungen als eigene Dateien, versioniert
 src/modes/    Abrufen, Fragen, Feynman, Pretest, Tutor, Pruefung + die sieben
               Übungsmodi
 src/ui/       Bildschirme und Bausteine
-test/         500 Prüfungen (npm test), darunter der ganze Weg der Daten
+test/         590 Prüfungen (npm test), darunter der ganze Weg der Daten
               gegen einen Testspeicher (fake-indexeddb)
 werkzeug/     Erzeugt die Symbole aus dem Logo (Python: pymupdf, pillow)
 ```
@@ -578,6 +578,21 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     und hell/dunkel nach Helligkeit; null = wie das Design.
 86. **Am Handy ist jede Seite ≥ 100dvh + 1px** (`.buehne`): Auf kurzen Seiten
     stand die Navigierleiste in der iPhone-App sonst zu hoch.
+87. **Eine neue Fassung soll beim nächsten Öffnen da sein** (`core/aktualisierung.js`,
+    `public/sw.js`, seit 27. November 2026). Zwei Dinge hielten die alte fest:
+    Der Dienst-Arbeiter wartete auf „Jetzt neu laden“ — ein Neuladen beendet das
+    Fenster aber nicht, der alte blieb an der Aufsicht —, und GitHub Pages lässt
+    die Startseite zehn Minuten liegen, während gerade sie die Bausteine der
+    Fassung nennt. Darum holt `sw.js` Seitenaufrufe mit `cache: "reload"`, wird
+    selbst nie aus dem Zwischenspeicher gelesen (`updateViaCache: "none"`) und
+    nennt auf Anfrage seinen `STAND` und die Zahl offener Fenster. Daraus
+    entscheidet `aktualisierungsPlan`: gleicher Stand → still übernehmen,
+    älterer Code und noch nichts angefasst → übernehmen und neu laden, sonst
+    melden wie bisher. **Ein zweites offenes Fenster verbietet jede stille
+    Übernahme** — ihm fehlten danach die Dateien seiner Fassung, und auf dem
+    iPad liegt die App tagelang im Hintergrund. Den Stand teilen App und
+    Dienst-Arbeiter aus `vite.config.js` (`__ANCHOR_STAND__` ↔ `STAND`);
+    geprüft in `test/aktualisierung.test.js`.
 
 ## Stapel aus Lernmaterial (im Chat)
 
