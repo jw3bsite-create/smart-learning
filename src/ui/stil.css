@@ -1555,10 +1555,8 @@ html.zieht { cursor: grabbing; }
 
 /* Ziele (ui/Ziele.jsx): erreicht voll, hochgerechnet blass, Ziel als Strich. */
 .ziel-balken { position: relative; border-radius: 999px; background: var(--grund-3); overflow: visible; }
-.ziel-balken > span { position: absolute; top: 0; bottom: 0; border-radius: 999px; }
-/* Erreicht und verschenkt als ein Stück: gemeinsame Rundung, innen nahtlos. */
-.ziel-balken > .ziel-stueck { left: 0; display: flex; overflow: hidden; transition: width calc(var(--wechsel) * 4) ease-out; }
-.ziel-stueck > span { flex-basis: 0; min-width: 0; height: 100%; }
+.ziel-balken > span { position: absolute; top: 0; bottom: 0; left: 0; max-width: 100%; border-radius: 999px;
+  transition: width calc(var(--wechsel) * 4) ease-out; }
 .ziel-voll { background: var(--akzent); }
 .ziel-hoch { background: var(--akzent); opacity: 0.28; }
 .ziel-balken.auf-kurs .ziel-voll, .ziel-balken.auf-kurs .ziel-hoch { background: var(--gruen); }
@@ -1602,8 +1600,8 @@ html.zieht { cursor: grabbing; }
 .verlauf-knoepfe.unten .knopf { min-height: calc(28px * var(--pfeil-skala, 1));
   min-width: calc(36px * var(--pfeil-skala, 1)); padding: 2px 8px; }
 
-/* Verschenkte Punkte: rot am rechten Ende des Ziel-Balkens (ui/Ziele.jsx). */
-.ziel-stueck > .ziel-verloren { background: var(--rot); }
+/* Verschenkte Punkte: rot, unter dem erreichten Balken (ui/Ziele.jsx). */
+.ziel-balken > .ziel-verloren { background: var(--rot); }
 .verloren-text { color: var(--rot); }
 /* Startseite: kompakter Streifen, Texte erst nach einem Tipp. */
 .ziel-streifen { cursor: default; }
@@ -1673,11 +1671,15 @@ html.zieht { cursor: grabbing; }
   .buehne { min-height: calc(100dvh + 1px); }
 }
 
-/* Startseite: kleines Antwortfeld; die Karte wächst beim Tippen auf volle Größe. */
+/* Startseite: kleines Antwortfeld; ein Tipp irgendwo auf die Karte führt ins Abrufen. */
+.abruf-einstieg.auf-start.tippbar { cursor: pointer; }
+/* Der Übergang dorthin (ui/uebergang.js): eine Schicht über allem, die aus der
+   Karte auf den Bildschirm wächst. Nur Ausschnitt und Deckkraft bewegen sich,
+   die Seite darunter wird dabei nicht neu gesetzt. */
+.wachs-schicht { position: fixed; inset: 0; z-index: 200; background: var(--grund); will-change: clip-path, opacity; }
+.wachs-schicht > .kachel { position: absolute; margin: 0; box-sizing: border-box; }
 .abruf-einstieg-antwort { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
 .abruf-einstieg-antwort .feld { flex: 1; min-width: 0; cursor: text; }
-.abruf-einstieg.waechst { transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease,
-  border-radius 0.25s ease; overflow: hidden; }
 /* Startseite: „Heute“ in einer schmalen Zeile. */
 .heute-zeile { display: flex; align-items: center; gap: 14px; padding: 10px 14px; flex-wrap: wrap; }
 .heute-zeile .heute-wert { display: flex; align-items: baseline; gap: 6px; }

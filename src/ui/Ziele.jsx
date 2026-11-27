@@ -40,19 +40,23 @@ const prozent = (wert, max) => Math.max(0, Math.min(100, (100 * (wert || 0)) / m
  */
 export function ZielBalken({ erreicht, hochgerechnet = null, ziel = null, verschenkt = 0, max, hoehe = 12, titel }) {
   const ueber = ziel !== null && hochgerechnet !== null && hochgerechnet >= ziel;
+  /* Jede Schicht ist für sich rund und beginnt links; sehr kleine Werte
+     bleiben mindestens ein Punkt, so breit wie der Balken hoch ist. */
+  const gruen = erreicht > 0 ? "max(" + prozent(erreicht, max) + ", " + hoehe + "px)" : null;
+  const rot = gruen
+    ? "calc(" + gruen + " + " + prozent(verschenkt, max) + ")"
+    : "max(" + prozent(verschenkt, max) + ", " + hoehe + "px)";
   return (
     <div className={"ziel-balken" + (ueber ? " auf-kurs" : "")} style={{ height: hoehe }}
       role="img" aria-label={titel + (verschenkt > 0 ? ", " + punkteText(verschenkt) + " Punkte verschenkt" : "")}>
-      {/* Ein Balken aus einem Stück (Wunsch des Nutzers, 26.11.2026): Die
-          Hochrechnung liegt blass dahinter; davor ein Stück aus Erreichtem
-          und, nahtlos angeschmiegt, Verschenktem — gemeinsam rund am Ende. */}
+      {/* Wunsch des Nutzers (27.11.2026, nach Bild): Der erreichte Balken ist
+          ganz, mit beiden Rundungen; der rote liegt darunter und schaut
+          rechts hervor. Zuunterst blass die Hochrechnung. */}
       {hochgerechnet !== null && hochgerechnet > erreicht && (
-        <span className="ziel-hoch" style={{ left: 0, width: prozent(hochgerechnet + verschenkt, max) }} />
+        <span className="ziel-hoch" style={{ width: prozent(hochgerechnet + verschenkt, max) }} />
       )}
-      <span className="ziel-stueck" style={{ width: prozent(erreicht + verschenkt, max) }}>
-        <span className="ziel-voll" style={{ flexGrow: Math.max(0, erreicht) }} />
-        {verschenkt > 0 && <span className="ziel-verloren" style={{ flexGrow: verschenkt }} />}
-      </span>
+      {verschenkt > 0 && <span className="ziel-verloren" style={{ width: rot }} />}
+      {gruen && <span className="ziel-voll" style={{ width: gruen }} />}
       {ziel !== null && <span className="ziel-strich" style={{ left: prozent(ziel, max) }} />}
     </div>
   );

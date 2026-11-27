@@ -547,16 +547,24 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     Größe `navGroesse` (→ `--nav-skala` am Wurzelelement), `erstellen`:
     "plus" (runder Knopf, `PLUS_WEGE`) | "vereint" (Reiter Erstellen,
     Stapel als Leiste auf der Fächer-Seite). Erstellen-Blatt: `ui/Erstellen.jsx`.
-83. **Startseite-Einstieg** (`AbrufEinstieg startseite`, Stand 26.11. abends):
-    Einschätzung → kleines Antwortfeld; Tipp hinein oder auf die Frage lässt
-    die Kachel per `wachsen()` auf Vollbild wachsen, dann
-    `/abrufen/alle/start/<karte:richtung>[/<k>]` — normales, verbuchtes Abrufen.
-    `startseiteModus: "karteikarten"` zeigt stattdessen `KartenVorschau`
-    (anstehende Karten, `reihenfolgeBehalten`). Ziel-Balken: Erreicht und
-    Verschenkt sind ein Stück (`.ziel-stueck`, gemeinsame Rundung).
+83. **Startseite-Einstieg** (`AbrufEinstieg startseite`, Stand 27.11.2026):
+    Einschätzung → kleines Antwortfeld; ein Tipp **irgendwo auf die Kachel**
+    (außer auf Knöpfe, Feld und die Einschätzungsfrage) führt nach
+    `/abrufen/alle/start/<karte:richtung>[/<k>]` — normales, verbuchtes
+    Abrufen. `startseiteModus: "karteikarten"` zeigt stattdessen
+    `KartenVorschau` (anstehende Karten, `reihenfolgeBehalten`).
+    Der Übergang liegt in `ui/uebergang.js` (`wachsend`): Eine **Kopie** der
+    Kachel in einer eigenen Schicht, deren `clip-path` aufgeht — die Kachel
+    selbst in Lage und Maßen zu bewegen ließ den Browser die ganze Seite in
+    jedem Bild neu setzen und hakte sichtbar. Uhr statt `finished`, sonst
+    bleibt die Schicht liegen, wenn der Browser die Bewegung anhält.
 84. **Ausstehende Leistungen** (`notenfach.ausstehend = { anzahl, sorte }`,
-    `fachBestfall`, `ausstehendVon`): verschenkt = 15 − Bestfall; Rot schließt
-    im Balken direkt an „erreicht“ an, danach die Hochrechnung.
+    `fachBestfall`, `ausstehendVon`): verschenkt = 15 − Bestfall. Im
+    Ziel-Balken liegen die Schichten übereinander, jede für sich ganz rund
+    (Wunsch des Nutzers, 27.11.2026): zuunterst blass die Hochrechnung,
+    darüber Rot bis „erreicht + verschenkt“, obenauf der erreichte Balken.
+    So schaut Rot rechts unter dem erreichten hervor, ohne eigene Rundung am
+    Anfang. Sehr kleine Werte bleiben mindestens so breit wie hoch.
 85. **Grundfarbe** (`grundton` in der Gestaltung): setzt `--grund*`/`--rand`
     und hell/dunkel nach Helligkeit; null = wie das Design.
 86. **Am Handy ist jede Seite ≥ 100dvh + 1px** (`.buehne`): Auf kurzen Seiten

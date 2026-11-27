@@ -7,7 +7,7 @@
  *
  * Auf der Startseite (26.11.2026, Wunsch des Nutzers): richtiges Abrufen im
  * kleinen Fenster. Nach der Einschätzung erscheint das Antwortfeld; ein Tipp
- * hinein (oder auf die Frage) lässt die Karte auf volle Größe wachsen, und
+ * irgendwo auf die Karte lässt sie auf volle Größe wachsen, und
  * es geht im Abrufen weiter — mit dieser Karte und der Einschätzung, ganz
  * normal verbucht.
  *
@@ -23,6 +23,7 @@ import { seitenFuer } from "../core/kartenseiten.js";
 import { KONFIDENZ } from "../core/fsrs.js";
 import { anzahl } from "../core/util.js";
 import { gehe } from "../App.jsx";
+import { wachsend } from "./uebergang.js";
 import { Symbol, Sinnbild, Knopf, Bild, KLICKBAR } from "./basis.jsx";
 import Formel from "./Formel.jsx";
 
@@ -41,6 +42,7 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
   const [gesehen, setGesehen] = useState(() => new Set());
   const [konfidenz, setKonfidenz] = useState(null);
   const kachel = useRef(null);
+  const unterwegs = useRef(false);
 
   const sitzung = useMemo(() => {
     if (startseite) {
@@ -78,23 +80,22 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
   const seiten = aufgabe ? seitenFuer(aufgabe.karte, aufgabe.richtung) : null;
   const insAbrufen = (konfidenz = null) =>
     gehe(weg + "/start/" + encodeURIComponent(aufgabe.schluessel) + (konfidenz ? "/" + konfidenz : ""));
-  /* Die Karte wächst aus ihrer Lage auf den ganzen Bildschirm, dann das Abrufen. */
+  /* Die Karte wächst auf den ganzen Bildschirm, dann das Abrufen. */
   const wachsen = (k = konfidenz) => {
-    const el = kachel.current;
-    const ruhig = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (!el || ruhig) { insAbrufen(k); return; }
-    const r = el.getBoundingClientRect();
-    Object.assign(el.style, { position: "fixed", top: r.top + "px", left: r.left + "px",
-      width: r.width + "px", height: r.height + "px", margin: 0, zIndex: 60 });
-    el.classList.add("waechst");
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      Object.assign(el.style, { top: "0px", left: "0px", width: "100vw", height: "100dvh", borderRadius: "0px" });
-    }));
-    setTimeout(() => insAbrufen(k), 260);
+    if (unterwegs.current) return;
+    unterwegs.current = true;
+    wachsend(kachel.current, () => insAbrufen(k));
+  };
+  /* Auf der Startseite führt die ganze Karte ins Abrufen — nur die Frage nach
+     der Einschätzung nicht, und Knöpfe tun, was auf ihnen steht. */
+  const tippen = (e) => {
+    if (!aufgabe || e.target.closest("button, input, a, .konfidenz-gitter, .einschaetzung-frage")) return;
+    wachsen();
   };
 
   return (
-    <div ref={kachel} className={"kachel abruf-einstieg" + (startseite ? " auf-start" : "")}>
+    <div ref={kachel} className={"kachel abruf-einstieg" + (startseite ? " auf-start tippbar" : "")}
+      onClick={startseite ? tippen : undefined}>
       <div className="reihe unten-8" style={{ gap: 8 }}>
         <Sinnbild name="blitz" ton="blau" />
         {/* Auf der Startseite ohne Fach: Wie beim Verschachteln bleibt die
@@ -104,7 +105,7 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
         </span>
         {auswahlFach}
         {startseite && aufgabe && (
-          <Knopf art="klein" symbol="blitz" onClick={() => wachsen(null)}>Groß</Knopf>
+          <Knopf art="klein" symbol="blitz" onClick={() => wachsen()}>Groß</Knopf>
         )}
       </div>
 
@@ -112,7 +113,7 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
         <>
           {/* Startseite: Ein Tipp auf die Frage führt ins Abrufen, mit dieser Karte. */}
           <div className={"abruf-einstieg-frage" + (startseite ? " tippbar" : "")}
-            {...(startseite ? { ...KLICKBAR, onClick: () => wachsen(), title: "Diese Frage groß beantworten" } : {})}>
+            {...(startseite ? { ...KLICKBAR, title: "Diese Frage groß beantworten" } : {})}>
             {seiten.frageBild && <Bild kennung={seiten.frageBild} />}
             {seiten.frage && <div className={"frage-text" + (seiten.frage.length > 90 ? " lang" : "")}>
               <Formel text={seiten.frage} /></div>}
@@ -127,7 +128,7 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
             </div>
           ) : (
             <>
-              <p className="matt klein" style={{ textAlign: "center", margin: "4px 0 10px" }}>
+              <p className="matt klein einschaetzung-frage" style={{ textAlign: "center", margin: "4px 0 10px" }}>
                 Wie sicher bist du dir?
               </p>
               <div className="gitter konfidenz-gitter">
