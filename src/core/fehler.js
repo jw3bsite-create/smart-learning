@@ -16,6 +16,7 @@
  */
 
 import { NOTEN, KONFIDENZ } from "./fsrs.js";
+import { lerntagBeginn } from "./util.js";
 
 const TAG = 86400000;
 
@@ -158,4 +159,28 @@ export function nurVorhandene(liste, karten) {
 export function fehlerZahlKurz(reviews, { zeitraum = "monat", jetzt = Date.now(), karten = null } = {}) {
   const liste = fehlerListe(reviews, { seit: von(zeitraum, jetzt) });
   return (karten ? nurVorhandene(liste, karten) : liste).length;
+}
+
+/**
+ * Nachprüfung am Folgetag (UX-Bericht, 27.11.2026): was du am vorigen
+ * Lerntag für sicher hieltest und doch nicht wusstest. Solche Fehler werden
+ * nach der Rückmeldung besonders gut korrigiert (Hyperkorrektur, Butterfield
+ * und Metcalfe 2001), kehren ohne zweite Übung aber nach einer Woche oft
+ * zurück (Butler, Fazio und Marsh 2011). Geübt wird als Übung — die Termine
+ * bleiben beim Plan.
+ *
+ * Erledigt ist, was heute schon einmal geübt wurde (gleich wo, gleich wie
+ * es ausging): Die Nachprüfung ist die zweite Übung, nicht eine Prüfung —
+ * die Fragenrunde wertet nach genauer Übereinstimmung, und eine lange
+ * Antwort träfe sie fast nie.
+ */
+export function sicherAberFalschGestern(reviews, { zeit = Date.now(), karten = null } = {}) {
+  const heute = lerntagBeginn(zeit);
+  const gestern = lerntagBeginn(heute - 1);
+  let liste = fehlerListe(reviews, { seit: gestern, bis: heute - 1 }).filter((e) => e.ueberschaetzt > 0);
+  if (karten) liste = nurVorhandene(liste, karten);
+  const heuteGeuebt = new Set((reviews || [])
+    .filter((r) => r && !r.deleted && r.cardId && r.zeit >= heute)
+    .map((r) => r.cardId + ":" + (r.richtung || "td")));
+  return liste.filter((e) => !heuteGeuebt.has(e.schluessel));
 }

@@ -1786,6 +1786,13 @@ html.zieht { cursor: grabbing; }
   .mit-runde .plus-knopf { bottom: calc(66px * var(--nav-skala, 1) + 40px + 64px + env(safe-area-inset-bottom, 0px)); }
 }
 
+/* Rückgängig-Leiste mit einmaligem Hinweis: darf umbrechen, wird eckiger. */
+.rueckgaengig-leiste { flex-wrap: wrap; max-width: calc(100% - 24px); }
+.rueckgaengig-leiste.mit-hinweis { border-radius: calc(var(--rund) * 0.9); }
+.rueckgaengig-hinweis { flex-basis: 100%; color: var(--schrift-matt); padding: 2px 8px 4px 0; line-height: 1.35; }
+/* Startseite: „Gestern sicher, aber falsch“. */
+.kachel.nachpruefung { border-color: color-mix(in srgb, var(--rot) 45%, var(--rand)); min-height: 0; }
+
 /* Fächerseite: die nächsten 30 Tage als Balken (Höhe = fällige Karten). */
 .vorschau-balken { display: flex; align-items: flex-end; gap: 2px; height: 40px; }
 .vorschau-balken > i { flex: 1; min-width: 0; border-radius: 2px 2px 0 0; background: var(--akzent);

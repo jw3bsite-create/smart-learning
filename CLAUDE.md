@@ -694,6 +694,18 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     Ebenso gemerkt: Karteikarten je Stapel (`kk:karteikarten:<id>`, neu bei
     anderer Kartenauswahl, vergessen am Ende) und der Lernsnack
     (`kk:snack`: Bewertetes je Lerntag, Zähler 30 Minuten).
+94. **Nachprüfung „sicher, aber falsch“** (`sicherAberFalschGestern` in
+    `core/fehler.js`, 27.11.2026): Was am vorigen Lerntag mit „Sicher“
+    eingeschätzt und „Nochmal“ bewertet wurde, steht am Folgetag auf der
+    Startseite und läuft als Fragenrunde (`/fragen/nachpruefung`) — Übung,
+    keine Terminwirkung. Erledigt ist eine Karte, sobald sie heute einmal
+    geübt wurde, egal wie (die Fragenrunde wertet nach genauer
+    Übereinstimmung; lange Antworten träfen nie). Nach „sicher, aber
+    falsch“ bietet die Rückgängig-Leiste „Warum lag ich falsch?“ an: legt
+    eine Erklärung mit der Frage als Thema an (`erklaerungAnlegen`).
+    **Hinweise beim ersten Mal** (`erstesMal`, je Gerät): erstes „Nochmal“,
+    erstes „sicher, aber falsch“, erste Stilllegung — in der
+    Rückgängig-Leiste, die dann 16 statt 10 Sekunden steht.
 
 ## Stapel aus Lernmaterial (im Chat)
 

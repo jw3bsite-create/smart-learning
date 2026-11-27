@@ -22,6 +22,7 @@ import { useLernzeiten } from "./Lernzeit.jsx";
 import { summe, tagesBeginn, dauerText } from "../core/lernzeit.js";
 import { UmzugNeu, UmzugHinweis } from "./Umzug.jsx";
 import AbrufEinstieg from "./AbrufEinstieg.jsx";
+import { sicherAberFalschGestern } from "../core/fehler.js";
 import KartenVorschau from "./KartenVorschau.jsx";
 import { baueSitzung } from "../core/warteschlange.js";
 import { gewichtNachKlausur } from "../core/klausuren.js";
@@ -58,6 +59,29 @@ function StartKarten() {
   }, [karten, zustaende, stapelVon, faecher, stapel, ordner]);
   if (!liste.length) return null;
   return <KartenVorschau karten={liste} reihenfolgeBehalten />;
+}
+
+/*
+ * „Gestern sicher, aber falsch: 3 Karten · Nachprüfen“ — nur, wenn es solche
+ * Karten gibt und sie heute noch nicht gewusst wurden (core/fehler.js).
+ * Die Nachprüfung ist Übung: Die Termine bleiben beim Plan.
+ */
+function Nachpruefung() {
+  const { reviews, karten } = useDaten();
+  const liste = useMemo(() => sicherAberFalschGestern(reviews, { karten }), [reviews, karten]);
+  if (!liste.length) return null;
+  return (
+    <div className="kachel nachpruefung oben-12">
+      <div className="reihe" style={{ gap: 10 }}>
+        <Sinnbild name="kreuz" ton="rot" />
+        <span className="dehnen">
+          <strong>Gestern sicher, aber falsch</strong>
+          <span className="klein matt"> · {anzahl(liste.length, "Karte", "Karten")}</span>
+        </span>
+        <Knopf art="klein" onClick={() => gehe("/fragen/nachpruefung")}>Nachprüfen</Knopf>
+      </div>
+    </div>
+  );
 }
 
 export default function Startseite() {
@@ -137,6 +161,7 @@ export default function Startseite() {
               {/* Abrufen oder Karteikarten — einstellbar unter Lernen (26.11.2026). */}
               {einstellungen.startseiteModus === "karteikarten"
                 ? <StartKarten /> : <AbrufEinstieg startseite />}
+              <Nachpruefung />
             </div>
           )}
 

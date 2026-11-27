@@ -13,9 +13,11 @@
  * kann, ist von Willkür nicht zu unterscheiden.
  */
 
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
-import { fehlerListe, von as fehlerVon, schluessel as fehlerSchluessel } from "../core/fehler.js";
+import {
+  fehlerListe, von as fehlerVon, schluessel as fehlerSchluessel, sicherAberFalschGestern,
+} from "../core/fehler.js";
 import { baueFragen, UMFAENGE, fachGewicht } from "../core/mischen.js";
 import { ordnerZweig } from "../core/model.js";
 import { seitenFuer, sprachenFuer, ModusRahmen, Seite, Ergebnis } from "./gemeinsam.jsx";
@@ -47,7 +49,11 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
     einstellungen, uebungVerbuchen, sitzungMerken, karteAendern,
   } = useDaten();
 
-  const [umfang, setUmfang] = useState(20);
+  /* „Gestern sicher, aber falsch“ (von der Startseite): genau diese Karten,
+     alle, sofort — eine kleine Übungsrunde ohne Terminwirkung. */
+  const nachpruefung = useMemo(() => (bereichArt === "nachpruefung"
+    ? fehlerSchluessel(sicherAberFalschGestern(reviews, { karten })) : null), [bereichArt]);
+  const [umfang, setUmfang] = useState(nachpruefung?.size || 20);
   const [eigeneZahl, setEigeneZahl] = useState("");
   const [gewichten, setGewichten] = useState(true);
   /*
@@ -62,7 +68,8 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
 
   const [bereich, setBereich] = useState(bereichArt === "fehler"
     ? { art: "fehler", id: bereichId, schluessel: fehlerSatz }
-    : { art: bereichArt, id: bereichId });
+    : nachpruefung ? { art: "fehler", id: null, schluessel: nachpruefung }
+      : { art: bereichArt, id: bereichId });
   const [runde, setRunde] = useState(null);
 
   const [nummer, setNummer] = useState(0);
@@ -89,6 +96,11 @@ export default function Fragen({ bereichArt = "alles", bereichId = null, aufSchl
     setNummer(0); setEingabe(""); setAuf(false); setErgebnisse([]);
     setBegonnen(Date.now());
   };
+
+  /* Die Nachprüfung beginnt gleich — es gibt nichts zu wählen. */
+  useEffect(() => {
+    if (nachpruefung?.size && !runde) losgehen();
+  }, []);
 
   /* --------------------------- Die Auswahl ----------------------------- */
 

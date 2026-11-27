@@ -149,3 +149,25 @@ test("die Zahl in der Seitenleiste ist die Zahl im Heft (27.11.2026)", async () 
   assert.equal(fehlerZahlKurz(reviews, { zeitraum: "alles", jetzt, karten }), 3);
   assert.equal(nurVorhandene(fehlerListe(reviews, { seit: 0 }), karten).length, 3);
 });
+
+test("Nachprüfung: gestern sicher, aber falsch — bis es heute einmal geübt ist", async () => {
+  const { sicherAberFalschGestern } = await import("../src/core/fehler.js");
+  const jetzt = new Date(2026, 10, 27, 15).getTime();
+  const gesternMittag = new Date(2026, 10, 26, 12).getTime();
+  const r = (cardId, zeit, bewertung, konfidenz, richtung = "td") => ({
+    id: cardId + zeit + richtung, cardId, richtung, bewertung, konfidenz, flag: "normal", antwortzeit: 5000, zeit,
+  });
+  const reviews = [
+    r("a", gesternMittag, 1, 1),           // sicher, aber falsch
+    r("b", gesternMittag, 1, 1),           // ebenso, heute aber geübt (gewusst)
+    r("b", jetzt - 3600000, 3, null),
+    r("f", gesternMittag, 1, 1),           // ebenso, heute geübt, wieder falsch: auch erledigt
+    r("f", jetzt - 1800000, 1, null),
+    r("c", gesternMittag, 1, 2),           // unsicher und falsch: kein Fall
+    r("d", gesternMittag, 3, 1),           // sicher und richtig: kein Fall
+    r("e", jetzt - 3600000, 1, 1),         // heute, nicht gestern
+  ];
+  const karten = ["a", "b", "c", "d", "e", "f"].map((id) => ({ id }));
+  const liste = sicherAberFalschGestern(reviews, { zeit: jetzt, karten });
+  assert.deepEqual(liste.map((e) => e.cardId), ["a"]);
+});

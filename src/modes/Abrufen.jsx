@@ -226,7 +226,7 @@ export default function Abrufen({
   const daten = useDaten();
   const {
     karten, zustaende, stapelVon: alleStapelVon, faecher, fachVon, einstellungen,
-    abrufVerbuchen, abrufZuruecknehmen, karteAendern, sitzungMerken, stapel, ordner, reviews,
+    abrufVerbuchen, abrufZuruecknehmen, karteAendern, sitzungMerken, stapel, ordner, reviews, erklaerungAnlegen,
   } = daten;
 
   /* Nur bestimmte Ordner des Fachs (core/fachordner.js): Der Sitzungsbau
@@ -302,7 +302,7 @@ export default function Abrufen({
   const alteAntwortzeit = useRef(null);
   useEffect(() => {
     if (!letzte) return undefined;
-    const t = setTimeout(() => setLetzte(null), 10000);
+    const t = setTimeout(() => setLetzte(null), letzte.hinweis ? 16000 : 10000);
     return () => clearTimeout(t);
   }, [letzte]);
 
@@ -633,9 +633,24 @@ export default function Abrufen({
     const sitzungVorher = sitzung;
     setSitzung((alt) => ({ ...alt, aufgaben: liste, wv: wvNeu }));
 
+    /*
+     * Hinweise genau beim ersten Mal (UX-Bericht, 27.11.2026) — statt
+     * Erklärtexten überall. Je Gerät einmal; der wichtigste zuerst.
+     */
+    const sicherFalsch = note === NOTEN.NOCHMAL && konfidenz === KONFIDENZ.SICHER;
+    const stillgelegt = Boolean(verbucht?.zustand?.gesperrt && !verbucht?.vorher?.gesperrt);
+    const hinweis = stillgelegt && erstesMal("stillgelegt")
+      ? "Stillgelegt: Diese Karte ging immer wieder daneben. Sie wartet im Fehlerheft, bis du sie überarbeitest."
+      : sicherFalsch && erstesMal("sicher-falsch")
+        ? "Sicher, aber falsch: die teuerste Sorte. Morgen fragt Anchor sie zur Probe noch einmal nach."
+        : note === NOTEN.NOCHMAL && erstesMal("nochmal")
+          ? "Nicht gewusst: Die Karte kommt in dieser Runde nach ein paar Karten wieder."
+          : null;
+
     setLetzte({
       verbucht, aufgabe, stelle, note, konfidenz, eingabe, antwortzeit,
       schrittErgebnisse, schrittNr, sitzungVorher, erinnert: erinnert.current,
+      hinweis, sicherFalsch,
     });
 
     const naechste = liste[stelle + 1];
@@ -883,10 +898,29 @@ export default function Abrufen({
   }
 
   /* Die Leiste zum Zurücknehmen, unten am Rand. */
+  /*
+   * „Warum lag ich falsch?“ nach „sicher, aber falsch“: öffnet Erklären mit
+   * dieser Karte als Thema (Selbsterklärung, UX-Bericht). Die Runde bleibt
+   * offen und wartet über der Navigierleiste.
+   */
+  const warumFalsch = async () => {
+    const l = letzte;
+    if (!l?.aufgabe) return;
+    const t = aufgabeTeile(l.aufgabe.karte, l.aufgabe.richtung);
+    const frage = (t.frage || (t.stuecke || []).map((x) => x.text).join("") || l.aufgabe.karte.term || "").trim();
+    const thema = "Warum? " + (frage.length > 140 ? frage.slice(0, 137) + " …" : frage);
+    const x = await erklaerungAnlegen({ thema, subjectId: l.aufgabe.fachId || null, setId: l.aufgabe.karte.setId });
+    if (x?.id) gehe("/erklaeren/" + x.id);
+  };
+
   const rueckgaengigLeiste = letzte && (
-    <div className="rueckgaengig-leiste" role="status">
+    <div className={"rueckgaengig-leiste" + (letzte.hinweis ? " mit-hinweis" : "")} role="status">
       <span><strong>{NOTEN_NAMEN[letzte.note]}</strong> verbucht</span>
+      {letzte.sicherFalsch && (
+        <Knopf art="klein" symbol="schreiben" onClick={warumFalsch}>Warum lag ich falsch?</Knopf>
+      )}
       <Knopf art="klein" symbol="zurueckSetzen" onClick={rueckgaengig}>Rückgängig</Knopf>
+      {letzte.hinweis && <span className="rueckgaengig-hinweis klein">{letzte.hinweis}</span>}
     </div>
   );
 

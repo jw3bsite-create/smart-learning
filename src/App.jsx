@@ -486,9 +486,10 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
   else if (teile[0] === "quizlet") inhalt = <QuizletUebernahme daten={teile[1] || ""} />;
   else if (teile[0] === "fragen")
     inhalt = <Fragen
-      bereichArt={teile[1] === "fehler" ? "fehler" : teile[1] ? "fach" : "alles"}
-      bereichId={teile[1] === "fehler" ? (teile[2] || null) : (teile[1] || null)}
-      aufSchliessen={() => zurueck(teile[1] === "fehler" ? "/fehler" : "/")} />;
+      bereichArt={teile[1] === "fehler" ? "fehler" : teile[1] === "nachpruefung" ? "nachpruefung"
+        : teile[1] ? "fach" : "alles"}
+      bereichId={teile[1] === "fehler" ? (teile[2] || null) : teile[1] === "nachpruefung" ? null : (teile[1] || null)}
+      aufSchliessen={() => zurueck(teile[1] === "fehler" ? "/fehler" : teile[1] === "nachpruefung" ? START : "/")} />;
 
   return (
     <div className="huelle">
