@@ -40,6 +40,8 @@ import {
 } from "../core/wiedervorlage.js";
 import { useStoppuhr } from "../ui/stoppuhr.js";
 import { uebernehmen, uebergabeErledigt } from "../ui/uebergang.js";
+import { rundeSchnappschuss, rundeGilt, rundeWiederherstellen } from "../core/runde.js";
+import { rundeLaden, rundeSpeichern, rundeLoeschen } from "../ui/runde.js";
 import { ANTWORTFELD, NOTEN_SINN, useUntereinander, useTippSchutz, erstesMal } from "../ui/bedienung.js";
 import { ganzesFach, stapelDerKlausur, gewichtNachKlausur } from "../core/klausuren.js";
 import { abrufStapel, OBEN } from "../core/fachordner.js";
@@ -231,6 +233,23 @@ export default function Abrufen({
      sieht dann nur deren Stapel. Die übrigen fälligen Karten bleiben fällig. */
   /* Oder nur bestimmte Stapel (vom Nutzer entschieden am 19. November 2026). */
   const auswahlSchluessel = (ordnerAuswahl || []).join(",") + "|" + (stapelAuswahl || []).join(",");
+
+  /*
+   * Die laufende Runde lebt nicht nur auf dem Bildschirm (core/runde.js,
+   * UX-Bericht 27.11.2026): Gibt es für genau diesen Ort eine gespeicherte
+   * von heute, geht es dort weiter — nach Zurück, Reiterwechsel, Neuladen.
+   * Ein Einstieg mit einer bestimmten Karte (Startseite, Stapel) beginnt
+   * immer eine neue.
+   */
+  const rundenBasis = (fachId || "") + "|" + (alleFaecher ? "alle" : "") + "|" + auswahlSchluessel;
+  const rundenWeg = "/abrufen" + (alleFaecher ? "/alle" : fachId ? "/" + fachId
+    + (ordnerAuswahl ? "/ordner/" + ordnerAuswahl.join(",") : stapelAuswahl ? "/stapel/" + stapelAuswahl.join(",") : "")
+    : "");
+  const [vorher] = useState(() => {
+    const gespeichert = rundeLaden();
+    return !startSchluessel && rundeGilt(gespeichert, { basis: rundenBasis }) ? gespeichert : null;
+  });
+  const rundenId = useRef(vorher?.id || null);
   const erlaubt = useMemo(() => {
     if (stapelAuswahl && fachId) return new Set(stapelAuswahl);
     return ordnerAuswahl && fachId ? abrufStapel(stapel, ordner, fachId, ordnerAuswahl) : null;
@@ -264,7 +283,7 @@ export default function Abrufen({
   const [gewaehlteFaecher, setGewaehlteFaecher] = useMerker("interleaving:faecher", []);
   const [herkunftVerbergen, setHerkunftVerbergen] = useMerker("interleaving:verbergen", true);
   /* „alle“ (von der Startseite): alle Fächer, ohne die Fächerwahl davor. */
-  const [gestartet, setGestartet] = useState(Boolean(fachId) || alleFaecher);
+  const [gestartet, setGestartet] = useState(Boolean(fachId) || alleFaecher || Boolean(vorher));
   const faecherAuswahl = fachId || alleFaecher ? null : gewaehlteFaecher;
   // Mehrschritt-Karten: welcher Schritt ist dran, und wie lief es bisher?
   const [schrittNr, setSchrittNr] = useState(0);
@@ -291,11 +310,12 @@ export default function Abrufen({
 
   /* Endspurt: in den letzten Tagen vor dem Termin lässt sich der ganze Stoff
      durchgehen, ohne dass es den Plan verstellt. */
-  const [cram, setCram] = useState(false);
+  const [cram, setCram] = useState(Boolean(vorher?.cram));
   const [vorgabeGroesse, setVorgabeGroesse] = useMerker("abrufGroesse", "mittel");
   /* Aus dem Stapel mit schon gewählter Einschätzung: keine Größenwahl
      dazwischen, die zuletzt gewählte gilt. */
-  const [groesse, setGroesse] = useState(() => (startSchluessel ? vorgabeGroesse : null));
+  const [groesse, setGroesse] = useState(() => (vorher ? vorher.groesse || (vorher.cram ? null : vorgabeGroesse)
+    : startSchluessel ? vorgabeGroesse : null));
   const restTage = tageBisPruefung(fach);
   const cramMoeglich = restTage !== null && restTage >= 0 && restTage <= CRAM_AB_TAGEN;
   /* Der Endspurt vor einer Klausur nimmt nur deren Stapel (core/klausuren.js),
@@ -342,6 +362,7 @@ export default function Abrufen({
   /* Weitermachen, wenn alles durch ist. */
   const weitereEingaben = { karten, zustaende, stapelVon, fach, faecherIds: faecherAuswahl };
   const neuBeginnen = (s) => {
+    rundenId.current = null;
     setSitzung(s); setStelle(0); setPhase("konfidenz"); setKonfidenz(null); setEingabe("");
     setErgebnisse([]); setFertig(false); schritteZuruecksetzen();
     beginn.current = Date.now();
@@ -352,6 +373,7 @@ export default function Abrufen({
      der Knopf nur den Schalter um, und die leere Seite blieb stehen. */
   const endspurt = () => {
     if (!fach) return;
+    rundenId.current = null;
     setCram(true);
     setSitzung(baueCramSitzung({ karten, zustaende, stapelVon: cramStapelVon, fach, umfang: 40 }));
     setStelle(0); setPhase("konfidenz"); setKonfidenz(null); setEingabe("");
@@ -362,7 +384,26 @@ export default function Abrufen({
   /* Die Warteschlange wird einmal beim Betreten gebaut — was während der
      Sitzung fällig wird, kommt erst beim nächsten Mal dran. */
   useEffect(() => {
-    if (!gestartet || !groesse) return;
+    if (!gestartet || (!groesse && !vorher)) return;
+    /* Die gespeicherte Runde von heute, genau hier — wiederholbar, falls
+       React den Effekt zweimal ausführt (Fallstrick 75). */
+    if (vorher) {
+      const zurueck = rundeWiederherstellen(vorher, { karten, zustaende, stapelVon: cram ? cramStapelVon : stapelVon });
+      if (zurueck) {
+        wiederherstellen.current = vorher.erinnert ?? null;
+        setSitzung(zurueck);
+        setStelle(vorher.stelle); setPhase(vorher.phase || "konfidenz");
+        setKonfidenz(vorher.konfidenz ?? null); setEingabe(vorher.eingabe || "");
+        setSchrittNr(vorher.schrittNr || 0); setSchrittErgebnisse(vorher.schrittErgebnisse || []);
+        setErgebnisse(vorher.ergebnisse || []); setFertig(false);
+        beginn.current = Date.now();
+        return;
+      }
+      /* Nicht mehr herstellbar (eine Karte fehlt): neu beginnen. */
+      rundenId.current = null;
+      if (!groesse) { setCram(false); return; }
+    }
+    rundenId.current = null;               // eine neue Runde bekommt eine neue Kennung
     let neu = sitzungBauen();
     /* Aus dem Stapel: die Karte, deren Frage dort stand, zuerst — mit der
        Einschätzung, die dort schon gewählt wurde. */
@@ -478,6 +519,26 @@ export default function Abrufen({
     }
   }, [sitzung, stelle]);
   const [problemKarte, setProblemKarte] = useState(null);
+
+  /* Nach jeder Handlung festhalten — für „Fortsetzen“ über der
+     Navigierleiste und fürs Weitermachen nach Zurück oder Neuladen. Steht
+     hinter den Uhr-Effekten, damit die gemessene Erinnerungszeit mitgeht.
+     Ist die Runde fertig, verschwindet sie. */
+  useEffect(() => {
+    if (!gestartet || !sitzung?.aufgaben?.length) return;
+    if (fertig) {
+      if (rundenId.current) rundeLoeschen(rundenId.current);
+      return;
+    }
+    if (!rundenId.current) rundenId.current = "r" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    rundeSpeichern(rundeSchnappschuss({
+      id: rundenId.current, basis: rundenBasis, weg: rundenWeg,
+      titel: fach ? "Abrufen — " + fach.name : alleFaecher ? "Abrufen — alle Fächer" : "Abrufen",
+      sitzung, stelle, phase, konfidenz, eingabe, schrittNr, schrittErgebnisse, ergebnisse,
+      groesse, cram, erinnert: erinnert.current,
+    }));
+  }, [gestartet, sitzung, stelle, phase, konfidenz, eingabe, schrittNr, schrittErgebnisse, ergebnisse, fertig,
+    cram, groesse]);
 
   /* ------------------------------ Handgriffe ---------------------------- */
 

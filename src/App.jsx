@@ -25,6 +25,7 @@ import Startseite from "./ui/Startseite.jsx";
 import { wegGesetzt } from "./ui/uebergang.js";
 import MenueStreifen, { VerlaufKnoepfe } from "./ui/MenueStreifen.jsx";
 import ErstellenBlatt from "./ui/Erstellen.jsx";
+import RundenLeiste from "./ui/RundenLeiste.jsx";
 import Zeitmesser from "./ui/Zeitmesser.jsx";
 import { Ladefehler, Hinweisleiste } from "./ui/Meldungen.jsx";
 import Auffanglinie from "./ui/Auffanglinie.jsx";
@@ -515,6 +516,8 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
       )}
       {erstellt && <ErstellenBlatt fachId={teile[0] === "fach" ? teile[1] : null}
         aufSchliessen={() => setErstellt(false)} />}
+      {/* Eine offene Abrufen-Runde: „Fortsetzen“ über der Navigierleiste. */}
+      <RundenLeiste weg={teile} />
       <Fussleiste weg={teile} faellig={offen?.gesamt || 0} welle={pfeile === "unten"}
         skala={einstellungen.verlaufPfeileGroesse} groesse={einstellungen.navGroesse}
         vereint={vereint} aufErstellen={() => setErstellt(true)}

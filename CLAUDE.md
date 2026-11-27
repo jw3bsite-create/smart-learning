@@ -678,6 +678,22 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
       und leerem Feld fragt einmal je Gerät nach (`erstesMal`).
     - +-Knopf: Seiten mit ihm haben unten Platz für ihn (`.mit-plus`), beim
       Scrollen nach unten tritt er beiseite.
+93. **Die Runde lebt nicht auf dem Bildschirm** (`core/runde.js`,
+    `ui/runde.js`, `ui/RundenLeiste.jsx`, 27.11.2026). Das Abrufen schreibt
+    nach jeder Handlung einen Schnappschuss (nur Schlüssel und Zustände,
+    keine Karten) nach `kk:abrufRunde`; beim Öffnen desselben Orts
+    (`rundenBasis`: Fach, alle, Auswahl) am selben Lerntag geht es dort
+    weiter, sonst wie immer. Ein Einstieg mit Startkarte beginnt neu. Fehlt
+    beim Wiederherstellen eine Karte, beginnt lieber eine neue Runde als
+    eine halbe. Fertig → Schnappschuss weg. Das Speichern steht **hinter**
+    den Uhr-Effekten, damit die Erinnerungszeit mitgeht; jede neue Sitzung
+    (`neuBeginnen`, Endspurt, Neubau) bekommt eine neue `rundenId`.
+    Solange eine Runde offen ist, steht über der Navigierleiste „Abrufen ·
+    7 von 20 · Fortsetzen“ (`.mit-runde` schafft Platz); das Kreuz beendet
+    sie mit Rückfrage. `test/runde.test.js`.
+    Ebenso gemerkt: Karteikarten je Stapel (`kk:karteikarten:<id>`, neu bei
+    anderer Kartenauswahl, vergessen am Ende) und der Lernsnack
+    (`kk:snack`: Bewertetes je Lerntag, Zähler 30 Minuten).
 
 ## Stapel aus Lernmaterial (im Chat)
 

@@ -1757,6 +1757,35 @@ html.zieht { cursor: grabbing; }
 .wackelt { animation: wackeln 0.3s; }
 @media (prefers-reduced-motion: reduce) { .schutz-ein, .wackelt { animation: none; } }
 
+/*
+ * „Abrufen · 7 von 20 · Fortsetzen“ (ui/RundenLeiste.jsx): am Handy über
+ * der Navigierleiste und ihrer Ausbuchtung, am PC unten in der Mitte.
+ * Seiten und +-Knopf rücken darüber (`.mit-runde`).
+ */
+.runden-leiste { position: fixed; z-index: 42; display: flex; align-items: stretch; gap: 0;
+  left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: calc(66px * var(--nav-skala, 1) + 40px + env(safe-area-inset-bottom, 0px));
+  border: 1px solid var(--akzent); border-radius: calc(var(--rund) * 0.9); background: var(--grund-2);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.28); overflow: hidden; animation: tafel-auf calc(var(--wechsel) * 1.5) ease-out; }
+@media (min-width: 861px) {
+  .runden-leiste { left: 50%; right: auto; bottom: 18px; width: min(560px, calc(100% - 340px));
+    transform: translateX(-10%); }
+}
+.runden-leiste-haupt { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 52px;
+  padding: 8px 12px; border: 0; background: none; color: var(--schrift); font: inherit; text-align: left; cursor: pointer; }
+.runden-leiste-mitte { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.runden-leiste-titel { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.runden-leiste-balken { display: block; height: 4px; border-radius: 999px; background: var(--grund-3); overflow: hidden; }
+.runden-leiste-balken > span { display: block; height: 100%; background: var(--akzent);
+  transition: width calc(var(--wechsel) * 4) ease-out; }
+.runden-leiste-los { color: var(--akzent); font-size: 14px; white-space: nowrap; }
+.runden-leiste-zu { flex: none; width: 46px; border: 0; border-left: 1px solid var(--rand); background: none;
+  color: var(--schrift-matt); cursor: pointer; display: grid; place-items: center; }
+@media (max-width: 860px) {
+  .mit-runde .mitte { padding-bottom: calc(96px * var(--nav-skala, 1) + 20px + 70px + 64px + env(safe-area-inset-bottom, 0px)); }
+  .mit-runde .plus-knopf { bottom: calc(66px * var(--nav-skala, 1) + 40px + 64px + env(safe-area-inset-bottom, 0px)); }
+}
+
 /* Fächerseite: die nächsten 30 Tage als Balken (Höhe = fällige Karten). */
 .vorschau-balken { display: flex; align-items: flex-end; gap: 2px; height: 40px; }
 .vorschau-balken > i { flex: 1; min-width: 0; border-radius: 2px 2px 0 0; background: var(--akzent);

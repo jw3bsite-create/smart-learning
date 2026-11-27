@@ -31,11 +31,22 @@ import {
 
 export default function Karteikarten({ setId, aufSchliessen }) {
   const { derStapel, karten, karteAendern, antwortVerbuchen, einstellungen, sitzungMerken, reviews } = useModus(setId);
-  const [richtung, setRichtung] = useState("td");
-  const [nurMarkierte, setNurMarkierte] = useState(false);
-  const [gemischt, setGemischt] = useState(false);
-  const [stelle, setStelle] = useState(0);
-  const [urteile, setUrteile] = useState([]);   // für den Balken oben
+  /*
+   * Die Stelle im Stapel bleibt (UX-Bericht, 27.11.2026): wie bei „Lernen“
+   * je Stapel im Gerät gemerkt — Reihenfolge, Wiedervorlagen, Balken und
+   * die Abfrage-Einstellungen. Hat sich die Auswahl der Karten geändert,
+   * beginnt es neu (siehe `wvAuswahl` unten); ist der Stapel durch, wird
+   * vergessen.
+   */
+  const speicher = "kk:karteikarten:" + setId;
+  const [gespeichert] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(speicher)) || null; } catch (e) { return null; }
+  });
+  const [richtung, setRichtung] = useState(gespeichert?.richtung || "td");
+  const [nurMarkierte, setNurMarkierte] = useState(Boolean(gespeichert?.nurMarkierte));
+  const [gemischt, setGemischt] = useState(Boolean(gespeichert?.gemischt));
+  const [stelle, setStelle] = useState(gespeichert?.stelle || 0);
+  const [urteile, setUrteile] = useState(gespeichert?.urteile || []);   // für den Balken oben
   const [gedreht, setGedreht] = useState(false);
   const [selbstlauf, setSelbstlauf] = useState(false);
   const [problemBearbeitet, setProblemBearbeitet] = useState(null);
@@ -53,12 +64,21 @@ export default function Karteikarten({ setId, aufSchliessen }) {
      markiert oder bearbeitet wird, sonst finge man von vorn an. */
   const auswahl = brauchbare.map((k) => k.id).join(",") + (gemischt ? ":gemischt" : "");
   const neueSitzung = () => sitzungBeginnen((gemischt ? mische(brauchbare) : brauchbare).map((k) => k.id));
-  const [wv, setWv] = useState(neueSitzung);
-  const [wvAuswahl, setWvAuswahl] = useState(auswahl);
+  /* Gemerkt war die Auswahl von damals: Stimmt sie nicht mehr, greift
+     gleich unten der Neubeginn. */
+  const [wv, setWv] = useState(() => (gespeichert?.wv?.folge?.length ? gespeichert.wv : neueSitzung()));
+  const [wvAuswahl, setWvAuswahl] = useState(gespeichert?.wv ? gespeichert.auswahl : auswahl);
   if (wvAuswahl !== auswahl) {
     setWvAuswahl(auswahl); setWv(neueSitzung()); setStelle(0); setGedreht(false); setFertig(false);
     setUrteile([]);
   }
+
+  useEffect(() => {
+    try {
+      if (fertig) localStorage.removeItem(speicher);
+      else localStorage.setItem(speicher, JSON.stringify({ auswahl, gemischt, richtung, nurMarkierte, wv, stelle, urteile }));
+    } catch (e) { /* voll oder gesperrt: dann eben nicht */ }
+  }, [fertig, auswahl, gemischt, richtung, nurMarkierte, wv, stelle, urteile]);
   const eintrag = wv.folge[stelle];
   const karte = eintrag ? nachId.get(eintrag.id) : null;
   const reihe = brauchbare;

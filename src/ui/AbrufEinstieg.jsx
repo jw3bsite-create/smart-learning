@@ -28,7 +28,7 @@ import { gewichtNachKlausur } from "../core/klausuren.js";
 import { seitenFuer } from "../core/kartenseiten.js";
 import { KONFIDENZ, NOTEN, NOTEN_NAMEN } from "../core/fsrs.js";
 import { gleichwertig } from "../core/text.js";
-import { anzahl } from "../core/util.js";
+import { anzahl, tagesSchluessel } from "../core/util.js";
 import { gehe } from "../App.jsx";
 import { wachsend, uebergeben } from "./uebergang.js";
 import { Symbol, Sinnbild, Knopf, Bild, Menue, MenuePunkt, useMerker } from "./basis.jsx";
@@ -62,8 +62,26 @@ const LEER = { schluessel: null, phase: "konfidenz", konfidenz: null, eingabe: "
  * ohne Bewertung beginnt ein neuer Snack.
  */
 const SNACK_GILT = 30 * 60000;
-const snack = { geschafft: 0, erledigt: new Set(), zeit: 0 };
-const snackFrisch = () => Date.now() - snack.zeit < SNACK_GILT;
+const SNACK_SPEICHER = "kk:snack";
+/* Im Gerät gemerkt, damit es auch ein Neuladen übersteht (UX-Bericht):
+   Bewertetes je Lerntag, der Zähler eine halbe Stunde nach der letzten
+   Bewertung. */
+function snackLaden() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SNACK_SPEICHER));
+    if (s && s.lerntag === tagesSchluessel()) {
+      return { geschafft: Date.now() - (s.zeit || 0) < SNACK_GILT ? s.geschafft || 0 : 0,
+        erledigt: new Set(s.erledigt || []) };
+    }
+  } catch (e) { /* nichts gemerkt */ }
+  return { geschafft: 0, erledigt: new Set() };
+}
+function snackSpeichern(geschafft, erledigt) {
+  try {
+    localStorage.setItem(SNACK_SPEICHER, JSON.stringify({
+      lerntag: tagesSchluessel(), zeit: Date.now(), geschafft, erledigt: [...erledigt] }));
+  } catch (e) { /* voll oder gesperrt */ }
+}
 
 /* Länger als eine Minute vor einer Karte zu sitzen heißt: Es lief etwas
    anderes nebenher. Solche Zeiten verderben die Mediane (Fallstrick 70). */
@@ -165,8 +183,9 @@ function Lernsnack() {
   const untereinander = useUntereinander();
 
   const [groesse, setGroesse] = useMerker("snackGroesse", 5);
-  const [erledigt, setErledigt] = useState(() => (snackFrisch() ? snack.erledigt : new Set()));
-  const [geschafft, setGeschafft] = useState(() => (snackFrisch() ? snack.geschafft : 0));
+  const [anfang] = useState(snackLaden);
+  const [erledigt, setErledigt] = useState(anfang.erledigt);
+  const [geschafft, setGeschafft] = useState(anfang.geschafft);
   const [stand, setStand] = useState(() => (Date.now() - wahl.zeit < WAHL_GILT && wahl.stand) || LEER);
   const beginn = useRef(Date.now());
   const bewertet = useRef(false);
@@ -221,9 +240,11 @@ function Lernsnack() {
     wahl.zeit = Date.now();
   }, [stand]);
 
+  /* Nur nach echten Änderungen schreiben, nicht schon beim Öffnen. */
+  const ersterLauf = useRef(true);
   useEffect(() => {
-    snack.geschafft = geschafft;
-    snack.erledigt = erledigt;
+    if (ersterLauf.current) { ersterLauf.current = false; return; }
+    snackSpeichern(geschafft, erledigt);
   }, [geschafft, erledigt]);
 
   /* Beim Tippen steht der Zeiger im Feld — tippen, ohne zu zielen. */
@@ -273,7 +294,6 @@ function Lernsnack() {
        sofort erneut da. Im großen Abrufen regelt das die Wiedervorlage. */
     setErledigt((alt) => new Set(alt).add(schluessel));
     setGeschafft((n) => n + 1);
-    snack.zeit = Date.now();
     setStand(LEER);
     wahl.stand = null;
     gemerkt.current = null;
