@@ -75,6 +75,11 @@ export function baueSitzung({
 }) {
   const faellige = [];
   const neue = [];
+  /* Ohne Fachwahl: nur Stapel eines vorhandenen Fachs. Stapel ohne Fach
+     kommen im Abrufen nicht vor (so steht es auf der Fächerseite); vorher
+     zogen die Startseite und „alle Fächer“ sie trotzdem mit, und keine Zahl
+     der App passte dazu (27.11.2026). */
+  const bekannt = !fach && faecherVon ? new Set(faecherVon().map((f) => f.id)) : null;
 
   for (const karte of karten) {
     // Abgehaktes zählt nirgends mit — weder in der Warteschlange noch
@@ -83,6 +88,7 @@ export function baueSitzung({
     const stapel = stapelVon(karte.setId);
     if (!stapel || ruht(stapel)) continue;               // ruhende Stapel kommen nicht dran
     const fachId = stapel.subjectId || null;
+    if (!fachId || (bekannt && !bekannt.has(fachId))) continue;
     if (fach && fachId !== fach.id) continue;
     // Beim Verschachteln über mehrere Fächer: nur die gewählten.
     if (faecherIds && faecherIds.length && !faecherIds.includes(fachId)) continue;
@@ -101,19 +107,35 @@ export function baueSitzung({
   // ist am ehesten vergessen.
   faellige.sort((a, b) => (a.zustand?.due || 0) - (b.zustand?.due || 0));
 
+  /* Neue Karten: je Fach höchstens, was sein Tageslimit heute noch zulässt.
+     Früher galt ohne Fachwahl die *Summe* der Limits — hatte ein Fach kaum
+     neue Karten, ging sein ungenutzter Rest an die anderen, und ein Fach
+     bekam über „alle Fächer“ mehr neue, als sein eigenes Limit erlaubt.
+     Die Zahlen je Fach passten dann nicht zur Summe (27.11.2026). */
+  const eingefuehrt = (fachId) => heuteEingefuehrt(Object.values(zustaende), fachId, zeit);
+  const frei = (f) => Math.max(0, (Number(f.neuProTag) || 0) - eingefuehrt(f.id));
+  const ziehen = (liste, anzahl) => (gewicht ? gewichtetZiehen(liste, anzahl, gewicht, zufall)
+    : mische(liste).slice(0, anzahl));
   let neuErlaubt = 0;
+  let genommenNeu = [];
   if (!nurWiederholung) {
     if (fach) {
-      const limit = Number(fach.neuProTag) || 0;
-      neuErlaubt = Math.max(0, limit - heuteEingefuehrt(Object.values(zustaende), fach.id, zeit));
+      neuErlaubt = frei(fach);
+      genommenNeu = ziehen(neue, neuErlaubt);
     } else {
-      // Ohne Fachwahl gilt die Summe der Einzellimits.
+      const jeFach = new Map();
+      for (const n of neue) {
+        if (!jeFach.has(n.fachId)) jeFach.set(n.fachId, []);
+        jeFach.get(n.fachId).push(n);
+      }
       for (const f of faecherVon()) {
         if (faecherIds && faecherIds.length && !faecherIds.includes(f.id)) continue;
-        const limit = Number(f.neuProTag) || 0;
-        neuErlaubt += Math.max(0, limit -
-          heuteEingefuehrt(Object.values(zustaende), f.id, zeit));
+        const erlaubt = frei(f);
+        neuErlaubt += erlaubt;
+        genommenNeu.push(...ziehen(jeFach.get(f.id) || [], erlaubt));
       }
+      /* Gemischt, damit beim Auffüllen kleiner Runden kein Fach vorn steht. */
+      genommenNeu = gewicht ? gewichtetReihen(genommenNeu, gewicht, zufall) : mische(genommenNeu);
     }
   }
 
@@ -121,8 +143,6 @@ export function baueSitzung({
      gewichtet zufällig gezogen statt streng nach Überfälligkeit — so kommen
      die Karten der nächsten Klausur häufiger dran, ohne dass etwas Fälliges
      verloren geht: Was diesmal nicht gezogen wird, bleibt fällig. */
-  const genommenNeu = gewicht ? gewichtetZiehen(neue, Math.max(0, neuErlaubt), gewicht, zufall)
-    : mische(neue).slice(0, Math.max(0, neuErlaubt));
   const genommenFaellig = gewicht ? gewichtetZiehen(faellige, umfang, gewicht, zufall)
     : faellige.slice(0, umfang);
 
@@ -141,6 +161,27 @@ export function baueSitzung({
     neu: neue.length,
     neuHeuteMoeglich: neuErlaubt,
   };
+}
+
+/**
+ * Was heute im Abrufen dran ist — **die** Zahl für alle Stellen, die sagen,
+ * wie viel wartet (Navigierleiste, Startseite, „Alles abrufen“, Fachseite).
+ *
+ * Gerechnet wird mit der Sitzung selbst, damit jede Zahl zu dem passt, was
+ * das Abrufen dann bringt: alles Fällige und neue Karten bis zum Tageslimit.
+ * Vorher zählte die Startseite alle nie gesehenen Karten mit (101 „offen“),
+ * „Alles abrufen“ rechnete mit einer festen 20, das Abrufen selbst mit dem
+ * Limit — drei Zahlen für dieselbe Sache (27.11.2026).
+ *
+ * `neu`        so viele neue kommen heute (nach dem Tageslimit)
+ * `ungesehen`  alle nie gesehenen, auch die für die nächsten Tage
+ */
+export function heuteAnstehend({
+  karten, zustaende, stapelVon, faecherVon, fach = null, faecherIds = null, zeit = Date.now(),
+}) {
+  const s = baueSitzung({ karten, zustaende, stapelVon, faecherVon, fach, faecherIds, umfang: Infinity, zeit });
+  const gesamt = s.aufgaben.length;
+  return { gesamt, faellig: s.faellig, neu: gesamt - s.faellig, ungesehen: s.neu };
 }
 
 /**
@@ -167,21 +208,25 @@ export function gewichtetReihen(liste, gewicht, zufall = Math.random) {
 /** Was in einem Fach ansteht — für die Übersicht. */
 export function fachZaehlung(karten, zustaende, stapelVon, fachId, zeit = Date.now()) {
   let faellig = 0, neu = 0, gesperrt = 0, gesamt = 0;
+  /* „hängt“ zählt Karten — wie das Fehlerheft. Hängen beide Richtungen
+     einer Karte, ist es trotzdem eine (vorher 10 hier, 6 dort). */
+  const gesperrteKarten = new Set();
   for (const karte of karten) {
     // Abgehaktes zählt nirgends mit — weder in der Warteschlange noch
     // in den Zahlen darüber.
     if (!istRelevant(karte)) continue;
     const stapel = stapelVon(karte.setId);
     if (!stapel || ruht(stapel) || (fachId && stapel.subjectId !== fachId)) continue;
+    if (!fachId && !stapel.subjectId) continue;          // ohne Fach nie im Abrufen
     for (const richtung of richtungenFuer(karte, stapel)) {
       const z = zustaende[karte.id + ":" + richtung];
       gesamt += 1;
-      if (z?.gesperrt) gesperrt += 1;
+      if (z?.gesperrt) { gesperrt += 1; gesperrteKarten.add(karte.id); }
       else if (istNeu(z)) neu += 1;
       else if (istFaellig(z, zeit)) faellig += 1;
     }
   }
-  return { faellig, neu, gesperrt, gesamt };
+  return { faellig, neu, gesperrt, gesamt, gesperrtKarten: gesperrteKarten.size };
 }
 
 /**
@@ -359,6 +404,7 @@ export function baueWeitere({
     const stapel = stapelVon(karte.setId);
     if (!stapel || ruht(stapel)) continue;
     const fachId = stapel.subjectId || null;
+    if (!fachId) continue;                       // ohne Fach nie im Abrufen
     if (fach && fachId !== fach.id) continue;
     if (faecherIds && faecherIds.length && !faecherIds.includes(fachId)) continue;
     for (const richtung of richtungenFuer(karte, stapel)) {

@@ -13,7 +13,7 @@ import { zurueck as zurueckNach } from "../App.jsx";
 import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import {
-  ZEITRAEUME, von, fehlerListe, sortiere, nurFach, nurUeberschaetzt, nachFach, zahlen,
+  ZEITRAEUME, von, fehlerListe, sortiere, nurFach, nurUeberschaetzt, nachFach, zahlen, nurVorhandene,
 } from "../core/fehler.js";
 import { richtungName, istRelevant } from "../core/model.js";
 import { rueckfaelleSeitFreigabe } from "../core/fsrs.js";
@@ -49,10 +49,7 @@ export default function Fehlerheft({ fachId = null }) {
 
   /* Karten, die inzwischen gelöscht oder abgehakt sind, gehören nicht ins
      Heft: Sie kommen nirgends mehr dran, und man kann nichts tun. */
-  const vorhanden = useMemo(() => alle.filter((e) => {
-    const k = kartenNachId.get(e.cardId);
-    return k && !k.deleted && k.nichtRelevant !== true;
-  }), [alle, kartenNachId]);
+  const vorhanden = useMemo(() => nurVorhandene(alle, karten), [alle, karten]);
 
   const gefiltert = useMemo(() => {
     let liste = nurFach(vorhanden, fach);
@@ -167,7 +164,8 @@ export default function Fehlerheft({ fachId = null }) {
           <div className="gitter" style={{ gridTemplateColumns:
             "repeat(auto-fit, minmax(150px, 1fr))", marginBottom: 22 }}>
             <div className="zahl-kachel">
-              <div className="reihe klein matt"><Symbol name="kreuz" groesse={15} /> Karten</div>
+              <div className="reihe klein matt" title="Je Abfragerichtung gezählt, wie die Zeilen unten">
+                <Symbol name="kreuz" groesse={15} /> Abfragen</div>
               <div className="zahl">{z.karten}</div>
               <div className="klein blass">{anzahl(z.fehler, "Fehler", "Fehler")} insgesamt</div>
             </div>

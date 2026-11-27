@@ -16,7 +16,7 @@ import React, {
   createContext, useContext, useEffect, useMemo, useRef, useSyncExternalStore,
 } from "react";
 import { erzeugeBestand, STANDARD_EINSTELLUNGEN } from "./bestand.js";
-import { fachZaehlung } from "./warteschlange.js";
+import { heuteAnstehend } from "./warteschlange.js";
 
 export { STANDARD_EINSTELLUNGEN };
 
@@ -65,10 +65,12 @@ export function DatenSpeicher({ children }) {
   }), [kartenNachStapel, stapelNachId, fachNachId]);
 
   /*
-   * Was insgesamt ansteht — eine Zählung für alle Stellen (Seitenleiste,
-   * Tageserinnerung). Gezählt wird über die Karten, nicht über die
-   * Lernstände: Lernstände gelöschter oder abgehakter Karten zählten sonst
-   * mit, und oben stand „12 fällig", während das Abrufen nichts fand.
+   * Was insgesamt ansteht — eine Zählung für alle Stellen (Navigierleiste,
+   * Seitenleiste, Startseite, „Alles abrufen“). Gezählt wird über die
+   * Karten, nicht über die Lernstände: Lernstände gelöschter oder
+   * abgehakter Karten zählten sonst mit, und oben stand „12 fällig", während
+   * das Abrufen nichts fand. Und mit der Rechnung der Sitzung selbst
+   * (`heuteAnstehend`), damit die Zahl zu dem passt, was das Abrufen bringt.
    */
   const offen = useMemo(() => {
     // Stapel ohne Fach kommen im Abrufen nicht vor, also auch nicht hier.
@@ -76,8 +78,8 @@ export function DatenSpeicher({ children }) {
       const s = stapelNachId.get(setId);
       return s && s.subjectId && fachNachId.has(s.subjectId) ? s : null;
     };
-    return fachZaehlung(karten, zustaende, mitFach, null);
-  }, [karten, zustaende, stapelNachId, fachNachId]);
+    return heuteAnstehend({ karten, zustaende, stapelVon: mitFach, faecherVon: () => faecher });
+  }, [karten, zustaende, stapelNachId, fachNachId, faecher]);
 
   const wert = useMemo(() => ({
     ...zustand, faecher, ...aktionen, ...nachschlagen, kartenNachStapel, offen,

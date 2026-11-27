@@ -54,7 +54,7 @@ function Zweig({ ordner, tiefe, aktiv, offen, umschalten, aufAblegen }) {
 export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
   const {
     ordner, stapel, ordnerAnlegen, stapelAnlegen, stapelAendern, wolkeStand,
-    faecher, reviews, offen: anstehend,
+    faecher, reviews, karten, offen: anstehend,
   } = useDaten();
   const [aufgeklappt, setAufgeklappt] = useMerker("aufgeklappt", []);
   const [faecherOffen, setFaecherOffen] = useMerker("faecherOffen", true);
@@ -66,8 +66,14 @@ export default function Seitenleiste({ offen, aufSchliessen, aufAbgleich }) {
   const baum = useMemo(() => baueBaum(allgemeineOrdner(ordner, faecher)), [ordner, faecher]);
   const ohneOrdner = stapel.filter((s) => !s.folderId).length;
 
-  const faellig = anstehend.faellig;
-  const fehlerZahl = useMemo(() => fehlerZahlKurz(reviews), [reviews]);
+  /* Dieselbe Zahl wie am Reiter und im Abrufen selbst: Fälliges plus neue
+     Karten bis zum Tageslimit (core/warteschlange.js, heuteAnstehend). */
+  const faellig = anstehend.gesamt;
+  /* Dieselbe Zahl wie im Fehlerheft: der dort gewählte Zeitraum, nur Karten,
+     die es noch gibt. */
+  const [fehlerZeitraum] = useMerker("fehlerZeitraum", "monat");
+  const fehlerZahl = useMemo(() => fehlerZahlKurz(reviews, { zeitraum: fehlerZeitraum, karten }),
+    [reviews, fehlerZeitraum, karten]);
 
   const umschalten = (id) =>
     setAufgeklappt((alt) => alt.includes(id) ? alt.filter((x) => x !== id) : [...alt, id]);

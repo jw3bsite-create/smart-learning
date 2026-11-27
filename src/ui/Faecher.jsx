@@ -12,7 +12,7 @@ import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { anteileNachStufe } from "../core/fsrs.js";
 import {
-  fachZaehlung, faelligJeTag, lastprognose, pensumPruefen, tageBisPruefung, zustaendeImPlan,
+  fachZaehlung, faelligJeTag, heuteAnstehend, lastprognose, pensumPruefen, tageBisPruefung, zustaendeImPlan,
 } from "../core/warteschlange.js";
 import { kalibrierungJeFach, kalibrierungInWorten } from "../core/kalibrierung.js";
 import { anzahl, datumKurz } from "../core/util.js";
@@ -241,9 +241,19 @@ export default function Faecher() {
       ergebnis[f.id] = fachZaehlung(karten, zustaende, stapelVon, f.id);
     return ergebnis;
   }, [faecher, karten, zustaende, stapelVon]);
+  /* Was heute je Fach drankommt — „neu“ nach dem Tageslimit des Fachs. Die
+     Marke „19 neu“ neben „Abrufen“ versprach sonst Karten, die heute gar
+     nicht kommen. */
+  const heuteJeFach = useMemo(() => {
+    const ergebnis = {};
+    for (const f of faecher)
+      ergebnis[f.id] = heuteAnstehend({ karten, zustaende, stapelVon, faecherVon: () => faecher, fach: f });
+    return ergebnis;
+  }, [faecher, karten, zustaende, stapelVon]);
+  const { offen: heute } = daten;
 
   const gesamt = useMemo(() => {
-    const summe = { faellig: 0, neu: 0, gesperrt: 0, gesamt: 0 };
+    const summe = { faellig: 0, neu: 0, gesperrt: 0, gesperrtKarten: 0, gesamt: 0 };
     for (const z of Object.values(zaehlungen))
       for (const schluessel of Object.keys(summe)) summe[schluessel] += z[schluessel];
     return summe;
@@ -290,9 +300,9 @@ export default function Faecher() {
             Termine in den Kalender
           </Knopf>
           <Knopf symbol="plus" onClick={() => setNeuesFach(true)}>Fach</Knopf>
-          {gesamt.faellig + gesamt.neu > 0 && (
+          {heute.gesamt > 0 && (
             <Knopf art="voll" symbol="blitz" onClick={() => gehe("/abrufen")}>
-              Alles abrufen ({gesamt.faellig + Math.min(gesamt.neu, 20)})
+              Alles abrufen ({heute.gesamt})
             </Knopf>
           )}
         </div>
@@ -317,9 +327,13 @@ export default function Faecher() {
             <div className="klein matt">Heute fällig</div>
             <div className="zahl">{gesamt.faellig}</div>
           </div>
+          {/* Fällig + neu heute = „Alles abrufen“ = die Zahl am Reiter. */}
           <div>
-            <div className="klein matt">Noch nie gesehen</div>
-            <div className="zahl">{gesamt.neu}</div>
+            <div className="klein matt">Neu heute</div>
+            <div className="zahl">{heute.neu}</div>
+            {heute.ungesehen > heute.neu && (
+              <div className="klein blass">von {heute.ungesehen} ungesehenen</div>
+            )}
           </div>
           <div>
             {/* Gezählt wird je Abfragerichtung — bei zwei Richtungen sind aus
@@ -327,10 +341,10 @@ export default function Faecher() {
             <div className="klein matt">Abfragen im Plan</div>
             <div className="zahl">{gesamt.gesamt}</div>
           </div>
-          {gesamt.gesperrt > 0 && (
+          {gesamt.gesperrtKarten > 0 && (
             <div>
               <div className="klein matt">Hängengeblieben</div>
-              <div className="zahl" style={{ color: "var(--rot)" }}>{gesamt.gesperrt}</div>
+              <div className="zahl" style={{ color: "var(--rot)" }}>{gesamt.gesperrtKarten}</div>
             </div>
           )}
           <div className="dehnen" />
@@ -347,9 +361,10 @@ export default function Faecher() {
         {lageErklaert && (
           <div className="klein matt oben-12 lage-text">
             <strong>Heute fällig</strong>: Karten, deren Termin heute oder früher ist.{" "}
-            <strong>Noch nie gesehen</strong>: neue Karten, von denen je Fach nur das Tageslimit
-            dazukommt. <strong>Abfragen im Plan</strong>: alle Abfragen, je Richtung gezählt.
-            {gesamt.gesperrt > 0 && <> <strong>Hängengeblieben</strong>: Karten, die immer wieder
+            <strong>Neu heute</strong>: so viele nie gesehene Karten, wie die Tageslimits der
+            Fächer heute noch zulassen; der Rest kommt an den nächsten Tagen. Fällig und neu
+            zusammen ergeben „Alles abrufen“. <strong>Abfragen im Plan</strong>: alle Abfragen, je Richtung gezählt.
+            {gesamt.gesperrtKarten > 0 && <> <strong>Hängengeblieben</strong>: Karten, die immer wieder
               falsch waren und im Fehlerheft warten.</>}
             {" "}Der Streifen zeigt, wie viel an den nächsten 30 Tagen fällig wird.
             {last.heute > 0 && <> Schöpfst du die Tageslimits aus, sind auf Dauer rund {last.heute} Abrufe
@@ -371,7 +386,7 @@ export default function Faecher() {
       {/* ----------------------------- Fächer ---------------------------- */}
       <div className="gitter">
         {faecher.map((f) => {
-          const z = zaehlungen[f.id] || { faellig: 0, neu: 0, gesamt: 0, gesperrt: 0 };
+          const z = zaehlungen[f.id] || { faellig: 0, neu: 0, gesamt: 0, gesperrt: 0, gesperrtKarten: 0 };
           const anteile = anteileNachStufe(zustaendeVonFach(f.id));
           const k = kalibrierungen[f.id];
           const restTage = tageBisPruefung(f);
@@ -397,11 +412,11 @@ export default function Faecher() {
 
               <div className="reihe klein" style={{ gap: 6, flexWrap: "wrap" }}>
                 {z.faellig > 0 && <span className="marke gelb">{z.faellig} fällig</span>}
-                {z.neu > 0 && <span className="marke">{z.neu} neu</span>}
-                {z.gesperrt > 0 && (
+                {heuteJeFach[f.id]?.neu > 0 && <span className="marke">{heuteJeFach[f.id].neu} neu</span>}
+                {z.gesperrtKarten > 0 && (
                   <button type="button" className="marke rot marke-knopf" title="Im Fehlerheft ansehen"
                     onClick={(e) => { e.stopPropagation(); gehe("/fehler/" + f.id); }}>
-                    {z.gesperrt} hängt
+                    {z.gesperrtKarten} hängt
                   </button>
                 )}
                 {z.faellig === 0 && z.neu === 0 && z.gesamt > 0 &&

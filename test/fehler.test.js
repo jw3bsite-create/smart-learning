@@ -131,3 +131,21 @@ test("Einträge aus dem alten Fragemodus bleiben draußen, neue zählen", async 
   const liste = fehlerListe([alt, neu]);
   assert.deepEqual(liste.map((e) => e.cardId), ["k2"]);
 });
+
+test("die Zahl in der Seitenleiste ist die Zahl im Heft (27.11.2026)", async () => {
+  const { fehlerZahlKurz, nurVorhandene, fehlerListe } = await import("../src/core/fehler.js");
+  const jetzt = new Date(2026, 10, 27, 15).getTime();
+  const tag = 86400000;
+  const r = (cardId, vorTagen, richtung = "td") => ({
+    id: cardId + vorTagen + richtung, cardId, richtung, bewertung: 1, flag: "normal",
+    antwortzeit: 5000, zeit: jetzt - vorTagen * tag,
+  });
+  const reviews = [r("a", 2), r("a", 3, "dt"), r("weg", 2), r("abgehakt", 2), r("alt", 40)];
+  const karten = [
+    { id: "a" }, { id: "alt" }, { id: "weg", deleted: true }, { id: "abgehakt", nichtRelevant: true },
+  ];
+  /* 30 Tage, nur vorhandene: Karte a in zwei Richtungen = zwei Abfragen. */
+  assert.equal(fehlerZahlKurz(reviews, { zeitraum: "monat", jetzt, karten }), 2);
+  assert.equal(fehlerZahlKurz(reviews, { zeitraum: "alles", jetzt, karten }), 3);
+  assert.equal(nurVorhandene(fehlerListe(reviews, { seit: 0 }), karten).length, 3);
+});

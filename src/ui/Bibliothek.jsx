@@ -73,7 +73,7 @@ export function StapelKachel({ stapel, karten, zustaende, aufMenue, klausur = nu
         {/* Ein ruhender Stapel ist nicht fällig, auch wenn Karten warten. */}
         {ruht(stapel) ? <span className="marke" title="Kommt im Abrufen nicht dran">ruht</span> : <>
           {faellige > 0 && <span className="marke gelb">{faellige} fällig</span>}
-          {neu > 0 && <span className="marke">{neu} neu</span>}
+          {neu > 0 && <span className="marke" title="Noch nie abgefragt">{neu} ungesehen</span>}
         </>}
         {/* Wann der Stapel angelegt wurde — ältere Stapel wissen es nicht. */}
         {stapel.createdAt && (

@@ -138,6 +138,24 @@ export function schluessel(liste) {
 }
 
 /** Gibt es überhaupt etwas im Heft? Für die Seitenleiste. */
-export function fehlerZahlKurz(reviews, { zeitraum = "monat", jetzt = Date.now() } = {}) {
-  return fehlerListe(reviews, { seit: von(zeitraum, jetzt) }).length;
+/**
+ * Nur Fehler an Karten, die es noch gibt und die drankommen. Gelöschtes und
+ * Abgehaktes gehört nicht ins Heft — man kann dort nichts mehr tun.
+ */
+export function nurVorhandene(liste, karten) {
+  const nachId = new Map((karten || []).map((k) => [k.id, k]));
+  return liste.filter((e) => {
+    const k = nachId.get(e.cardId);
+    return k && !k.deleted && k.nichtRelevant !== true;
+  });
+}
+
+/**
+ * Die Zahl an „Fehlerheft“ in der Seitenleiste — dieselbe wie auf der Seite:
+ * gleicher Zeitraum, nur vorhandene Karten. Vorher zählte die Leiste immer
+ * 30 Tage und auch Gelöschtes (111 neben 93 auf der Seite, 27.11.2026).
+ */
+export function fehlerZahlKurz(reviews, { zeitraum = "monat", jetzt = Date.now(), karten = null } = {}) {
+  const liste = fehlerListe(reviews, { seit: von(zeitraum, jetzt) });
+  return (karten ? nurVorhandene(liste, karten) : liste).length;
 }

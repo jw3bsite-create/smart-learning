@@ -29,7 +29,7 @@ import { klausurJeStapel } from "../core/klausuren.js";
 import KlausurenTeil from "./Klausuren.jsx";
 import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
-import { fachZaehlung, stapelStand } from "../core/warteschlange.js";
+import { fachZaehlung, heuteAnstehend, stapelStand } from "../core/warteschlange.js";
 import {
   ordnerImFach, stapelImFach, fachordnerZweig, fachordnerPfad, abrufStapel, OBEN,
 } from "../core/fachordner.js";
@@ -102,7 +102,13 @@ export default function FachSeite({ fachId, ordnerId = null }) {
   const imOrdner = derOrdner ? abrufStapel(stapel, ordner, fach.id, [derOrdner.id]) : null;
   const zOrdner = derOrdner
     ? fachZaehlung(karten, zustaende, (id) => (imOrdner.has(id) ? stapelVon(id) : null), fach.id) : z;
-  const offen = z.faellig + z.neu;
+  /* Was das Abrufen hier heute bringt: Fälliges und neue bis zum Tageslimit
+     des Fachs — nicht alle nie gesehenen. */
+  const heute = heuteAnstehend({
+    karten, zustaende, faecherVon: () => faecher, fach,
+    stapelVon: derOrdner ? (id) => (imOrdner.has(id) ? stapelVon(id) : null) : stapelVon,
+  });
+  const offen = heute.gesamt;
   /* Die Marke „Klausur in 6 Tagen“ an den Stapeln (core/klausuren.js). */
   const klausurJe = klausurJeStapel([fach], stapel, ordner);
   const punkte = punkteZuLernfach(notenfaecher, fach.id);
@@ -238,11 +244,11 @@ export default function FachSeite({ fachId, ordnerId = null }) {
         <div className="reihe klein" style={{ gap: 6, flexWrap: "wrap" }}>
           {(derOrdner ? zOrdner : z).faellig > 0
             && <span className="marke gelb">{(derOrdner ? zOrdner : z).faellig} fällig</span>}
-          {(derOrdner ? zOrdner : z).neu > 0 && <span className="marke">{(derOrdner ? zOrdner : z).neu} neu</span>}
-          {z.gesperrt > 0 && (
+          {heute.neu > 0 && <span className="marke">{heute.neu} neu</span>}
+          {z.gesperrtKarten > 0 && (
             <button type="button" className="marke rot marke-knopf" title="Im Fehlerheft ansehen"
               onClick={(e) => { e.stopPropagation(); gehe("/fehler/" + fach.id); }}>
-              {z.gesperrt} hängt
+              {z.gesperrtKarten} hängt
             </button>
           )}
           {offen === 0 && z.gesamt > 0 && <span className="marke gruen">nichts offen</span>}
@@ -343,7 +349,8 @@ export default function FachSeite({ fachId, ordnerId = null }) {
           return an ? [...rest, ...ids] : rest;
         });
         const bereich = new Set(gewaehlt);
-        const zw = fachZaehlung(karten, zustaende, (id) => (bereich.has(id) ? stapelVon(id) : null), fach.id);
+        const zw = heuteAnstehend({ karten, zustaende, faecherVon: () => faecher, fach,
+          stapelVon: (id) => (bereich.has(id) ? stapelVon(id) : null) });
         const fachOrdnerIds = new Set(ordnerDesFachs.map((o) => o.id));
         const gruppen = [
           ...ordnerDesFachs.map((o) => ({ id: o.id, name: pfadText(ordner, o.id),
@@ -496,7 +503,9 @@ function OrdnerKachel({ ordner: o, alleOrdner, stapel, kartenNachStapel, zustaen
       <div className="reihe klein matt" style={{ flexWrap: "wrap" }}>
         <span>{anzahl(drin.length, "Stapel", "Stapel")}</span>
         {faellig > 0 && <span className="marke gelb">{faellig} fällig</span>}
-        {neu > 0 && <span className="marke">{neu} neu</span>}
+        {/* Je Stapel kein Tageslimit — es gilt fürs Fach. Darum „ungesehen“,
+            nicht „neu“: Die Summe wäre sonst größer als „neu“ im Kopf des Fachs. */}
+        {neu > 0 && <span className="marke" title="Noch nie abgefragt">{neu} ungesehen</span>}
       </div>
     </div>
   );

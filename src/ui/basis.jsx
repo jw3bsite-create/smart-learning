@@ -434,6 +434,14 @@ export function useTastatur(karte, aktiv = true) {
 }
 
 /** Merkt sich einen Wert im Browser (für Kleinigkeiten wie zuletzt genutzte Modi). */
+/*
+ * Mehrere Stellen mit demselben Schlüssel bleiben gleich: Ändert eine ihn,
+ * erfahren es die anderen sofort (etwa die Seitenleiste, wenn im Fehlerheft
+ * der Zeitraum wechselt — sonst zeigte sie die Zahl des alten Zeitraums).
+ */
+const MERKER_EREIGNIS = "kk-merker";
+let merkerNummer = 0;
+
 export function useMerker(schluessel, standard) {
   const [wert, setWert] = useState(() => {
     try {
@@ -441,6 +449,26 @@ export function useMerker(schluessel, standard) {
       return roh === null ? standard : JSON.parse(roh);
     } catch (e) { return standard; }
   });
+  const ich = useRef(null);
+  if (ich.current === null) ich.current = ++merkerNummer;
+  const vonAussen = useRef(false);
+  const erster = useRef(true);
+  useEffect(() => {
+    const hoeren = (e) => {
+      if (e.detail?.schluessel !== schluessel || e.detail.von === ich.current) return;
+      vonAussen.current = true;
+      setWert(e.detail.wert);
+    };
+    window.addEventListener(MERKER_EREIGNIS, hoeren);
+    return () => window.removeEventListener(MERKER_EREIGNIS, hoeren);
+  }, [schluessel]);
+  useEffect(() => {
+    /* Nicht beim ersten Zeichnen (alle lesen denselben Speicher) und nicht,
+       was gerade von außen kam — sonst redeten die Stellen im Kreis. */
+    if (erster.current) { erster.current = false; return; }
+    if (vonAussen.current) { vonAussen.current = false; return; }
+    window.dispatchEvent(new CustomEvent(MERKER_EREIGNIS, { detail: { schluessel, wert, von: ich.current } }));
+  }, [wert]);
   const setzen = useCallback((neu) => {
     setWert((alt) => {
       const w = typeof neu === "function" ? neu(alt) : neu;

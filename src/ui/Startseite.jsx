@@ -12,7 +12,7 @@
 
 import React, { useMemo } from "react";
 import { useDaten } from "../core/store.jsx";
-import { fachZaehlung, tageBisPruefung } from "../core/warteschlange.js";
+import { fachZaehlung, heuteAnstehend, tageBisPruefung } from "../core/warteschlange.js";
 import { straehne } from "../core/straehne.js";
 import { anzahl, datumKurz } from "../core/util.js";
 import { gehe } from "../App.jsx";
@@ -61,18 +61,23 @@ function StartKarten() {
 }
 
 export default function Startseite() {
-  const { faecher, stapel, karten, zustaende, stapelVon, reviews, einstellungen } = useDaten();
+  const { faecher, stapel, karten, zustaende, stapelVon, reviews, einstellungen, offen: heute } = useDaten();
 
   const jetzt = new Date();
-  const heute = fachZaehlung(karten, zustaende, stapelVon, null);
-  const offen = heute.faellig + heute.neu;
+  /* „offen“ ist die Zahl am Reiter und im Abrufen: Fälliges plus neue
+     Karten bis zum Tageslimit — nicht alle nie gesehenen (vorher 101 statt 47). */
+  const offen = heute.gesamt;
   const stand = useMemo(() => straehne(reviews), [reviews]);
   const bloecke = useLernzeiten();
   const heuteZeit = bloecke ? summe(bloecke, tagesBeginn(jetzt.getTime())) : null;
 
   const faecherSortiert = useMemo(() => [...faecher]
     .sort((a, b) => (a.name || "").localeCompare(b.name || "", "de"))
-    .map((f) => ({ fach: f, z: fachZaehlung(karten, zustaende, stapelVon, f.id) })),
+    .map((f) => ({
+      fach: f,
+      z: fachZaehlung(karten, zustaende, stapelVon, f.id),
+      h: heuteAnstehend({ karten, zustaende, stapelVon, faecherVon: () => faecher, fach: f }),
+    })),
   [faecher, karten, zustaende, stapelVon]);
 
   const pruefungen = useMemo(() => faecher
@@ -200,15 +205,15 @@ export default function Startseite() {
             <Abschnitt titel="Fächer"
               rechts={<Knopf art="klein" onClick={() => gehe("/faecher")}>Übersicht</Knopf>}>
               <div className="start-faecher">
-                {faecherSortiert.map(({ fach, z }) => (
+                {faecherSortiert.map(({ fach, z, h }) => (
                   <div {...KLICKBAR} key={fach.id} className="kachel" onClick={() => gehe("/fach/" + fach.id)}>
                     <div className="reihe" style={{ gap: 8 }}>
                       <FachPunkt farbe={fach.farbe} />
                       <span className="titel dehnen">{fach.name}</span>
                     </div>
                     <div className="klein blass">
-                      {z.faellig + z.neu > 0
-                        ? z.faellig + " fällig · " + z.neu + " neu"
+                      {h.gesamt > 0
+                        ? h.faellig + " fällig · " + h.neu + " neu"
                         : z.gesamt > 0 ? "nichts offen" : "noch leer"}
                     </div>
                   </div>

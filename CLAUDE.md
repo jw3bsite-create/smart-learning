@@ -637,6 +637,31 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     Mischen mit den Urteilen der vorigen Runde. Der Lernsnack merkt sich
     Zähler und Bewertetes neben der Komponente (`snack`, eine halbe Stunde),
     sonst stand er nach jedem Seitenwechsel wieder bei 0.
+91. **Dieselbe Sache, dieselbe Zahl** (27.11.2026, nach einer Durchsicht
+    aller Zahlen). Was sagt, wie viel wartet — Reiter „Abrufen“,
+    Seitenleiste, „offen“ auf der Startseite, „Alles abrufen“, Fachkacheln,
+    Fachseite, die Runde im Abrufen —, rechnet mit `heuteAnstehend`
+    (`core/warteschlange.js`), und das ist die Sitzung selbst: alles Fällige
+    plus neue Karten bis zum Tageslimit. Nie eine eigene Formel daneben
+    (vorher: 101 „offen“, „Alles abrufen (47)“ mit einer festen 20, und die
+    Runde brachte eine dritte Zahl). Dazu:
+    - **Tageslimit je Fach**, auch ohne Fachwahl. Früher galt dann die
+      Summe der Limits, ein Fach bekam den ungenutzten Rest der anderen, und
+      die Fachkacheln ergaben zusammen nicht die Gesamtzahl.
+    - **Stapel ohne Fach** kommen nirgends vor, auch nicht über die
+      Startseite oder „alle Fächer“ (`baueSitzung`, `baueWeitere`,
+      `fachZaehlung`).
+    - **„neu“ heißt: kommt heute.** Je Stapel gibt es kein Limit; dort heißt
+      die Zahl darum „ungesehen“ (sonst wäre die Summe der Stapel größer als
+      „neu“ im Kopf des Fachs). Die Tageslage zeigt „Neu heute … von N
+      ungesehenen“; fällig + neu heute = „Alles abrufen“.
+    - **„hängt“ zählt Karten**, nicht Richtungen (`gesperrtKarten`) — wie
+      das Fehlerheft.
+    - **Fehlerheft**: Die Zahl in der Seitenleiste ist die der Seite
+      (gewählter Zeitraum, nur vorhandene Karten, `nurVorhandene`); dort
+      heißt sie „Abfragen“, weil jede Richtung eine Zeile ist. `useMerker`
+      hält mehrere Stellen mit demselben Schlüssel gleich.
+    `test/zahlen.test.js`.
 
 ## Stapel aus Lernmaterial (im Chat)
 

@@ -492,7 +492,7 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
       )}
       {erstellt && <ErstellenBlatt fachId={teile[0] === "fach" ? teile[1] : null}
         aufSchliessen={() => setErstellt(false)} />}
-      <Fussleiste weg={teile} faellig={offen?.faellig || 0} welle={pfeile === "unten"}
+      <Fussleiste weg={teile} faellig={offen?.gesamt || 0} welle={pfeile === "unten"}
         skala={einstellungen.verlaufPfeileGroesse} groesse={einstellungen.navGroesse}
         vereint={vereint} aufErstellen={() => setErstellt(true)}
         aufMehr={() => setLeisteOffen(true)} />
