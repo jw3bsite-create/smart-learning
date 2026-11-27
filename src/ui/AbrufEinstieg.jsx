@@ -27,6 +27,16 @@ import { wachsend } from "./uebergang.js";
 import { Symbol, Sinnbild, Knopf, Bild, KLICKBAR } from "./basis.jsx";
 import Formel from "./Formel.jsx";
 
+/*
+ * Die Frage auf der Startseite wechselt nicht bei jedem Blick dorthin,
+ * sondern frühestens nach einer halben Minute (Nutzer, 27.11.2026): Wer
+ * zwischen Start und Stapel hin und her geht, soll dieselbe Frage
+ * wiederfinden. Die Wahl steht hier neben der Komponente, damit sie den
+ * Wechsel der Seite übersteht; ein Neuladen setzt sie zurück.
+ */
+const WAHL_GILT = 30000;
+const wahl = { schluessel: null, zeit: 0 };
+
 const STUFEN = [
   [KONFIDENZ.SICHER, "Sicher", "haken", "var(--gruen)"],
   [KONFIDENZ.UNSICHER, "Unsicher", "auge", "var(--gelb)"],
@@ -57,7 +67,16 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
   /* Dieselbe Karte bleiben, solange sie ansteht — die Sitzung ist gemischt
      und würde sonst bei jeder Änderung eine andere zeigen. */
   const aufgaben = (sitzung?.aufgaben || []).filter((a) => !gesehen.has(a.schluessel));
-  const aufgabe = aufgaben.find((a) => a.schluessel === gemerkt.current) || aufgaben[0] || null;
+  const bei = (k) => (k ? aufgaben.find((a) => a.schluessel === k) : null);
+  /* Erst die Frage, die hier schon steht; sonst die zuletzt gewählte,
+     solange sie noch gilt; sonst die nächste aus dem Plan. */
+  const aufgabe = bei(gemerkt.current)
+    || (startseite && Date.now() - wahl.zeit < WAHL_GILT ? bei(wahl.schluessel) : null)
+    || aufgaben[0] || null;
+  if (startseite && aufgabe && aufgabe.schluessel !== wahl.schluessel) {
+    wahl.schluessel = aufgabe.schluessel;
+    wahl.zeit = Date.now();
+  }
   gemerkt.current = aufgabe?.schluessel || null;
 
   if (startseite && !aufgabe) {

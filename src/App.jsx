@@ -22,6 +22,7 @@ import Stapelansicht from "./ui/Stapelansicht.jsx";
 import Faecher from "./ui/Faecher.jsx";
 import FachSeite from "./ui/FachSeite.jsx";
 import Startseite from "./ui/Startseite.jsx";
+import { wegGesetzt } from "./ui/uebergang.js";
 import MenueStreifen, { VerlaufKnoepfe } from "./ui/MenueStreifen.jsx";
 import ErstellenBlatt from "./ui/Erstellen.jsx";
 import Zeitmesser from "./ui/Zeitmesser.jsx";
@@ -151,6 +152,9 @@ function useWeg() {
     return () => window.removeEventListener("hashchange", f);
   }, []);
   useEffect(() => { window.scrollTo(0, 0); }, [weg]);
+  /* Läuft gerade ein Übergang (ui/uebergang.js), wartet er genau hierauf:
+     Die neue Seite steht, es darf fotografiert werden. */
+  useEffect(() => { wegGesetzt(); }, [weg]);
   return weg;
 }
 

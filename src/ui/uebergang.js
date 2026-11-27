@@ -3,18 +3,32 @@
  *
  * Zwei Anläufe davor: Erst wuchs die Kachel selbst (Lage und Maße) — der
  * Browser setzte dabei in jedem Bild die ganze Seite neu, es hakte sichtbar.
- * Dann eine Kopie in einer eigenen Schicht, deren Ausschnitt aufging: flüssig,
- * aber dazwischen lag ein dunkler, leerer Augenblick (Nutzer, 27.11.2026).
+ * Dann eine Kopie in einer eigenen Schicht, deren Ausschnitt aufging:
+ * flüssig, aber dazwischen lag ein dunkler, leerer Augenblick.
  *
  * Jetzt macht es der Browser selbst. `startViewTransition` fotografiert die
  * Seite vorher und nachher und bewegt die Stücke, die beidseits denselben
  * `view-transition-name` tragen, ineinander (hier `abruf-karte`: die Kachel
- * der Startseite und der Frageblock im Abrufen, siehe stil.css). Nichts wird
- * dabei leer, und die Bewegung läuft außerhalb des Seitenaufbaus.
+ * der Startseite und der Frageblock im Abrufen, siehe stil.css).
  *
- * Kennt der Browser das nicht oder sind Bewegungen abgestellt, geht es ohne
- * Umschweife weiter — ein Übergang ist nie die Sache selbst.
+ * Dazwischen steht das Bild still. Darum muss das Warten so kurz wie möglich
+ * sein: `wegGesetzt` meldet aus der App, sobald die neue Seite steht (der
+ * Effekt läuft nach dem Einbauen und vor dem Zeichnen), und erst dann wird
+ * fotografiert. Bleibt der Wegwechsel aus, greift die Notbremse.
+ *
+ * Kennt der Browser keine View Transitions oder sind Bewegungen abgestellt,
+ * geht es ohne Umschweife weiter — ein Übergang ist nie die Sache selbst.
  */
+
+const NOTBREMSE = 500;   // ms
+let wartet = null;
+
+/** Aus der App: Die neue Seite steht. */
+export function wegGesetzt() {
+  const w = wartet;
+  wartet = null;
+  if (w) w();
+}
 
 /** Sollen Bewegungen laufen? „Ruhige Oberfläche“ setzt `--wechsel` auf 0. */
 function bewegt() {
@@ -25,13 +39,15 @@ function bewegt() {
 
 export function wachsend(weiter) {
   if (typeof document.startViewTransition !== "function" || !bewegt()) { weiter(); return; }
-  document.startViewTransition(() => new Promise((fertig) => {
-    /* Der neue Zustand wird fotografiert, sobald dieses Versprechen eingelöst
-       ist — also erst, wenn die neue Seite wirklich steht. Zwei Bilder
-       Vorlauf, und eine Notbremse, falls der Wegwechsel ausbleibt. */
-    const steht = () => requestAnimationFrame(() => requestAnimationFrame(fertig));
-    window.addEventListener("hashchange", steht, { once: true });
-    setTimeout(fertig, 400);
+  /* Solange der Übergang läuft, blendet die neue Seite nicht zusätzlich ein
+     (`.mitte` in stil.css): Zwei Blenden übereinander sahen fahl aus. */
+  const wurzel = document.documentElement;
+  wurzel.classList.add("im-uebergang");
+  const ab = setTimeout(() => wurzel.classList.remove("im-uebergang"), 2000);
+  const lauf = document.startViewTransition(() => new Promise((fertig) => {
+    wartet = fertig;
+    setTimeout(() => { if (wartet === fertig) wegGesetzt(); }, NOTBREMSE);
     weiter();
   }));
+  lauf.finished.finally(() => { clearTimeout(ab); wurzel.classList.remove("im-uebergang"); });
 }

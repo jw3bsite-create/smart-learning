@@ -311,6 +311,33 @@ export function pensumPruefen(karten, zustaende, stapelVon, fach, zeit = Date.no
 }
 
 /**
+ * Eine einzelne Aufgabe zu einem Schlüssel (`<karte>:<richtung>`).
+ *
+ * Gebraucht, wenn eine bestimmte Karte vorn in der Runde stehen soll — die
+ * Frage, die auf der Startseite oder oben im Stapel stand. Sie in einer
+ * gebauten Sitzung zu suchen genügte nicht: Neue Karten werden nur bis zum
+ * Tageslimit und dabei zufällig gezogen, die gesuchte fehlte also oft, und
+ * im Abrufen kam dann eine andere Frage (Nutzer, 27.11.2026).
+ *
+ * Abgehaktes, ruhende Stapel und stillgelegte Karten gibt es auch hier
+ * nicht: null heißt, die Karte kommt nicht dran.
+ */
+export function aufgabeAusSchluessel(schluessel, { karten, zustaende, stapelVon }) {
+  const trenner = String(schluessel || "").lastIndexOf(":");
+  if (trenner <= 0) return null;
+  const karteId = schluessel.slice(0, trenner);
+  const richtung = schluessel.slice(trenner + 1);
+  const karte = karten.find((k) => k.id === karteId);
+  if (!karte || !istRelevant(karte)) return null;
+  const stapel = stapelVon(karte.setId);
+  if (!stapel || ruht(stapel)) return null;
+  if (!richtungenFuer(karte, stapel).includes(richtung)) return null;
+  const zustand = zustaende[schluessel];
+  if (zustand?.gesperrt) return null;
+  return { karte, stapel, richtung, zustand, fachId: stapel.subjectId || null, schluessel };
+}
+
+/**
  * Wenn alles Fällige durch ist und man weitermachen will (Rundengröße
  * „Frei“, seit dem 25. November 2026). Gefragt wird der Nutzer, ob er
  * weitermacht, nicht welche Karten: Die nimmt weiter der Plan.

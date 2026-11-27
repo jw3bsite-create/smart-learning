@@ -1679,8 +1679,13 @@ html.zieht { cursor: grabbing; }
  * statt dass etwas wächst und dazwischen Leere steht.
  */
 .abruf-einstieg.auf-start { view-transition-name: abruf-karte; }
+/* Die Logo-Leiste steht auf beiden Seiten: Mit eigenem Namen bleibt sie beim
+   Übergang einfach stehen, statt sich mit sich selbst zu überblenden. */
+.menue-streifen { view-transition-name: kopfleiste; }
+/* Während des Übergangs blendet die neue Seite nicht noch einmal ein. */
+.im-uebergang .mitte, .im-uebergang .lern-aufgabe { animation: none; }
 .frage-block.abruf-frage { view-transition-name: abruf-karte; }
-::view-transition-group(abruf-karte) { animation-duration: 300ms;
+::view-transition-group(abruf-karte) { animation-duration: 260ms;
   animation-timing-function: cubic-bezier(.32, .72, 0, 1); }
 /* Das Alte geht rasch, das Neue kommt in Ruhe: Sonst stünde die Frage einen
    Augenblick lang doppelt da. */

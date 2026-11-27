@@ -27,7 +27,7 @@ import {
 } from "../core/fsrs.js";
 import {
   baueSitzung, baueCramSitzung, baueWeitere, weitereZaehlung,
-  wirksameRetention, tageBisPruefung, CRAM_AB_TAGEN,
+  wirksameRetention, tageBisPruefung, CRAM_AB_TAGEN, aufgabeAusSchluessel,
 } from "../core/warteschlange.js";
 import { kalibrierung, kalibrierungInWorten } from "../core/kalibrierung.js";
 import { sprich } from "../core/speech.js";
@@ -360,9 +360,9 @@ export default function Abrufen({
         neu = { ...neu, aufgaben: [neu.aufgaben[i], ...neu.aufgaben.filter((_, j) => j !== i)] };
         vorgewaehlt = true;
       } else {
-        const ganz = baueSitzung({ karten, zustaende, stapelVon, faecherVon, fach,
-          faecherIds: faecherAuswahl, umfang: 100000 });
-        const a = ganz.aufgaben.find((x) => x.schluessel === startSchluessel);
+        /* Nicht gezogen (neue Karten entscheidet der Zufall, das Tageslimit
+           begrenzt sie): die Aufgabe geradewegs aus dem Schlüssel bauen. */
+        const a = aufgabeAusSchluessel(startSchluessel, { karten, zustaende, stapelVon });
         if (a) {
           neu = { ...neu, aufgaben: [a, ...neu.aufgaben.slice(0, Math.max(0, neu.aufgaben.length - 1))] };
           vorgewaehlt = true;

@@ -553,15 +553,28 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     `/abrufen/alle/start/<karte:richtung>[/<k>]` — normales, verbuchtes
     Abrufen. `startseiteModus: "karteikarten"` zeigt stattdessen
     `KartenVorschau` (anstehende Karten, `reihenfolgeBehalten`).
+    Die Frage wechselt dort nicht bei jedem Blick: Die Wahl gilt eine halbe
+    Minute (`WAHL_GILT`, neben der Komponente, überlebt den Seitenwechsel) —
+    wer zwischen Start und Stapel hin und her geht, findet dieselbe Frage.
+    Im Abrufen wird die mitgegebene Karte **aus ihrem Schlüssel gebaut**
+    (`aufgabeAusSchluessel`), nicht in der Sitzung gesucht: Neue Karten zieht
+    `baueSitzung` zufällig und nur bis zum Tageslimit, die gesuchte fehlte
+    also oft — dann kam eine andere Frage und die Einschätzung war verloren
+    (`test/startkarte.test.js`).
     Der Übergang liegt in `ui/uebergang.js` (`wachsend`) und gehört dem
     Browser: `startViewTransition`, und beide Seiten tragen denselben
     `view-transition-name: abruf-karte` (die Kachel der Startseite, der
     Frageblock im Abrufen — darum dort die eigene Klasse `abruf-frage`, denn
     `.frage-block` steht in mehreren Modi, zum Teil zweimal auf einer Seite,
     und ein Name darf nie doppelt vorkommen). Das Versprechen der Rückruf-
-    funktion wird erst eingelöst, wenn die neue Seite steht (hashchange, dann
-    zwei Bilder, Notbremse nach 400 ms) — sonst fotografiert der Browser den
-    alten Zustand zweimal. Zwei Anläufe davor scheiterten: die Kachel selbst
+    funktion wird erst eingelöst, wenn die neue Seite steht: `App.jsx` meldet
+    das über `wegGesetzt()` aus einem Effekt (nach dem Einbauen, vor dem
+    Zeichnen), Notbremse nach 500 ms. Sonst fotografiert der Browser den
+    alten Zustand zweimal — und jede Wartezeit steht dem Nutzer als
+    stehendes Bild vor Augen. Darum auch `.im-uebergang` am Wurzelelement:
+    Die neue Seite blendet währenddessen nicht noch einmal ein (`.mitte`),
+    zwei Blenden übereinander sahen fahl aus. Die Logo-Leiste trägt
+    `view-transition-name: kopfleiste` und bleibt dadurch stehen. Zwei Anläufe davor scheiterten: die Kachel selbst
     in Lage und Maßen zu bewegen ließ den Browser jedes Bild neu setzen und
     hakte; eine Kopie mit aufgehendem `clip-path` lief flüssig, ließ aber
     dazwischen einen dunklen, leeren Augenblick. Kann der Browser keine
