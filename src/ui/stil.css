@@ -1650,9 +1650,6 @@ html.zieht { cursor: grabbing; }
 /* Startseite: Die ganze Kachel führt ins Abrufen; die Frage hebt sich dabei
    nicht eigens hervor — sonst sähe es aus, als käme es darauf an, wohin man
    tippt (Nutzer, 27.11.2026). */
-.abruf-einstieg-loesung { margin-top: 6px; padding: 12px 14px; border-radius: calc(var(--rund) * 0.7);
-  background: var(--grund-3); animation: vorschau-rein calc(var(--wechsel) * 2) ease-out; }
-.abruf-einstieg-loesung .antwort-text { font-family: var(--schrift-karten); font-size: 18px; line-height: 1.4; }
 
 /* Fächer: „?“ oben rechts in der Tageslage, Text klappt an Ort und Stelle auf. */
 .lage-hilfe { position: absolute; top: 10px; right: 10px; margin: 0; }
@@ -1670,6 +1667,49 @@ html.zieht { cursor: grabbing; }
 @media (max-width: 860px) {
   .buehne { min-height: calc(100dvh + 1px); }
 }
+
+/* Eine Zeile, die sich wie eine Kachel anfassen lässt (Stapel ohne Fach). */
+.zeile-tippbar { cursor: pointer; transition: border-color var(--wechsel); }
+.zeile-tippbar:hover { border-color: var(--akzent); }
+.ohne-fach-zeile { grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center; gap: 10px; }
+.ohne-fach-zeile > .seite:first-child { overflow: hidden; }
+.ohne-fach-zeile > .seite:first-child span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 860px) {
+  /* Am Handy ist kein Platz für die Kartenzahl — sie steht im Stapel selbst. */
+  .ohne-fach-zeile { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .ohne-fach-zeile > .seite.klein { display: none; }
+}
+
+/*
+ * Der Lernsnack auf der Startseite (ui/AbrufEinstieg.jsx, 27.11.2026).
+ *
+ * Zwei Kästen, deren Maße sich nie ändern (Wunsch des Nutzers): Das Blatt
+ * trägt Frage und Lösung übereinander — die verdeckte Seite bleibt stehen
+ * und hält die Höhe —, die Handlungszeile ist immer gleich hoch, ob darin
+ * die Einschätzung, das Antwortfeld oder die Bewertung steht.
+ */
+.snack-blatt { display: grid; align-items: center; min-height: 104px;
+  margin: 4px 0 10px; text-align: center; }
+.snack-blatt > .snack-seite { grid-area: 1 / 1; width: 100%; }
+.snack-seite.verdeckt { visibility: hidden; }
+.snack-seite .frage-text { font-size: 24px; }
+.snack-seite .frage-text.lang { font-size: 18px; }
+/* Einzeilig mit Auslassung — damit nichts umbricht und die Höhe hält. */
+.eine-zeile { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.gruen-text { color: var(--gruen); }
+/* Eine feste Höhe für alle drei Zustände — nur so springt wirklich nichts. */
+.snack-zeile { height: 56px; }
+.snack-zeile > * { display: grid; gap: 8px; margin: 0; height: 100%; }
+.snack-wahl { grid-template-columns: repeat(3, 1fr); }
+.snack-noten { grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.snack-zeile .antwort { height: 56px; min-height: 0; padding: 4px; font-size: 13px;
+  flex-direction: column; justify-content: center; align-items: center; gap: 3px;
+  text-align: center; white-space: nowrap; overflow: hidden; }
+.snack-noten .antwort { font-size: 12px; }
+.snack-zeile .abruf-einstieg-antwort { display: flex; align-items: stretch; }
+.snack-zeile .abruf-einstieg-antwort .feld,
+.snack-zeile .abruf-einstieg-antwort .knopf { height: 56px; min-height: 0; }
 
 /* Startseite: kleines Antwortfeld; ein Tipp irgendwo auf die Karte führt ins Abrufen. */
 .abruf-einstieg.auf-start.tippbar { cursor: pointer; }

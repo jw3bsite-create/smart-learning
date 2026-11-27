@@ -27,6 +27,7 @@ const PUNKTFARBE = {
 };
 import { gehe } from "../App.jsx";
 import Kalenderausfuhr from "./Kalenderausfuhr.jsx";
+import { bestaetigen } from "./Rueckfragen.jsx";
 import {
   Symbol, SymbolKnopf, Knopf, Menue, MenuePunkt, Balken, Leer, Dialog, Rueckfrage, KLICKBAR, FachPunkt,
   EigeneFarbe,
@@ -219,7 +220,7 @@ export default function Faecher() {
   const daten = useDaten();
   const {
     faecher, karten, zustaende, stapel, stapelVon, reviews,
-    fachAnlegen, fachLoeschen, stapelAendern, setzeEinstellung,
+    fachAnlegen, fachLoeschen, stapelAendern, stapelLoeschen, setzeEinstellung,
   } = daten;
   const [einstellungenFuer, setEinstellungenFuer] = useState(null);
   const [loescht, setLoescht] = useState(null);
@@ -444,13 +445,19 @@ export default function Faecher() {
       {ohneFach.length > 0 && (
         <>
           <hr className="trennlinie" />
-          <div className="reihe unten-12">
-            <h3 className="dehnen">Stapel ohne Fach ({ohneFach.length})</h3>
-            <span className="klein matt">Ohne Fach kommen sie im Abrufen nicht vor.</span>
+          {/* Untereinander: Nebeneinander wurde die Überschrift am Handy
+              auf drei Zeilen gequetscht. */}
+          <div className="unten-12">
+            <h3 style={{ margin: 0 }}>Stapel ohne Fach ({ohneFach.length})</h3>
+            <div className="klein matt erklaerung">Ohne Fach kommen sie im Abrufen nicht vor.</div>
           </div>
           <div style={{ display: "grid", gap: 8 }}>
+            {/* Der Stapel lässt sich von hier aus öffnen und wegwerfen
+                (Wunsch des Nutzers, 27.11.2026); Auswahlfeld und Papierkorb
+                behalten ihre eigene Wirkung. */}
             {ohneFach.map((s) => (
-              <div key={s.id} className="karten-zeile" style={{ padding: "10px 14px" }}>
+              <div key={s.id} className="karten-zeile zeile-tippbar ohne-fach-zeile" style={{ padding: "10px 14px" }}
+                {...KLICKBAR} title="Stapel öffnen" onClick={() => gehe("/stapel/" + s.id)}>
                 <div className="seite reihe" style={{ gap: 8 }}>
                   <Symbol name="stapel" groesse={16} />
                   <span>{s.title || "Ohne Titel"}</span>
@@ -459,10 +466,24 @@ export default function Faecher() {
                   {anzahl((daten.kartenNachStapel.get(s.id) || []).length, "Karte", "Karten")}
                 </div>
                 <select className="feld" style={{ width: "auto" }} value=""
-                  onChange={(e) => e.target.value && stapelAendern(s.id, { subjectId: e.target.value })}>
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    if (e.target.value) stapelAendern(s.id, { subjectId: e.target.value });
+                  }}>
                   <option value="">Fach wählen …</option>
                   {faecher.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
+                <SymbolKnopf symbol="muell" titel="In den Papierkorb"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    const ja = await bestaetigen({
+                      titel: "„" + (s.title || "Ohne Titel") + "“ in den Papierkorb?",
+                      text: "Der Stapel lässt sich von dort sechzig Tage lang zurückholen.",
+                      ja: "In den Papierkorb", gefahr: true,
+                    });
+                    if (ja) await stapelLoeschen(s.id);
+                  }} />
               </div>
             ))}
           </div>

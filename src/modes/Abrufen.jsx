@@ -21,6 +21,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { gleichwertig } from "../core/text.js";
+import { fortschrittAnteil } from "../core/fortschritt.js";
 import { clozeTeile, kartenArt, richtungName, schritteVon, schrittBilanz } from "../core/model.js";
 import {
   NOTEN, NOTEN_NAMEN, KONFIDENZ, vorschau, abstandLang, neuerZustand, istNeu,
@@ -378,6 +379,14 @@ export default function Abrufen({
   }, [fachId, gestartet, auswahlSchluessel, groesse]);
 
   const aufgabe = sitzung?.aufgaben?.[stelle] || null;
+
+  /* Der Balken oben: je Karte höchstens ein Punkt — richtig ganz, ein
+     Fehlversuch halb (core/fortschritt.js). Gezählt werden die Karten der
+     Runde, nicht die Aufgaben: Wiedervorlagen sind dieselbe Karte. */
+  const fortschritt = useMemo(() => fortschrittAnteil(
+    ergebnisse.map((e) => ({ schluessel: e.schluessel, richtig: e.note !== NOTEN.NOCHMAL })),
+    new Set((sitzung?.aufgaben || []).map((a) => a.schluessel)).size),
+  [ergebnisse, sitzung]);
 
   /* Auch neu, wenn die Karte während der Sitzung bearbeitet wurde. */
   const teile = useMemo(
@@ -850,7 +859,7 @@ export default function Abrufen({
 
   return (
     <ModusRahmen titel={titel} symbol="blitz" aufSchliessen={aufSchliessen}
-      anteil={stelle / sitzung.aufgaben.length}
+      anteil={fortschritt}
       rechts={<>
         {cram && <span className="marke rot">Endspurt, zählt nicht für den Plan</span>}
         {sitzung.zusatz === "vorziehen" && <span className="marke">vorgezogen, zählt als Übung</span>}

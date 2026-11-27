@@ -13,6 +13,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { mische, anzahl } from "../core/util.js";
+import { fortschrittAnteil } from "../core/fortschritt.js";
 import { sprich } from "../core/speech.js";
 import { seitenFuerRichtung } from "../core/ton.js";
 import Tonaufnahme from "../ui/Tonaufnahme.jsx";
@@ -34,6 +35,7 @@ export default function Karteikarten({ setId, aufSchliessen }) {
   const [nurMarkierte, setNurMarkierte] = useState(false);
   const [gemischt, setGemischt] = useState(false);
   const [stelle, setStelle] = useState(0);
+  const [urteile, setUrteile] = useState([]);   // für den Balken oben
   const [gedreht, setGedreht] = useState(false);
   const [selbstlauf, setSelbstlauf] = useState(false);
   const [problemBearbeitet, setProblemBearbeitet] = useState(null);
@@ -113,6 +115,7 @@ export default function Karteikarten({ setId, aufSchliessen }) {
      wiederkommt. Ohne Umdrehen gilt die Zeit bis zur Bewertung. */
   const urteilen = (kann) => {
     if (!karte) return;
+    setUrteile((alt) => [...alt, { schluessel: karte.id, richtig: kann }]);
     const roh = gemessen.current ?? stoppuhr.anhalten();
     const stapelMs = stapelMedian(zeiten.stapel);
     const zeitMs = Math.round(kappen(roh, stapelMs));
@@ -205,7 +208,9 @@ export default function Karteikarten({ setId, aufSchliessen }) {
 
   /* Die Folge wächst mit den Wiedervorlagen — der Balken und die Zahl
      rechnen mit der ganzen Folge, nicht nur mit dem Stapel. */
-  const anteil = wv.folge.length ? (stelle + 1) / wv.folge.length : 0;
+  /* Der Balken zeigt, was sitzt: „Weiß ich“ ganz, „Noch üben“ halb, je
+     Karte nur ihr bester Stand (core/fortschritt.js). */
+  const anteil = fortschrittAnteil(urteile, new Set(wv.folge.map((e) => e.id)).size);
   const offeneWieder = wv.folge.slice(stelle + 1).filter((e) => e.grund !== "erst").length;
 
   return (

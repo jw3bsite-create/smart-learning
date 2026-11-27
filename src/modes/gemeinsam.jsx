@@ -112,7 +112,7 @@ export function ModusRahmen({ titel, symbol, aufSchliessen, anteil = null, recht
       {bereich && <div className="modus-erklaerung nur-schmal">Nur „{bereich.titel || "Abschnitt"}“</div>}
       {erklaert && <div className="modus-erklaerung">{erklaerung}</div>}
       {anteil !== null && (
-        <div className="balken" style={{ height: 4, borderRadius: 0 }}>
+        <div className="balken modus-balken" style={{ height: 6, borderRadius: 0 }}>
           <span className="vertraut" style={{ width: Math.round(anteil * 100) + "%",
             transition: "width 0.3s" }} />
         </div>

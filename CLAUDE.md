@@ -547,7 +547,17 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     Größe `navGroesse` (→ `--nav-skala` am Wurzelelement), `erstellen`:
     "plus" (runder Knopf, `PLUS_WEGE`) | "vereint" (Reiter Erstellen,
     Stapel als Leiste auf der Fächer-Seite). Erstellen-Blatt: `ui/Erstellen.jsx`.
-83. **Startseite-Einstieg** (`AbrufEinstieg startseite`, Stand 27.11.2026):
+83. **Startseite-Einstieg** (`AbrufEinstieg startseite`, Stand 27.11.2026),
+    seit dem Abend der **Lernsnack** — ein vollwertiger kleiner Abruf in der
+    Kachel: Einschätzung → Antwort tippen → aufdecken → bewerten, ohne
+    Sprung, ganz normal verbucht (`abrufVerbuchen`, flag `normal`). Nur
+    ansehen gäbe es nicht: Das wäre Erleichtern statt Erzwingen. Umfang
+    wählbar (`snackGroesse`: 5/10/20/ohne Ende) — Umfang, keine Auswahl.
+    Beide Kästen haben feste Maße: Das „Blatt“ trägt Frage und Lösung
+    übereinander (die verdeckte Seite hält die Höhe), die Handlungszeile ist
+    56 px hoch, was auch darin steht. Die getippte Antwort steht in der
+    Kopfzeile, nicht im Blatt — dort ließe sie es beim Tippen wachsen.
+    Was davor galt:
     Einschätzung → kleines Antwortfeld; ein Tipp **irgendwo auf die Kachel**
     (außer auf Knöpfe, Feld und die Einschätzungsfrage) führt nach
     `/abrufen/alle/start/<karte:richtung>[/<k>]` — normales, verbuchtes
@@ -591,6 +601,18 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     und hell/dunkel nach Helligkeit; null = wie das Design.
 86. **Am Handy ist jede Seite ≥ 100dvh + 1px** (`.buehne`): Auf kurzen Seiten
     stand die Navigierleiste in der iPhone-App sonst zu hoch.
+
+87. **Der Balken oben in den Modi** (`core/fortschritt.js`, 27.11.2026):
+    Er misst nicht die Stelle in der Runde, sondern was sitzt — richtig ein
+    ganzer Punkt, ein Fehlversuch ein halber. Je Karte zählt nur ihr bester
+    Stand (`Math.max`), sonst schöbe dieselbe dreimal falsch beantwortete
+    Karte den Balken dreimal. Abrufen rechnet aus `ergebnisse`, Karteikarten
+    aus „Weiß ich / Noch üben“; Nenner sind die **verschiedenen** Karten der
+    Runde, Wiedervorlagen sind dieselbe Karte. `test/fortschritt.test.js`.
+88. **Stapel ohne Fach** (Fächerseite): Die Zeile öffnet den Stapel, das
+    Auswahlfeld ordnet ihn einem Fach zu, der Papierkorb wirft ihn weg —
+    beide halten den Klick auf (`stopPropagation`), sonst öffnete sich der
+    Stapel.
 
 ## Stapel aus Lernmaterial (im Chat)
 
