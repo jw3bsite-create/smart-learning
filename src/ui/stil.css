@@ -1707,7 +1707,8 @@ html.zieht { cursor: grabbing; }
   flex-direction: column; justify-content: center; align-items: center; gap: 3px;
   text-align: center; white-space: nowrap; overflow: hidden; }
 .snack-noten .antwort { font-size: 12px; }
-.snack-zeile .abruf-einstieg-antwort { display: flex; align-items: stretch; }
+.snack-zeile .abruf-einstieg-antwort { display: flex; align-items: stretch; gap: 8px; margin: 0; }
+.snack-zeile .abruf-einstieg-antwort .feld { flex: 1; min-width: 0; cursor: text; }
 .snack-zeile .abruf-einstieg-antwort .feld,
 .snack-zeile .abruf-einstieg-antwort .knopf { height: 56px; min-height: 0; }
 
@@ -1736,7 +1737,7 @@ html.zieht { cursor: grabbing; }
 .bewertung-gitter.nebeneinander { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .bewertung-gitter.nebeneinander .antwort { padding: 10px 4px; }
 
-/* Startseite: kleines Antwortfeld; ein Tipp irgendwo auf die Karte führt ins Abrufen. */
+/* Startseite: Ein Tipp auf die freie Fläche der Kachel führt ins große Abrufen. */
 .abruf-einstieg.auf-start.tippbar { cursor: pointer; }
 /*
  * Der Übergang dorthin (ui/uebergang.js): Die kleine Kachel und die große
@@ -1760,8 +1761,6 @@ html.zieht { cursor: grabbing; }
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
-.abruf-einstieg-antwort { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
-.abruf-einstieg-antwort .feld { flex: 1; min-width: 0; cursor: text; }
 /* Startseite: „Heute“ in einer schmalen Zeile. */
 .heute-zeile { display: flex; align-items: center; gap: 14px; padding: 10px 14px; flex-wrap: wrap; }
 .heute-zeile .heute-wert { display: flex; align-items: baseline; gap: 6px; }

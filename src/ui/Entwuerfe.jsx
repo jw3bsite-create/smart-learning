@@ -18,7 +18,7 @@ import { useDaten } from "../core/store.jsx";
 import { normalisiere } from "../core/text.js";
 import { anzahl } from "../core/util.js";
 import { gehe, zurueckZu } from "../App.jsx";
-import { Symbol, SymbolKnopf, Knopf, Bild, Leer, Dialog, useMerker } from "./basis.jsx";
+import { Symbol, Knopf, Bild, Leer, Dialog, useMerker } from "./basis.jsx";
 import Zeichenleiste from "./Zeichenleiste.jsx";
 
 /* ---------------------------- Ein einzelner Entwurf --------------------- */

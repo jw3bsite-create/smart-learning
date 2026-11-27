@@ -73,6 +73,9 @@ export default function KartenVorschau({ setId = null, karten, reihenfolgeBehalt
       setZug(amRand ? dx / 3 : dx);
     }
   };
+  /* Losgelassen. Gedreht wird nur bei einem echten Tippen — ohne nennenswerte
+     Bewegung. Ein Wischen nach oben oder unten ist Scrollen, kein Tippen;
+     früher drehte es die Karte mit. */
   const hoch = () => {
     const d = druck.current;
     druck.current = null;
@@ -80,7 +83,14 @@ export default function KartenVorschau({ setId = null, karten, reihenfolgeBehalt
     if (!d) return;
     const tempo = zug / Math.max(1, Date.now() - d.zeit);       // px je ms
     if (d.seitlich && (Math.abs(zug) > schritt * 0.25 || Math.abs(tempo) > 0.45)) zu(stelle + (zug < 0 ? 1 : -1));
-    else if (!d.seitlich) setGedreht((g) => !g);                   // Tippen dreht
+    else if (d.seitlich === null) setGedreht((g) => !g);           // Tippen dreht
+    setZug(0);
+  };
+  /* Der Browser hat die Berührung übernommen (meist: die Seite scrollt). Dann
+     passiert nichts — weder Drehen noch Blättern. */
+  const abgebrochen = () => {
+    druck.current = null;
+    setZieht(false);
     setZug(0);
   };
 
@@ -91,7 +101,7 @@ export default function KartenVorschau({ setId = null, karten, reihenfolgeBehalt
   return (
     <div className="vorschau unten-20">
       <div ref={flaeche} className="vorschau-flaeche"
-        onPointerDown={runter} onPointerMove={ziehen} onPointerUp={hoch} onPointerCancel={hoch}
+        onPointerDown={runter} onPointerMove={ziehen} onPointerUp={hoch} onPointerCancel={abgebrochen}
         onKeyDown={(e) => {
           if (e.key === " " || e.key === "Enter") { e.preventDefault(); setGedreht((g) => !g); }
           else if (e.key === "ArrowRight") zu(stelle + 1);

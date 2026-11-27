@@ -57,6 +57,7 @@ export default function Karteikarten({ setId, aufSchliessen }) {
   const [wvAuswahl, setWvAuswahl] = useState(auswahl);
   if (wvAuswahl !== auswahl) {
     setWvAuswahl(auswahl); setWv(neueSitzung()); setStelle(0); setGedreht(false); setFertig(false);
+    setUrteile([]);
   }
   const eintrag = wv.folge[stelle];
   const karte = eintrag ? nachId.get(eintrag.id) : null;
@@ -174,7 +175,9 @@ export default function Karteikarten({ setId, aufSchliessen }) {
         )}
         <Ergebnis titel="Stapel durchgesehen" setId={setId}
           richtig={z.ersteRichtig} gesamt={z.ersteGesamt || reihe.length}
-          aufNochmal={() => { setWv(neueSitzung()); setStelle(0); setGedreht(false); setFertig(false); }}
+          aufNochmal={() => {
+            setWv(neueSitzung()); setStelle(0); setGedreht(false); setFertig(false); setUrteile([]);
+          }}
           aufWeiter={z.fehler > 0
             ? <Knopf art="gross" symbol="ziel"
                 onClick={() => gehe("/stapel/" + setId + "/lernen")}>Schwache üben</Knopf>

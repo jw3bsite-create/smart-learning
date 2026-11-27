@@ -627,6 +627,16 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     Auswahlfeld ordnet ihn einem Fach zu, der Papierkorb wirft ihn weg —
     beide halten den Klick auf (`stopPropagation`), sonst öffnete sich der
     Stapel.
+89. **Abbruch ist kein Tippen** (`ui/KartenVorschau.jsx`): Scrollt der
+    Browser, weil der Finger auf dem Karussell aufsetzte, kommt
+    `pointercancel`. Lief das durch denselben Weg wie das Loslassen, drehte
+    sich die Karte beim Scrollen um. Gedreht wird nur ohne nennenswerte
+    Bewegung (`seitlich === null`), ein Abbruch tut nichts.
+90. **Wer einen Durchgang neu beginnt, setzt auch seine Zählungen zurück.**
+    In den Karteikarten begann der Balken nach „Nochmal“ und nach dem
+    Mischen mit den Urteilen der vorigen Runde. Der Lernsnack merkt sich
+    Zähler und Bewertetes neben der Komponente (`snack`, eine halbe Stunde),
+    sonst stand er nach jedem Seitenwechsel wieder bei 0.
 
 ## Stapel aus Lernmaterial (im Chat)
 

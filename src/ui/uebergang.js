@@ -46,10 +46,13 @@ export function wachsend(weiter) {
   const ab = setTimeout(() => wurzel.classList.remove("im-uebergang"), 2000);
   const lauf = document.startViewTransition(() => new Promise((fertig) => {
     wartet = fertig;
-    setTimeout(() => { if (wartet === fertig) wegGesetzt(); }, NOTBREMSE);
+    setTimeout(fertig, NOTBREMSE);      // zweimal eingelöst schadet nicht
     weiter();
   }));
-  lauf.finished.finally(() => { clearTimeout(ab); wurzel.classList.remove("im-uebergang"); });
+  /* Übersprungen (etwa weil die Seite im Hintergrund lag) ist kein Fehler:
+     Die neue Seite steht trotzdem, nur ohne Bewegung. */
+  lauf.ready.catch(() => {});
+  lauf.finished.catch(() => {}).finally(() => { clearTimeout(ab); wurzel.classList.remove("im-uebergang"); });
 }
 
 /*

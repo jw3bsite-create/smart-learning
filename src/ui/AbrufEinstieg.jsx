@@ -52,6 +52,17 @@ const wahl = { schluessel: null, zeit: 0, stand: null };
  */
 const LEER = { schluessel: null, phase: "konfidenz", konfidenz: null, eingabe: "", beginn: 0, erinnert: null };
 
+/*
+ * Der Snack als Ganzes: wie viele Karten geschafft sind und welche schon
+ * bewertet wurden. Lebte früher nur im Bildschirm — nach einem Blick in
+ * „Stapel“ stand der Zähler wieder auf 0, und eine eben mit „Nochmal“
+ * bewertete Karte konnte sofort wieder auftauchen. Nach einer halben Stunde
+ * ohne Bewertung beginnt ein neuer Snack.
+ */
+const SNACK_GILT = 30 * 60000;
+const snack = { geschafft: 0, erledigt: new Set(), zeit: 0 };
+const snackFrisch = () => Date.now() - snack.zeit < SNACK_GILT;
+
 /* Länger als eine Minute vor einer Karte zu sitzen heißt: Es lief etwas
    anderes nebenher. Solche Zeiten verderben die Mediane (Fallstrick 70). */
 const ZEIT_GRENZE = 60000;
@@ -151,8 +162,8 @@ function Lernsnack() {
   const untereinander = (einstellungen.bewertungKnoepfe || "uebereinander") === "uebereinander";
 
   const [groesse, setGroesse] = useMerker("snackGroesse", 5);
-  const [erledigt, setErledigt] = useState(() => new Set());   // in diesem Snack bewertet
-  const [geschafft, setGeschafft] = useState(0);
+  const [erledigt, setErledigt] = useState(() => (snackFrisch() ? snack.erledigt : new Set()));
+  const [geschafft, setGeschafft] = useState(() => (snackFrisch() ? snack.geschafft : 0));
   const [stand, setStand] = useState(() => (Date.now() - wahl.zeit < WAHL_GILT && wahl.stand) || LEER);
   const beginn = useRef(Date.now());
   const bewertet = useRef(false);
@@ -205,6 +216,11 @@ function Lernsnack() {
     wahl.zeit = Date.now();
   }, [stand]);
 
+  useEffect(() => {
+    snack.geschafft = geschafft;
+    snack.erledigt = erledigt;
+  }, [geschafft, erledigt]);
+
   /* Beim Tippen steht der Zeiger im Feld — tippen, ohne zu zielen. */
   useEffect(() => { if (phase === "tippen") feld.current?.focus(); }, [phase, aufgabe?.schluessel]);
 
@@ -252,6 +268,7 @@ function Lernsnack() {
        sofort erneut da. Im großen Abrufen regelt das die Wiedervorlage. */
     setErledigt((alt) => new Set(alt).add(schluessel));
     setGeschafft((n) => n + 1);
+    snack.zeit = Date.now();
     setStand(LEER);
     wahl.stand = null;
     gemerkt.current = null;
