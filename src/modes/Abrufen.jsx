@@ -27,7 +27,7 @@ import {
   NOTEN, NOTEN_NAMEN, KONFIDENZ, vorschau, abstandLang, neuerZustand, istNeu,
 } from "../core/fsrs.js";
 import {
-  baueSitzung, baueCramSitzung, baueWeitere, weitereZaehlung,
+  baueSitzung, baueCramSitzung, baueWeitere, weitereZaehlung, heuteAnstehend,
   wirksameRetention, tageBisPruefung, CRAM_AB_TAGEN, aufgabeAusSchluessel,
 } from "../core/warteschlange.js";
 import { kalibrierung, kalibrierungInWorten } from "../core/kalibrierung.js";
@@ -40,6 +40,7 @@ import {
 } from "../core/wiedervorlage.js";
 import { useStoppuhr } from "../ui/stoppuhr.js";
 import { uebernehmen, uebergabeErledigt } from "../ui/uebergang.js";
+import { ANTWORTFELD, NOTEN_SINN, useUntereinander, useTippSchutz, erstesMal } from "../ui/bedienung.js";
 import { ganzesFach, stapelDerKlausur, gewichtNachKlausur } from "../core/klausuren.js";
 import { abrufStapel, OBEN } from "../core/fachordner.js";
 import { gehe } from "../App.jsx";
@@ -325,6 +326,19 @@ export default function Abrufen({
   }).aufgaben.length : null), [gestartet, groesse, cram, fachId, auswahlSchluessel]);
   useEffect(() => { if (anstehend === 0) setGroesse(vorgabeGroesse); }, [anstehend]);
 
+  /* Für die Fächerwahl: Karten je Fach und was heute dran ist (dieselbe
+     Rechnung wie überall, core/warteschlange.js). */
+  const wahlZahlen = useMemo(() => {
+    if (gestartet) return {};
+    const z = {};
+    for (const f of faecher) {
+      const h = heuteAnstehend({ karten, zustaende, stapelVon, faecherVon, fach: f });
+      const karteMitFach = karten.some((k) => stapelVon(k.setId)?.subjectId === f.id);
+      z[f.id] = { heute: h.gesamt, karten: karteMitFach ? 1 : 0 };
+    }
+    return z;
+  }, [gestartet, faecher, karten, zustaende, stapelVon, faecherVon]);
+
   /* Weitermachen, wenn alles durch ist. */
   const weitereEingaben = { karten, zustaende, stapelVon, fach, faecherIds: faecherAuswahl };
   const neuBeginnen = (s) => {
@@ -380,7 +394,11 @@ export default function Abrufen({
   }, [fachId, gestartet, auswahlSchluessel, groesse]);
 
   const aufgabe = sitzung?.aufgaben?.[stelle] || null;
-  const untereinander = (einstellungen.bewertungKnoepfe || "uebereinander") === "uebereinander";
+  /* Übereinander oder nebeneinander (Einstellungen → Lernen, Vorgabe
+     automatisch), für Einschätzung und Bewertung gleich. */
+  const untereinander = useUntereinander();
+  /* Nach jedem Zustandswechsel kurz keine Tipps auf die neuen Knöpfe. */
+  const schutz = useTippSchutz(phase + ":" + stelle + ":" + (aufgabe?.schluessel || ""));
 
   /* Der Balken oben: je Karte höchstens ein Punkt — richtig ganz, ein
      Fehlversuch halb (core/fortschritt.js). Gezählt werden die Karten der
@@ -568,6 +586,25 @@ export default function Abrufen({
   };
 
   /*
+   * „Schwer“ nach „Keine Ahnung“ und leerem Feld: Das ist fast immer als
+   * „falsch“ gemeint. Einmal (je Gerät) sagt Anchor, was „Schwer“ heißt —
+   * FSRS wertet es als Erfolg und setzte den Abstand sonst zu lang.
+   */
+  const bewertenMitHinweis = async (note) => {
+    if (note === NOTEN.SCHWER && konfidenz === KONFIDENZ.KEINE_AHNUNG && !eingabe.trim()
+      && erstesMal("schwer-ohne-ahnung")) {
+      const nochmal = await bestaetigen({
+        titel: "„Schwer“ heißt: gewusst, mit Mühe",
+        text: "Du hattest keine Ahnung und nichts getippt. Wusstest du es nicht, ist „Nochmal“ richtig — "
+          + "„Schwer“ zählt als Erfolg, und die Karte käme erst viel später wieder.",
+        ja: "Nochmal nehmen", nein: "Doch „Schwer“",
+      });
+      return bewerten(nochmal ? NOTEN.NOCHMAL : NOTEN.SCHWER);
+    }
+    return bewerten(note);
+  };
+
+  /*
    * „Kommt nicht dran“ direkt im Abrufen (dieselbe Markierung wie in der
    * Stapelansicht, `nichtRelevant`; CLAUDE.md, Regel 7: Abhaken ist keine
    * Selbstauswahl). Die Karte verschwindet aus der laufenden Sitzung samt
@@ -617,10 +654,10 @@ export default function Abrufen({
   };
 
   useTastatur({
-    1: () => (phase === "konfidenz" ? konfidenzWaehlen(KONFIDENZ.SICHER) : bewerten(NOTEN.NOCHMAL)),
-    2: () => (phase === "konfidenz" ? konfidenzWaehlen(KONFIDENZ.UNSICHER) : bewerten(NOTEN.SCHWER)),
-    3: () => (phase === "konfidenz" ? konfidenzWaehlen(KONFIDENZ.KEINE_AHNUNG) : bewerten(NOTEN.GUT)),
-    4: () => phase === "aufgedeckt" && bewerten(NOTEN.LEICHT),
+    1: () => (phase === "konfidenz" ? konfidenzWaehlen(KONFIDENZ.SICHER) : bewertenMitHinweis(NOTEN.NOCHMAL)),
+    2: () => (phase === "konfidenz" ? konfidenzWaehlen(KONFIDENZ.UNSICHER) : bewertenMitHinweis(NOTEN.SCHWER)),
+    3: () => (phase === "konfidenz" ? konfidenzWaehlen(KONFIDENZ.KEINE_AHNUNG) : bewertenMitHinweis(NOTEN.GUT)),
+    4: () => phase === "aufgedeckt" && bewertenMitHinweis(NOTEN.LEICHT),
     /* Leertaste deckt nur auf, solange noch nichts geschrieben ist — wer
        „die Zelle" tippt, braucht das Leerzeichen. Beim Rechenweg nie. */
     " ": { auchBeimTippen: true,
@@ -657,6 +694,24 @@ export default function Abrufen({
     const bereit = gewaehlteFaecher.length > 0;
     const umschalten = (id) => setGewaehlteFaecher((alt) =>
       alt.includes(id) ? alt.filter((x) => x !== id) : [...alt, id]);
+    /* Fächer ohne Karten stehen zusammengeklappt am Ende — eine Wahl ohne
+       Wirkung (UX-Bericht). */
+    const mitKarten = faecher.filter((f) => (wahlZahlen[f.id]?.karten || 0) > 0);
+    const leere = faecher.filter((f) => !(wahlZahlen[f.id]?.karten > 0));
+    const heuteGewaehlt = gewaehlteFaecher.reduce((n, id) => n + (wahlZahlen[id]?.heute || 0), 0);
+    const fachZeile = (f) => {
+      const an = gewaehlteFaecher.includes(f.id);
+      const z = wahlZahlen[f.id];
+      return (
+        <button key={f.id} type="button" className={"fach-wahl-zeile" + (an ? " an" : "")}
+          aria-pressed={an} onClick={() => umschalten(f.id)}>
+          <span className="fach-wahl-punkt" style={{ background: f.farbe || "var(--akzent)" }} />
+          <span className="dehnen">{f.name}</span>
+          <span className="klein matt">{z?.heute ? z.heute + " heute" : z?.karten ? "nichts fällig" : "leer"}</span>
+          <span className={"fach-wahl-haken" + (an ? " an" : "")}>{an && <Symbol name="haken" groesse={15} />}</span>
+        </button>
+      );
+    };
 
     return (
       <ModusRahmen titel="Abrufen" symbol="blitz" aufSchliessen={aufSchliessen}>
@@ -675,33 +730,24 @@ export default function Abrufen({
           </Leer>
         ) : (
           <>
-            {/* Oben, was man zuerst braucht: Losgehen, Alle, Keins (26.11.2026). */}
-            <Knopf art="voll gross" symbol="blitz" className="breite-leiste oben-16" disabled={!bereit}
-              onClick={() => setGestartet(true)}>
-              Losgehen
-            </Knopf>
-            <div className="reihe oben-8" style={{ gap: 8 }}>
+            <div className="reihe oben-16" style={{ gap: 8 }}>
+              <label className="beschriftung dehnen" style={{ margin: 0 }}>Welche Fächer?</label>
               <Knopf art="klein leer"
-                onClick={() => setGewaehlteFaecher(faecher.map((f) => f.id))}>
+                onClick={() => setGewaehlteFaecher(mitKarten.map((f) => f.id))}>
                 Alle
               </Knopf>
               <Knopf art="klein leer" onClick={() => setGewaehlteFaecher([])}>Keins</Knopf>
             </div>
-            <label className="beschriftung oben-24">Welche Fächer?</label>
-            <div className="gitter" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))" }}>
-              {faecher.map((f) => {
-                const an = gewaehlteFaecher.includes(f.id);
-                return (
-                  <button key={f.id} className={"antwort" + (an ? " richtig" : "")}
-                    onClick={() => umschalten(f.id)}>
-                    <span style={{ width: 10, height: 10, borderRadius: 3,
-                      background: f.farbe || "var(--akzent)", display: "block", flex: "none" }} />
-                    <span className="dehnen">{f.name}</span>
-                    {an && <Symbol name="haken" groesse={16} />}
-                  </button>
-                );
-              })}
+            {/* Kompakte Zeilen mit Haken und der Zahl für heute. */}
+            <div className="fach-wahl oben-8">
+              {mitKarten.map(fachZeile)}
             </div>
+            {leere.length > 0 && (
+              <details className="fach-wahl-leer oben-8">
+                <summary className="klein matt">{anzahl(leere.length, "leeres Fach", "leere Fächer")}</summary>
+                <div className="fach-wahl oben-8">{leere.map(fachZeile)}</div>
+              </details>
+            )}
 
             <label className="schalter oben-16">
               <input type="checkbox" checked={herkunftVerbergen}
@@ -710,6 +756,16 @@ export default function Abrufen({
                 <span className="klein blass">(Fach und Stapel erst nach der Antwort)</span>
               </span>
             </label>
+
+            {/* Fest unten, wo der Daumen ist — mit dem, was dann kommt. */}
+            <div className="los-leiste">
+              <Knopf art="voll gross" symbol="blitz" className="breite-leiste" disabled={!bereit}
+                onClick={() => setGestartet(true)}>
+                Losgehen
+                {bereit && <span className="klein" style={{ opacity: 0.85 }}>
+                  {" · "}{anzahl(gewaehlteFaecher.length, "Fach", "Fächer")} · {heuteGewaehlt} heute</span>}
+              </Knopf>
+            </div>
 
 
           </>
@@ -951,14 +1007,15 @@ export default function Abrufen({
           <p className="matt klein" style={{ textAlign: "center", marginBottom: 10 }}>
             Ehe du antwortest: Wie sicher bist du dir?
           </p>
-          <div className="gitter konfidenz-gitter">
+          <div className={"gitter konfidenz-gitter schutz-ein " + (untereinander ? "untereinander" : "nebeneinander")}
+            style={{ "--schutz-ms": schutz.ms + "ms" }}>
             {[
               [KONFIDENZ.SICHER, "Sicher", "haken", "var(--gruen)"],
               [KONFIDENZ.UNSICHER, "Unsicher", "auge", "var(--gelb)"],
               [KONFIDENZ.KEINE_AHNUNG, "Keine Ahnung", "kreuz", "var(--rot)"],
             ].map(([wert, name, symbol, farbe]) => (
               <button key={wert} className="antwort" style={{ justifyContent: "center" }}
-                onClick={() => konfidenzWaehlen(wert)}>
+                onClick={(e) => schutz.gilt(e) && konfidenzWaehlen(wert)}>
                 <span className="ziffer">{wert}</span>
                 <Symbol name={symbol} groesse={17} style={{ color: farbe }} />
                 <span>{name}</span>
@@ -989,7 +1046,7 @@ export default function Abrufen({
             Schritt {schrittNr + 1} von {teile.schritte.length}
             {derSchritt?.frage ? " — " + derSchritt.frage : ""}
           </div>
-          <input ref={feld} className="feld"
+          <input ref={feld} className="feld" {...ANTWORTFELD}
             style={{ fontSize: 19, padding: "14px 16px", fontFamily: "ui-monospace, monospace" }}
             placeholder="Diesen Schritt schreiben"
             value={eingabe} onChange={(e) => setEingabe(e.target.value)} />
@@ -1011,7 +1068,7 @@ export default function Abrufen({
 
       {phase === "tippen" && !istMehrschritt && (
         <>
-          <input ref={feld} className="feld" style={{ fontSize: 19, padding: "14px 16px" }}
+          <input ref={feld} className="feld" {...ANTWORTFELD} style={{ fontSize: 19, padding: "14px 16px" }}
             placeholder="Antwort schreiben, dann Enter zum Aufdecken"
             value={eingabe} onChange={(e) => setEingabe(e.target.value)} />
           <Antwortvorschau eingabe={eingabe} />
@@ -1022,7 +1079,8 @@ export default function Abrufen({
                 : konfidenz === 2 ? "unsicher" : "keine Ahnung"}</strong>
             </span>
             <div className="dehnen" />
-            <Knopf art="voll" onClick={aufdecken}>
+            <Knopf art="voll" className="schutz-ein" style={{ "--schutz-ms": schutz.ms + "ms" }}
+              onClick={(e) => schutz.gilt(e) && aufdecken()}>
               Aufdecken <span className="tastenhilfe nur-breit">↵</span>
             </Knopf>
           </div>
@@ -1106,7 +1164,8 @@ export default function Abrufen({
             Du entscheidest, ob es zählt.
           </p>
           {/* Übereinander (Vorgabe) oder nebeneinander, Einstellungen → Lernen. */}
-          <div className={"gitter bewertung-gitter " + (untereinander ? "untereinander" : "nebeneinander")}>
+          <div className={"gitter bewertung-gitter schutz-ein " + (untereinander ? "untereinander" : "nebeneinander")}
+            style={{ "--schutz-ms": schutz.ms + "ms" }}>
             {[
               [NOTEN.NOCHMAL, "var(--rot)"],
               [NOTEN.SCHWER, "var(--gelb)"],
@@ -1118,9 +1177,10 @@ export default function Abrufen({
                   ? { flexDirection: "row", gap: 12, alignItems: "center" }
                   : { flexDirection: "column", gap: 4, alignItems: "center" }),
                   borderColor: stimmtGenau && note === NOTEN.GUT ? farbe : undefined }}
-                onClick={() => bewerten(note)}>
+                onClick={(e) => schutz.gilt(e) && bewertenMitHinweis(note)}>
                 <span className="ziffer">{note}</span>
                 <span style={{ color: farbe, fontWeight: 600 }}>{NOTEN_NAMEN[note]}</span>
+                <span className="noten-sinn klein matt">{NOTEN_SINN[note]}</span>
                 <span className="klein blass">
                   {zeitfenster ? abstandLang(zeitfenster[note]) : ""}
                 </span>

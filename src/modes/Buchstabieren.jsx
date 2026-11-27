@@ -13,6 +13,7 @@ import { sprich, sprachAusgabeDa } from "../core/speech.js";
 
 import { Knopf, Symbol, SymbolKnopf, Leer, useTastatur } from "../ui/basis.jsx";
 import { useModus, useBrauchbar, ModusRahmen, Ergebnis, Wahl, LeerKnoepfe } from "./gemeinsam.jsx";
+import { ANTWORTFELD } from "../ui/bedienung.js";
 
 export default function Buchstabieren({ setId, aufSchliessen }) {
   const { derStapel, karten, antwortVerbuchen, sitzungMerken } = useModus(setId);
@@ -201,7 +202,7 @@ export default function Buchstabieren({ setId, aufSchliessen }) {
         </div>
       ) : (
         <>
-          <input ref={feld} className="feld" style={{ fontSize: 19, padding: "14px 16px" }}
+          <input ref={feld} className="feld" {...ANTWORTFELD} style={{ fontSize: 19, padding: "14px 16px" }}
             placeholder={zustand === "abschreiben" ? "Schreibe das Wort ab" : "Was hast du gehört?"}
             value={eingabe} onChange={(e) => setEingabe(e.target.value)} autoFocus />
           {zustand === "abschreiben" && (

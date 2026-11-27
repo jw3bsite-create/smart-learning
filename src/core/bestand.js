@@ -58,7 +58,8 @@ export const STANDARD_EINSTELLUNGEN = {
   sitzungsUmfang: 30,            // früher: Aufgaben je Abrufsitzung (seit 25.11.2026 jedes Mal gewählt)
   stapelOben: "abrufen",
   startseiteModus: "abrufen",
-  bewertungKnoepfe: "uebereinander",   // Bewertung: "uebereinander" (Daumen) | "nebeneinander" (27.11.2026)    // was auf der Startseite steht: "abrufen" | "karteikarten" (26.11.2026)
+  bewertungKnoepfe: "automatisch",     // "automatisch" (Handy übereinander, PC nebeneinander) | "uebereinander" | "nebeneinander"
+  tippSchutz: "normal",               // Tipps nach Zustandswechsel ignorieren: "aus" | "kurz" | "normal" | "lang" (ui/bedienung.js)    // was auf der Startseite steht: "abrufen" | "karteikarten" (26.11.2026)
   verlaufPfeile: "unten",
   verlaufPfeileGroesse: 1,       // Größe der Pfeile, 0,7 bis 1,8
   erstellen: "plus",             // Erstellen: "plus" (runder Knopf) | "vereint" (Fächer+Stapel, Reiter Erstellen)

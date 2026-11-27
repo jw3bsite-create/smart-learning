@@ -104,3 +104,13 @@ test("„hängt“ zählt Karten, nicht Richtungen — wie das Fehlerheft", () =
   assert.equal(zaehlung.gesperrtKarten, 1, "eine Karte, auch wenn beide Richtungen hängen");
   assert.ok(zaehlung.gesperrt >= 1);
 });
+
+test("wie lange eine Abfrage dauert: Median der letzten echten Antworten", async () => {
+  const { sekundenJeAbfrage } = await import("../src/core/warteschlange.js");
+  assert.equal(sekundenJeAbfrage([]), null, "ohne Antworten keine Schätzung");
+  const r = (ms, i, flag = "normal") => ({ antwortzeit: ms, zeit: 1000 + i, flag });
+  const reviews = [...Array(11)].map((_, i) => r(10000, i));
+  reviews.push(r(500, 99, "implausible"));             // Durchklicken zählt nicht
+  reviews.push(r(600000, 100));                         // zehn Minuten: gekappt
+  assert.equal(sekundenJeAbfrage(reviews), 10);
+});

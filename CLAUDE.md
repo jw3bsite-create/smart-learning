@@ -662,6 +662,22 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
       heißt sie „Abfragen“, weil jede Richtung eine Zeile ist. `useMerker`
       hält mehrere Stellen mit demselben Schlüssel gleich.
     `test/zahlen.test.js`.
+92. **Bedienhilfen** (`ui/bedienung.js`, nach dem UX-Bericht vom
+    27.11.2026, Sicherung davor: Tag `sicherung-2026-11-27-vor-ux-umbau`):
+    - `useTippSchutz(zustand)`: Nach jedem Zustandswechsel zählen Tipps auf
+      die neuen Knöpfe kurz nicht (`tippSchutz`: aus/kurz/normal/lang, 0 bis
+      500 ms); ein ignorierter Tipp wackelt. Der Schlüssel muss die Karte
+      enthalten, sonst begann die Sperre beim Öffnen der Seite und der
+      erste Tipp einer Runde galt sofort. Nur für Klicks, nicht für Tasten.
+    - `useUntereinander()`: `bewertungKnoepfe` „automatisch“ (Vorgabe) =
+      am Handy übereinander, am PC (breit und feiner Zeiger) nebeneinander.
+      Einschätzung und Bewertung folgen derselben Anordnung.
+    - `ANTWORTFELD`: Antwortfelder ohne Autokorrektur und Vorschläge — die
+      iPhone-Tastatur lieferte sonst die Antwort mit.
+    - `NOTEN_SINN`: Was die Bewertungen heißen; „Schwer“ nach „Keine Ahnung“
+      und leerem Feld fragt einmal je Gerät nach (`erstesMal`).
+    - +-Knopf: Seiten mit ihm haben unten Platz für ihn (`.mit-plus`), beim
+      Scrollen nach unten tritt er beiseite.
 
 ## Stapel aus Lernmaterial (im Chat)
 

@@ -143,8 +143,11 @@ export default function Startseite() {
           {/* ------------------------------ Heute ----------------------------- */}
           {/* Eine schmale Zeile statt einer großen Kachel (Wunsch des Nutzers, 26.11.2026). */}
           <div className="zahl-kachel heute-zeile oben-16">
-            <span className="heute-wert" title={heute.faellig + " fällig · " + heute.neu + " neu"}>
-              <strong>{offen}</strong><span className="klein matt">offen</span>
+            {/* Zahlen mit Einheit (UX-Bericht): fällig und neu getrennt, zusammen
+                die Zahl am Reiter „Abrufen“. */}
+            <span className="heute-wert" title={"Zusammen " + offen + " im Abrufen"}>
+              <strong>{heute.faellig}</strong><span className="klein matt">fällig</span>
+              {heute.neu > 0 && <><strong>+{heute.neu}</strong><span className="klein matt">neu</span></>}
             </span>
             <span className="heute-wert" title={stand.heuteGeschafft ? "heute geschafft"
               : anzahl(stand.fehlendHeute, "Abruf fehlt", "Abrufe fehlen") + " heute"}>
@@ -154,7 +157,8 @@ export default function Startseite() {
             {heuteZeit && (
               <span {...KLICKBAR} className="heute-wert" onClick={() => gehe("/statistik")} title="Mehr unter Fortschritt">
                 <Symbol name="uhr" groesse={14} />
-                <strong>{dauerText(heuteZeit.lernen)}</strong><span className="klein matt">heute</span>
+                {/* „heute“ steht für die ganze Zeile — hier nicht noch einmal. */}
+                <strong>{dauerText(heuteZeit.lernen)}</strong>
               </span>
             )}
             {offen === 0 && (

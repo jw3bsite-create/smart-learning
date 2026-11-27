@@ -1624,6 +1624,12 @@ html.zieht { cursor: grabbing; }
   display: grid; place-items: center; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
   transition: transform var(--wechsel); -webkit-tap-highlight-color: transparent; }
 .plus-knopf:active { transform: scale(0.93); }
+.plus-knopf { transition: transform var(--wechsel), opacity var(--wechsel); }
+.plus-knopf.weg { transform: translateY(24px) scale(0.85); opacity: 0; pointer-events: none; }
+/* Unter Seiten mit +-Knopf: Platz für ihn, damit das Letzte nie darunter liegt. */
+@media (max-width: 860px) {
+  .mit-plus .mitte { padding-bottom: calc(96px * var(--nav-skala, 1) + 20px + 70px + env(safe-area-inset-bottom, 0px)); }
+}
 .erstellen-zeile .dehnen { white-space: normal; }
 
 /* Der Zurück-Knopf: rund, nur ein Pfeil, überall an derselben Stelle (links im Kopf). */
@@ -1730,6 +1736,49 @@ html.zieht { cursor: grabbing; }
   font: inherit; font-size: 17px; line-height: 1.4; }
 .snack-hoch .abruf-einstieg-antwort .knopf { flex: none; height: 52px; width: 100%; justify-content: center; }
 
+/* Einschätzung im großen Abrufen folgt derselben Anordnung wie die Bewertung
+   (UX-Bericht: dieselbe Handlung überall gleich angeordnet). */
+.konfidenz-gitter.untereinander { grid-template-columns: 1fr; gap: 8px; }
+.konfidenz-gitter.nebeneinander { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.konfidenz-gitter.nebeneinander .antwort { padding: 10px 6px; flex-wrap: wrap; }
+/* Was die Bewertung bedeutet, unter dem Namen. */
+.noten-sinn { font-size: 12px; }
+.bewertung-gitter.untereinander .noten-sinn { margin-left: 4px; }
+.bewertung-gitter.nebeneinander .noten-sinn { text-align: center; line-height: 1.2; }
+.snack-hoch .snack-noten .noten-sinn { margin-left: 6px; font-weight: 400; }
+
+/*
+ * Tipp-Schutz (ui/bedienung.js): Neue Knöpfe blenden in genau der Zeit
+ * ein, in der sie noch keine Tipps annehmen — so sieht man die Sperre. Ein
+ * ignorierter Tipp lässt den Knopf kurz wackeln.
+ */
+.schutz-ein { animation: schutz-ein var(--schutz-ms, 0ms) ease-out; }
+@keyframes schutz-ein { from { opacity: 0.45; } to { opacity: 1; } }
+.wackelt { animation: wackeln 0.3s; }
+@media (prefers-reduced-motion: reduce) { .schutz-ein, .wackelt { animation: none; } }
+
+/* Fächerseite: die nächsten 30 Tage als Balken (Höhe = fällige Karten). */
+.vorschau-balken { display: flex; align-items: flex-end; gap: 2px; height: 40px; }
+.vorschau-balken > i { flex: 1; min-width: 0; border-radius: 2px 2px 0 0; background: var(--akzent);
+  opacity: 0.75; }
+.vorschau-balken > i:first-child { opacity: 1; background: var(--gelb); }
+
+/* Fächerwahl im Abrufen: kompakte Zeilen, „Losgehen“ fest unten. */
+.fach-wahl { display: grid; gap: 6px; }
+.fach-wahl-zeile { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px;
+  padding: 8px 14px; border: 1px solid var(--rand); border-radius: calc(var(--rund) * 0.8);
+  background: var(--grund-2); color: var(--schrift); font: inherit; text-align: left; cursor: pointer;
+  transition: border-color var(--wechsel), background var(--wechsel); }
+.fach-wahl-zeile.an { border-color: var(--gruen); background: rgba(63, 191, 127, 0.1); }
+.fach-wahl-punkt { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.fach-wahl-haken { width: 22px; height: 22px; border-radius: 50%; flex: none; display: grid; place-items: center;
+  border: 1.5px solid var(--rand); color: var(--gruen); }
+.fach-wahl-haken.an { border-color: var(--gruen); }
+.fach-wahl-leer summary { cursor: pointer; padding: 6px 2px; }
+.los-leiste { position: sticky; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 5;
+  margin-top: 20px; padding-top: 8px;
+  background: linear-gradient(to bottom, transparent, var(--grund) 40%); }
+
 /* Im großen Abrufen: übereinander mit Ziffer, Name und Abstand in einer Zeile. */
 .bewertung-gitter.untereinander { grid-template-columns: 1fr; gap: 8px; }
 .bewertung-gitter.untereinander .antwort { min-height: 54px; padding: 10px 16px; }
@@ -1762,6 +1811,8 @@ html.zieht { cursor: grabbing; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
 /* Startseite: „Heute“ in einer schmalen Zeile. */
-.heute-zeile { display: flex; align-items: center; gap: 14px; padding: 10px 14px; flex-wrap: wrap; }
+.heute-zeile { display: flex; align-items: center; gap: 12px; padding: 10px 14px; flex-wrap: wrap; }
+.heute-zeile .heute-wert { white-space: nowrap; }
 .heute-zeile .heute-wert { display: flex; align-items: baseline; gap: 6px; }
-.heute-zeile .heute-wert strong { font-family: var(--schrift-karten); font-size: 20px; }
+.heute-zeile .heute-wert strong { font-family: var(--schrift-karten); font-size: 18px; }
+.heute-zeile .heute-wert { gap: 4px; }

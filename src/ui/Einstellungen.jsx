@@ -1743,13 +1743,26 @@ export default function Einstellungen({ aufAbgleich, teil = null }) {
             </Abschnitt>
 
             <Abschnitt titel="Bewertungsknöpfe"
-              hinweis="Übereinander folgt dem Daumen: von oben nach unten statt quer über den Bildschirm. Gilt im Abrufen und auf der Startseite.">
+              hinweis="Übereinander: breite Zeilen, für jede Hand gleich gut erreichbar und weg vom ungenauen Rand. Nebeneinander passt zu den Tasten 1 bis 4. Automatisch: am Handy übereinander, am PC nebeneinander. Gilt für Einschätzung und Bewertung, im Abrufen und auf der Startseite.">
               <div className="reihe umbruch" style={{ gap: 8 }} role="radiogroup" aria-label="Bewertungsknöpfe">
-                {[["uebereinander", "Übereinander"], ["nebeneinander", "Nebeneinander"]].map(([wert, name]) => {
-                  const an = (einstellungen.bewertungKnoepfe || "uebereinander") === wert;
+                {[["automatisch", "Automatisch"], ["uebereinander", "Übereinander"], ["nebeneinander", "Nebeneinander"]].map(([wert, name]) => {
+                  const an = (einstellungen.bewertungKnoepfe || "automatisch") === wert;
                   return (
                     <Knopf key={wert} art={an ? "voll" : ""} role="radio" aria-checked={an}
                       onClick={() => setzeEinstellung("bewertungKnoepfe", wert)}>{name}</Knopf>
+                  );
+                })}
+              </div>
+            </Abschnitt>
+
+            <Abschnitt titel="Schutz vor Doppeltipp"
+              hinweis="Gleich nachdem neue Knöpfe erscheinen (Einschätzung, Aufdecken, Bewertung), zählen Tipps kurz nicht. So bewertet ein Doppeltipp auf „Aufdecken“ nicht versehentlich mit.">
+              <div className="reihe umbruch" style={{ gap: 8 }} role="radiogroup" aria-label="Schutz vor Doppeltipp">
+                {[["aus", "Aus"], ["kurz", "Kurz"], ["normal", "Normal"], ["lang", "Lang"]].map(([wert, name]) => {
+                  const an = (einstellungen.tippSchutz || "normal") === wert;
+                  return (
+                    <Knopf key={wert} art={an ? "voll" : ""} role="radio" aria-checked={an}
+                      onClick={() => setzeEinstellung("tippSchutz", wert)}>{name}</Knopf>
                   );
                 })}
               </div>

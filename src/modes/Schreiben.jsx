@@ -16,6 +16,7 @@ import {
   useModus, useBrauchbar, ModusRahmen, Seite, Ergebnis, Wahl, RICHTUNGEN, seitenFuer, sprachenFuer, Hinweis, LeerKnoepfe,
 } from "./gemeinsam.jsx";
 import Formel from "../ui/Formel.jsx";
+import { ANTWORTFELD } from "../ui/bedienung.js";
 
 export default function Schreiben({ setId, aufSchliessen }) {
   const {
@@ -177,7 +178,7 @@ export default function Schreiben({ setId, aufSchliessen }) {
         <Hinweis text={aufgabe.karte.hint} />
       </div>
 
-      <input ref={feld} className="feld" style={{ fontSize: 18, padding: "14px 16px" }}
+      <input ref={feld} className="feld" {...ANTWORTFELD} style={{ fontSize: 18, padding: "14px 16px" }}
         placeholder="Antwort eingeben" value={eingabe} disabled={Boolean(urteil)}
         onChange={(e) => setEingabe(e.target.value)} />
 

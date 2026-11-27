@@ -164,6 +164,21 @@ export function baueSitzung({
 }
 
 /**
+ * Wie lange eine Abfrage bei dir etwa dauert, in Sekunden: der Median der
+ * letzten 200 echten Antworten (Durchklicken zählt nicht, Ausreißer über
+ * zwei Minuten werden gekappt). Daraus wird „etwa 12 Min.“ neben „Alles
+ * abrufen“ (UX-Bericht, 27.11.2026). Unter zehn Antworten: keine Schätzung.
+ */
+export function sekundenJeAbfrage(reviews, { letzte = 200 } = {}) {
+  const echte = (reviews || []).filter((r) => r && !r.deleted && r.flag !== "implausible"
+    && r.antwortzeit > 0 && r.zeit);
+  if (echte.length < 10) return null;
+  const zeiten = echte.sort((a, b) => b.zeit - a.zeit).slice(0, letzte)
+    .map((r) => Math.min(r.antwortzeit, 120000)).sort((a, b) => a - b);
+  return zeiten[Math.floor(zeiten.length / 2)] / 1000;
+}
+
+/**
  * Was heute im Abrufen dran ist — **die** Zahl für alle Stellen, die sagen,
  * wie viel wartet (Navigierleiste, Startseite, „Alles abrufen“, Fachseite).
  *

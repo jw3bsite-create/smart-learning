@@ -33,6 +33,8 @@ import { gehe } from "../App.jsx";
 import { wachsend, uebergeben } from "./uebergang.js";
 import { Symbol, Sinnbild, Knopf, Bild, Menue, MenuePunkt, useMerker } from "./basis.jsx";
 import Formel from "./Formel.jsx";
+import { ANTWORTFELD, NOTEN_SINN, useUntereinander, useTippSchutz, erstesMal } from "./bedienung.js";
+import { bestaetigen } from "./Rueckfragen.jsx";
 
 /*
  * Die Frage auf der Startseite wechselt nicht bei jedem Blick dorthin,
@@ -155,11 +157,12 @@ function StapelEinstieg({ setId, derStapel, auswahlFach }) {
 
 function Lernsnack() {
   const {
-    karten, zustaende, faecher, fachVon, stapelVon, stapel, ordner, abrufVerbuchen, einstellungen,
+    karten, zustaende, faecher, fachVon, stapelVon, stapel, ordner, abrufVerbuchen,
   } = useDaten();
   const gewicht = useMemo(() => gewichtNachKlausur(faecher, stapel, ordner), [faecher, stapel, ordner]);
   const gemerkt = useRef(null);
-  const untereinander = (einstellungen.bewertungKnoepfe || "uebereinander") === "uebereinander";
+  /* Wie im großen Abrufen (Einstellungen → Lernen, Vorgabe automatisch). */
+  const untereinander = useUntereinander();
 
   const [groesse, setGroesse] = useMerker("snackGroesse", 5);
   const [erledigt, setErledigt] = useState(() => (snackFrisch() ? snack.erledigt : new Set()));
@@ -194,6 +197,8 @@ function Lernsnack() {
   const phase = meins ? stand.phase : "konfidenz";
   const konfidenz = meins ? stand.konfidenz : null;
   const eingabe = meins ? stand.eingabe : "";
+  /* Nach jedem Zustandswechsel kurz keine Tipps auf die neuen Knöpfe. */
+  const schutz = useTippSchutz(phase + ":" + (aufgabe?.schluessel || ""));
 
   /* Neue Karte: die Uhr läuft ab jetzt — oder weiter, wenn ihr Stand schon da ist. */
   if (aufgabe && aufgabe.schluessel !== gemerkt.current) {
@@ -274,6 +279,22 @@ function Lernsnack() {
     gemerkt.current = null;
   };
 
+  /* Wie im großen Abrufen: „Schwer“ nach „Keine Ahnung“ ohne Eingabe ist
+     fast immer als „falsch“ gemeint — einmal je Gerät ein Hinweis. */
+  const bewertenMitHinweis = async (note) => {
+    if (note === NOTEN.SCHWER && konfidenz === KONFIDENZ.KEINE_AHNUNG && !eingabe.trim()
+      && erstesMal("schwer-ohne-ahnung")) {
+      const nochmal = await bestaetigen({
+        titel: "„Schwer“ heißt: gewusst, mit Mühe",
+        text: "Du hattest keine Ahnung und nichts getippt. Wusstest du es nicht, ist „Nochmal“ richtig — "
+          + "„Schwer“ zählt als Erfolg, und die Karte käme erst viel später wieder.",
+        ja: "Nochmal nehmen", nein: "Doch „Schwer“",
+      });
+      return bewerten(nochmal ? NOTEN.NOCHMAL : NOTEN.SCHWER);
+    }
+    return bewerten(note);
+  };
+
   /* Der Snack ist voll, oder es steht nichts mehr an. */
   if (!aufgabe) {
     if (!geschafft && !aufgaben.length) return null;    // dann der übliche Knopf der Startseite
@@ -302,7 +323,7 @@ function Lernsnack() {
 
   /* Übereinander: ein großes Feld; nebeneinander: eine Zeile. Enter deckt auf. */
   const feldEigenschaften = {
-    ref: feld, className: "feld", value: eingabe, placeholder: "Antwort tippen …",
+    ref: feld, className: "feld", value: eingabe, placeholder: "Antwort tippen …", ...ANTWORTFELD,
     onChange: (e) => setze({ eingabe: e.target.value }),
     onKeyDown: (e) => { if (e.key === "Enter") { e.preventDefault(); aufdecken(); } },
   };
@@ -345,10 +366,10 @@ function Lernsnack() {
       {/* Die Handlungszeile: immer gleich hoch, nur der Inhalt wechselt. */}
       <div className="snack-zeile">
         {phase === "konfidenz" && (
-          <div className="snack-wahl">
+          <div className="snack-wahl schutz-ein" style={{ "--schutz-ms": schutz.ms + "ms" }}>
             {STUFEN.map(([wert, name, symbol, farbe]) => (
               <button key={wert} type="button" className="antwort"
-                onClick={() => setze({ konfidenz: wert, phase: "tippen" })}>
+                onClick={(e) => schutz.gilt(e) && setze({ konfidenz: wert, phase: "tippen" })}>
                 <Symbol name={symbol} groesse={17} style={{ color: farbe }} />
                 <span>{name}</span>
               </button>
@@ -358,16 +379,19 @@ function Lernsnack() {
         {phase === "tippen" && (
           <div className="abruf-einstieg-antwort">
             {untereinander ? <textarea {...feldEigenschaften} rows={2} /> : <input {...feldEigenschaften} />}
-            <Knopf art="voll" onClick={aufdecken}>Aufdecken</Knopf>
+            <Knopf art="voll" className="schutz-ein" style={{ "--schutz-ms": schutz.ms + "ms" }}
+              onClick={(e) => schutz.gilt(e) && aufdecken()}>Aufdecken</Knopf>
           </div>
         )}
         {phase === "aufgedeckt" && (
-          <div className="snack-noten">
+          <div className="snack-noten schutz-ein" style={{ "--schutz-ms": schutz.ms + "ms" }}>
             {[NOTEN.NOCHMAL, NOTEN.SCHWER, NOTEN.GUT, NOTEN.LEICHT].map((note) => (
               <button key={note} type="button" className="antwort"
                 style={{ borderColor: stimmtGenau && note === NOTEN.GUT ? NOTEN_FARBEN[note] : undefined }}
-                onClick={() => bewerten(note)}>
+                onClick={(e) => schutz.gilt(e) && bewertenMitHinweis(note)}>
                 <span style={{ color: NOTEN_FARBEN[note], fontWeight: 600 }}>{NOTEN_NAMEN[note]}</span>
+                {/* Übereinander ist Platz für die Bedeutung, nebeneinander nicht. */}
+                {untereinander && <span className="noten-sinn klein matt">{NOTEN_SINN[note]}</span>}
               </button>
             ))}
           </div>

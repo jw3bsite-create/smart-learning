@@ -21,6 +21,7 @@ import { gehe } from "../App.jsx";
 import { Knopf, Symbol, Bild, Leer, useTastatur } from "../ui/basis.jsx";
 import { ModusRahmen } from "./gemeinsam.jsx";
 import Formel from "../ui/Formel.jsx";
+import { ANTWORTFELD } from "../ui/bedienung.js";
 
 const WIE_VIELE = 5;
 
@@ -143,7 +144,7 @@ export default function Pretest({ setId, aufSchliessen }) {
 
       {!aufgedeckt ? (
         <>
-          <input className="feld" style={{ fontSize: 18, padding: "14px 16px" }}
+          <input className="feld" {...ANTWORTFELD} style={{ fontSize: 18, padding: "14px 16px" }}
             placeholder="Was könnte es sein?" value={eingabe} autoFocus
             onChange={(e) => setEingabe(e.target.value)} />
           <div className="reihe" style={{ marginTop: 12, justifyContent: "flex-end" }}>

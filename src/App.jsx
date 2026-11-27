@@ -370,6 +370,28 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
   const vereint = einstellungen.erstellen === "vereint";
   const [erstellt, setErstellt] = useState(false);
   useEffect(() => { setErstellt(false); }, [weg]);
+
+  /*
+   * Der +-Knopf verdeckt nichts mehr (UX-Bericht, Material Design): Unter
+   * jeder Seite mit Knopf ist Platz für ihn (`.mit-plus`), und beim Lesen
+   * nach unten tritt er beiseite, beim Zurückscrollen kommt er wieder.
+   */
+  const mitPlus = !vereint && PLUS_WEGE.has(teile[0] || "");
+  const [plusWeg, setPlusWeg] = useState(false);
+  useEffect(() => {
+    document.documentElement.classList.toggle("mit-plus", mitPlus);
+    setPlusWeg(false);
+    if (!mitPlus) return undefined;
+    let zuletzt = window.scrollY;
+    const scrollen = () => {
+      const y = window.scrollY;
+      if (Math.abs(y - zuletzt) < 8) return;
+      setPlusWeg(y > zuletzt && y > 80);
+      zuletzt = y;
+    };
+    window.addEventListener("scroll", scrollen, { passive: true });
+    return () => window.removeEventListener("scroll", scrollen);
+  }, [mitPlus, weg]);
   /* Die Größe der Navigierleiste wirkt auch auf den Platz unter den Seiten. */
   useEffect(() => {
     document.documentElement.style.setProperty("--nav-skala",
@@ -485,7 +507,8 @@ function Inhalt({ weg, leisteOffen, setLeisteOffen, abgleichen }) {
       {/* Erstellen: runder +-Knopf über der Navigierleiste (Vorgabe) oder,
           bei „vereint“, als Reiter in der Leiste (Einstellungen → Aussehen). */}
       {!vereint && PLUS_WEGE.has(teile[0] || "") && (
-        <button type="button" className="plus-knopf nur-schmal" title="Erstellen" aria-label="Erstellen"
+        <button type="button" className={"plus-knopf nur-schmal" + (plusWeg ? " weg" : "")}
+          title="Erstellen" aria-label="Erstellen"
           onClick={() => setErstellt(true)}>
           <Symbol name="plus" groesse={26} />
         </button>

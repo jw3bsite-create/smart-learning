@@ -23,6 +23,7 @@ import {
   useModus, useBrauchbar, ModusRahmen, Seite, Wahl, RICHTUNGEN, seitenFuer, sprachenFuer, Hinweis, LeerKnoepfe,
 } from "./gemeinsam.jsx";
 import Formel from "../ui/Formel.jsx";
+import { ANTWORTFELD } from "../ui/bedienung.js";
 
 const LEER = { stufen: {}, runden: 0 };
 
@@ -381,7 +382,7 @@ export default function Lernen({ setId, aufSchliessen }) {
 
         {aufgabe.art === "schreiben" && (
           <div>
-            <input ref={feld} className="feld" style={{ fontSize: 18, padding: "14px 16px" }}
+            <input ref={feld} className="feld" {...ANTWORTFELD} style={{ fontSize: 18, padding: "14px 16px" }}
               placeholder="Antwort eingeben" value={eingabe} disabled={phase === "rueckmeldung"}
               onChange={(e) => setEingabe(e.target.value)} />
             {phase === "frage" && (

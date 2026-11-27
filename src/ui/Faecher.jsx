@@ -12,10 +12,12 @@ import React, { useMemo, useState } from "react";
 import { useDaten } from "../core/store.jsx";
 import { anteileNachStufe } from "../core/fsrs.js";
 import {
-  fachZaehlung, faelligJeTag, heuteAnstehend, lastprognose, pensumPruefen, tageBisPruefung, zustaendeImPlan,
+  fachZaehlung, faelligJeTag, heuteAnstehend, lastprognose, pensumPruefen, sekundenJeAbfrage, tageBisPruefung,
+  zustaendeImPlan,
 } from "../core/warteschlange.js";
 import { kalibrierungJeFach, kalibrierungInWorten } from "../core/kalibrierung.js";
 import { anzahl, datumKurz } from "../core/util.js";
+import { dauerText } from "../core/lernzeit.js";
 import { prioritaetVon, PRIORITAETEN } from "../core/model.js";
 import { punkteText, punkteStufe } from "../core/noten.js";
 import { punkteZuLernfach } from "./Noten.jsx";
@@ -251,6 +253,9 @@ export default function Faecher() {
     return ergebnis;
   }, [faecher, karten, zustaende, stapelVon]);
   const { offen: heute } = daten;
+  /* Wie lange das etwa dauert — aus deinen eigenen Antwortzeiten. */
+  const sekunden = useMemo(() => sekundenJeAbfrage(reviews), [reviews]);
+  const dauer = sekunden && heute.gesamt ? dauerText(sekunden * heute.gesamt) : null;
 
   const gesamt = useMemo(() => {
     const summe = { faellig: 0, neu: 0, gesperrt: 0, gesperrtKarten: 0, gesamt: 0 };
@@ -301,8 +306,11 @@ export default function Faecher() {
           </Knopf>
           <Knopf symbol="plus" onClick={() => setNeuesFach(true)}>Fach</Knopf>
           {heute.gesamt > 0 && (
-            <Knopf art="voll" symbol="blitz" onClick={() => gehe("/abrufen")}>
-              Alles abrufen ({heute.gesamt})
+            <Knopf art="voll" symbol="blitz" onClick={() => gehe("/abrufen")}
+              title={dauer ? "etwa " + dauer : undefined}>
+              {/* Aufgeschlüsselt, damit „Alles abrufen“ und „Heute fällig“
+                  sich nicht zu widersprechen scheinen (UX-Bericht). */}
+              Alles abrufen · {heute.faellig} fällig{heute.neu > 0 ? " + " + heute.neu + " neu" : ""}
             </Knopf>
           )}
         </div>
@@ -350,12 +358,24 @@ export default function Faecher() {
           <div className="dehnen" />
           <div style={{ minWidth: 180 }}>
             <div className="klein matt">Nächste 30 Tage</div>
-            <div className="streifen oben-8">
-              {kalender.eimer.map((n, i) => (
-                <i key={i} data-stufe={n === 0 ? 0 : n < 10 ? 1 : n < 30 ? 2 : 3}
-                  title={n + " Karten in " + i + " Tagen"} />
-              ))}
-            </div>
+            {kalender.eimer.some((n) => n > 0) ? (
+              <>
+                <div className="vorschau-balken oben-8" role="img"
+                  aria-label={"Fällig in den nächsten 30 Tagen: " + kalender.eimer.join(", ")}>
+                  {kalender.eimer.map((n, i) => (
+                    <i key={i} title={(i === 0 ? "heute" : "in " + i + (i === 1 ? " Tag" : " Tagen")) + ": " + n}
+                      style={{ height: Math.max(n ? 8 : 2, Math.round(100 * n / Math.max(...kalender.eimer))) + "%" }} />
+                  ))}
+                </div>
+                <div className="klein blass oben-4">
+                  {[[0, 7, "diese Woche"], [7, 14, "nächste"], [14, 30, "danach"]].map(([von, bis, name], j) => (
+                    <span key={name}>{j > 0 ? " · " : ""}{name} {kalender.eimer.slice(von, bis).reduce((a, b) => a + b, 0)}</span>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="klein blass oben-8">Noch keine Termine: Sie entstehen, sobald du Karten abrufst.</div>
+            )}
           </div>
         </div>
         {lageErklaert && (
@@ -372,13 +392,11 @@ export default function Faecher() {
           </div>
         )}
         {kalender.ueberfaellig > 20 && (
-          <div className="klein blass oben-12">
-            {kalender.ueberfaellig > 20 && (
-              <strong style={{ color: "var(--gelb)" }}>
-                {" "}{kalender.ueberfaellig} Karten sind überfällig, nimm das Tageslimit
-                für neue Karten zurück, bis der Rückstand weg ist.
-              </strong>
-            )}
+          <div className="klein oben-12" style={{ color: "var(--gelb)" }}>
+            <strong>{kalender.ueberfaellig} überfällig</strong>
+            {lageErklaert
+              ? " — nimm das Tageslimit für neue Karten zurück, bis der Rückstand weg ist."
+              : " · mehr unter „?“"}
           </div>
         )}
       </div>
