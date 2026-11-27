@@ -1742,6 +1742,19 @@ export default function Einstellungen({ aufAbgleich, teil = null }) {
               </div>
             </Abschnitt>
 
+            <Abschnitt titel="Bewertungsknöpfe"
+              hinweis="Übereinander folgt dem Daumen: von oben nach unten statt quer über den Bildschirm. Gilt im Abrufen und auf der Startseite.">
+              <div className="reihe umbruch" style={{ gap: 8 }} role="radiogroup" aria-label="Bewertungsknöpfe">
+                {[["uebereinander", "Übereinander"], ["nebeneinander", "Nebeneinander"]].map(([wert, name]) => {
+                  const an = (einstellungen.bewertungKnoepfe || "uebereinander") === wert;
+                  return (
+                    <Knopf key={wert} art={an ? "voll" : ""} role="radio" aria-checked={an}
+                      onClick={() => setzeEinstellung("bewertungKnoepfe", wert)}>{name}</Knopf>
+                  );
+                })}
+              </div>
+            </Abschnitt>
+
             <Abschnitt titel="Auf der Startseite"
               hinweis="Zum Ausprobieren: Abrufen im kleinen Fenster oder die anstehenden Karten zum Durchblättern.">
               <div className="reihe umbruch" style={{ gap: 8 }} role="radiogroup" aria-label="Auf der Startseite">

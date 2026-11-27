@@ -39,6 +39,7 @@ import {
   sitzungBeginnen, antworten, zusammenfassung, zeitenAusVerlauf, stapelMedian, referenz, kappen, ersterVersuch,
 } from "../core/wiedervorlage.js";
 import { useStoppuhr } from "../ui/stoppuhr.js";
+import { uebernehmen, uebergabeErledigt } from "../ui/uebergang.js";
 import { ganzesFach, stapelDerKlausur, gewichtNachKlausur } from "../core/klausuren.js";
 import { abrufStapel, OBEN } from "../core/fachordner.js";
 import { gehe } from "../App.jsx";
@@ -379,6 +380,7 @@ export default function Abrufen({
   }, [fachId, gestartet, auswahlSchluessel, groesse]);
 
   const aufgabe = sitzung?.aufgaben?.[stelle] || null;
+  const untereinander = (einstellungen.bewertungKnoepfe || "uebereinander") === "uebereinander";
 
   /* Der Balken oben: je Karte höchstens ein Punkt — richtig ganz, ein
      Fehlversuch halb (core/fortschritt.js). Gezählt werden die Karten der
@@ -435,6 +437,28 @@ export default function Abrufen({
   useEffect(() => {
     if (phase === "aufgedeckt" && erinnert.current === null) erinnert.current = stoppuhr.anhalten();
   }, [phase]);
+
+  /* Vom Lernsnack der Startseite (ui/uebergang.js): dieselbe Karte im selben
+     Stand — Einschätzung, getippte Antwort, schon aufgedeckt, mitsamt den
+     Uhren. Steht hinter den beiden Uhr-Effekten, damit es sie im selben Zug
+     überschreibt; wiederholbar je Sitzung (Fallstrick 75). */
+  const uebernommen = useRef(null);
+  useEffect(() => {
+    if (!alleFaecher || !startSchluessel || stelle !== 0 || !sitzung) return;
+    const a = sitzung.aufgaben?.[0];
+    const u = uebernehmen(startSchluessel);
+    if (!a || !u || a.schluessel !== u.schluessel || uebernommen.current === sitzung) return;
+    uebernommen.current = sitzung;
+    if (u.beginn) beginn.current = u.beginn;
+    if (u.konfidenz) setKonfidenz(u.konfidenz);
+    setEingabe(u.eingabe || "");
+    if (u.aufgedeckt && u.konfidenz) {
+      erinnert.current = u.erinnert ?? (Date.now() - (u.beginn || Date.now()));
+      setPhase("aufgedeckt");
+    } else {
+      setPhase(u.konfidenz ? "tippen" : "konfidenz");
+    }
+  }, [sitzung, stelle]);
   const [problemKarte, setProblemKarte] = useState(null);
 
   /* ------------------------------ Handgriffe ---------------------------- */
@@ -484,6 +508,7 @@ export default function Abrufen({
   const bewerten = async (note) => {
     if (phase !== "aufgedeckt" || !aufgabe || bewertet.current) return;
     bewertet.current = true;
+    uebergabeErledigt(aufgabe.schluessel);
     const antwortzeit = alteAntwortzeit.current ?? (Date.now() - beginn.current);
     alteAntwortzeit.current = null;
     const richtig = note !== NOTEN.NOCHMAL;
@@ -1080,7 +1105,8 @@ export default function Abrufen({
           <p className="matt klein" style={{ textAlign: "center", margin: "18px 0 10px" }}>
             Du entscheidest, ob es zählt.
           </p>
-          <div className="gitter bewertung-gitter">
+          {/* Übereinander (Vorgabe) oder nebeneinander, Einstellungen → Lernen. */}
+          <div className={"gitter bewertung-gitter " + (untereinander ? "untereinander" : "nebeneinander")}>
             {[
               [NOTEN.NOCHMAL, "var(--rot)"],
               [NOTEN.SCHWER, "var(--gelb)"],
@@ -1088,7 +1114,9 @@ export default function Abrufen({
               [NOTEN.LEICHT, "var(--gruen)"],
             ].map(([note, farbe]) => (
               <button key={note} className="antwort"
-                style={{ flexDirection: "column", gap: 4, alignItems: "center",
+                style={{ ...(untereinander
+                  ? { flexDirection: "row", gap: 12, alignItems: "center" }
+                  : { flexDirection: "column", gap: 4, alignItems: "center" }),
                   borderColor: stimmtGenau && note === NOTEN.GUT ? farbe : undefined }}
                 onClick={() => bewerten(note)}>
                 <span className="ziffer">{note}</span>

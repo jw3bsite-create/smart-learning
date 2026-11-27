@@ -1711,6 +1711,31 @@ html.zieht { cursor: grabbing; }
 .snack-zeile .abruf-einstieg-antwort .feld,
 .snack-zeile .abruf-einstieg-antwort .knopf { height: 56px; min-height: 0; }
 
+/*
+ * „Übereinander“ (Einstellung `bewertungKnoepfe`, Vorgabe, 27.11.2026): Die
+ * Knöpfe stehen untereinander, weil der Daumen von oben nach unten einem
+ * natürlichen Bogen folgt, quer über den Bildschirm aber gegen ihn arbeitet.
+ * Die Handlungszeile wird dafür höher — und bleibt in allen drei Zuständen
+ * gleich hoch: drei Einschätzungen, ein großes Feld mit „Aufdecken“, vier
+ * Bewertungen füllen dieselbe Fläche.
+ */
+.snack-hoch .snack-zeile { height: 212px; }
+.snack-hoch .snack-wahl { grid-template-columns: 1fr; grid-auto-rows: 1fr; }
+.snack-hoch .snack-noten { grid-template-columns: 1fr; grid-auto-rows: 1fr; gap: 6px; }
+.snack-hoch .snack-wahl .antwort,
+.snack-hoch .snack-noten .antwort { height: auto; flex-direction: row; gap: 10px; font-size: 15px; }
+.snack-hoch .abruf-einstieg-antwort { flex-direction: column; gap: 8px; }
+.snack-hoch .abruf-einstieg-antwort .feld { flex: 1; height: auto; min-height: 0; resize: none;
+  font: inherit; font-size: 17px; line-height: 1.4; }
+.snack-hoch .abruf-einstieg-antwort .knopf { flex: none; height: 52px; width: 100%; justify-content: center; }
+
+/* Im großen Abrufen: übereinander mit Ziffer, Name und Abstand in einer Zeile. */
+.bewertung-gitter.untereinander { grid-template-columns: 1fr; gap: 8px; }
+.bewertung-gitter.untereinander .antwort { min-height: 54px; padding: 10px 16px; }
+.bewertung-gitter.untereinander .antwort > .klein:last-child { margin-left: auto; }
+.bewertung-gitter.nebeneinander { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.bewertung-gitter.nebeneinander .antwort { padding: 10px 4px; }
+
 /* Startseite: kleines Antwortfeld; ein Tipp irgendwo auf die Karte führt ins Abrufen. */
 .abruf-einstieg.auf-start.tippbar { cursor: pointer; }
 /*

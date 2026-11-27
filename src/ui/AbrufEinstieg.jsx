@@ -30,7 +30,7 @@ import { KONFIDENZ, NOTEN, NOTEN_NAMEN } from "../core/fsrs.js";
 import { gleichwertig } from "../core/text.js";
 import { anzahl } from "../core/util.js";
 import { gehe } from "../App.jsx";
-import { wachsend } from "./uebergang.js";
+import { wachsend, uebergeben } from "./uebergang.js";
 import { Symbol, Sinnbild, Knopf, Bild, Menue, MenuePunkt, useMerker } from "./basis.jsx";
 import Formel from "./Formel.jsx";
 
@@ -42,7 +42,15 @@ import Formel from "./Formel.jsx";
  * Wechsel der Seite übersteht; ein Neuladen setzt sie zurück.
  */
 const WAHL_GILT = 30000;
-const wahl = { schluessel: null, zeit: 0 };
+const wahl = { schluessel: null, zeit: 0, stand: null };
+
+/*
+ * Der Stand einer Karte im Snack — als ein Ganzes, damit nichts davon
+ * verloren geht: Er übersteht den Seitenwechsel (über `wahl`) und geht beim
+ * Sprung ins große Abrufen mit (`uebergeben`). Vorher begann die Karte dort
+ * von vorn, die getippte Antwort war weg (Nutzer, 27.11.2026).
+ */
+const LEER = { schluessel: null, phase: "konfidenz", konfidenz: null, eingabe: "", beginn: 0, erinnert: null };
 
 /* Länger als eine Minute vor einer Karte zu sitzen heißt: Es lief etwas
    anderes nebenher. Solche Zeiten verderben die Mediane (Fallstrick 70). */
@@ -136,19 +144,17 @@ function StapelEinstieg({ setId, derStapel, auswahlFach }) {
 
 function Lernsnack() {
   const {
-    karten, zustaende, faecher, fachVon, stapelVon, stapel, ordner, abrufVerbuchen,
+    karten, zustaende, faecher, fachVon, stapelVon, stapel, ordner, abrufVerbuchen, einstellungen,
   } = useDaten();
   const gewicht = useMemo(() => gewichtNachKlausur(faecher, stapel, ordner), [faecher, stapel, ordner]);
   const gemerkt = useRef(null);
+  const untereinander = (einstellungen.bewertungKnoepfe || "uebereinander") === "uebereinander";
 
   const [groesse, setGroesse] = useMerker("snackGroesse", 5);
   const [erledigt, setErledigt] = useState(() => new Set());   // in diesem Snack bewertet
   const [geschafft, setGeschafft] = useState(0);
-  const [phase, setPhase] = useState("konfidenz");             // konfidenz | tippen | aufgedeckt
-  const [konfidenz, setKonfidenz] = useState(null);
-  const [eingabe, setEingabe] = useState("");
+  const [stand, setStand] = useState(() => (Date.now() - wahl.zeit < WAHL_GILT && wahl.stand) || LEER);
   const beginn = useRef(Date.now());
-  const erinnert = useRef(null);
   const bewertet = useRef(false);
   const unterwegs = useRef(false);
   const feld = useRef(null);
@@ -170,55 +176,75 @@ function Lernsnack() {
     wahl.schluessel = aufgabe.schluessel;
     wahl.zeit = Date.now();
   }
-  /* Neue Karte: die Uhr läuft ab jetzt. */
+
+  /* Der Stand gilt nur für die Karte, zu der er gehört. Für jede andere
+     beginnt es bei der Einschätzung — abgeleitet, nicht nachgestellt. */
+  const meins = Boolean(aufgabe && stand.schluessel === aufgabe.schluessel);
+  const phase = meins ? stand.phase : "konfidenz";
+  const konfidenz = meins ? stand.konfidenz : null;
+  const eingabe = meins ? stand.eingabe : "";
+
+  /* Neue Karte: die Uhr läuft ab jetzt — oder weiter, wenn ihr Stand schon da ist. */
   if (aufgabe && aufgabe.schluessel !== gemerkt.current) {
     gemerkt.current = aufgabe.schluessel;
-    beginn.current = Date.now();
-    erinnert.current = null;
+    beginn.current = meins && stand.beginn ? stand.beginn : Date.now();
+    bewertet.current = false;
   }
   if (!aufgabe) gemerkt.current = null;
 
-  /* Nach dem Aufdecken steht der Zeiger im Feld — tippen, ohne zu zielen. */
+  const setze = (teil) => setStand((s) => ({
+    ...(s.schluessel === aufgabe.schluessel ? s : { ...LEER, beginn: beginn.current }),
+    schluessel: aufgabe.schluessel, ...teil,
+  }));
+
+  /* Der Stand wird gemerkt, damit er einen Seitenwechsel übersteht; jede
+     Handlung verlängert die halbe Minute. */
+  useEffect(() => {
+    if (!stand.schluessel) return;
+    wahl.stand = stand;
+    wahl.zeit = Date.now();
+  }, [stand]);
+
+  /* Beim Tippen steht der Zeiger im Feld — tippen, ohne zu zielen. */
   useEffect(() => { if (phase === "tippen") feld.current?.focus(); }, [phase, aufgabe?.schluessel]);
 
   const seiten = aufgabe ? seitenFuer(aufgabe.karte, aufgabe.richtung) : null;
   const stimmtGenau = Boolean(aufgabe && eingabe.trim() && seiten.antwort
     && gleichwertig(eingabe, seiten.antwort));
 
-  /* Ins große Abrufen — mit dieser Karte und, wenn schon gewählt, der
-     Einschätzung. Ein Tipp irgendwo auf die Kachel tut das; Knöpfe und das
-     Feld tun, was auf ihnen steht. */
+  /* Ins große Abrufen — mit dieser Karte und ihrem ganzen Stand. Ein Tipp
+     irgendwo auf die Kachel tut das; Knöpfe und das Feld tun, was auf ihnen
+     steht. */
   const insAbrufen = () => {
     if (unterwegs.current) return;
     unterwegs.current = true;
+    if (aufgabe) {
+      uebergeben({
+        schluessel: aufgabe.schluessel, konfidenz, eingabe,
+        aufgedeckt: phase === "aufgedeckt", beginn: beginn.current,
+        erinnert: meins ? stand.erinnert : null,
+      });
+    }
     const k = konfidenz;
     wachsend(() => gehe("/abrufen/alle"
       + (aufgabe ? "/start/" + encodeURIComponent(aufgabe.schluessel) + (k ? "/" + k : "") : "")));
   };
   const tippen = (e) => { if (!e.target.closest("button, input, a, textarea")) insAbrufen(); };
 
-  const weiterZurNaechsten = () => {
-    setPhase("konfidenz"); setKonfidenz(null); setEingabe("");
-    bewertet.current = false;
-    beginn.current = Date.now();
-    erinnert.current = null;
-  };
-
   const aufdecken = () => {
     if (phase !== "tippen") return;
-    erinnert.current = Date.now() - beginn.current;
-    setPhase("aufgedeckt");
+    setze({ phase: "aufgedeckt", erinnert: Date.now() - beginn.current });
   };
 
   const bewerten = async (note) => {
     if (phase !== "aufgedeckt" || !aufgabe || bewertet.current) return;
     bewertet.current = true;
-    const zeit = Date.now() - beginn.current;
     const schluessel = aufgabe.schluessel;
+    const erinnert = stand.erinnert;
     await abrufVerbuchen({
       karte: aufgabe.karte, stapel: aufgabe.stapel, richtung: aufgabe.richtung,
-      bewertung: note, konfidenz, antwortzeit: zeit,
-      erinnerungszeit: erinnert.current !== null && erinnert.current < ZEIT_GRENZE ? erinnert.current : null,
+      bewertung: note, konfidenz, antwortzeit: Date.now() - beginn.current,
+      erinnerungszeit: erinnert !== null && erinnert < ZEIT_GRENZE ? erinnert : null,
       eingabeLeer: !eingabe.trim(), fach: fachVon(aufgabe.fachId),
       flag: "normal", modus: "abrufen",
     });
@@ -226,8 +252,9 @@ function Lernsnack() {
        sofort erneut da. Im großen Abrufen regelt das die Wiedervorlage. */
     setErledigt((alt) => new Set(alt).add(schluessel));
     setGeschafft((n) => n + 1);
+    setStand(LEER);
+    wahl.stand = null;
     gemerkt.current = null;
-    weiterZurNaechsten();
   };
 
   /* Der Snack ist voll, oder es steht nichts mehr an. */
@@ -241,7 +268,7 @@ function Lernsnack() {
             {aufgaben.length > 0 && <span className="klein matt"> · {aufgaben.length} warten noch</span>}
           </span>
           {aufgaben.length > 0 && (
-            <Knopf art="klein" onClick={() => { setGeschafft(0); weiterZurNaechsten(); }}>Weiter</Knopf>
+            <Knopf art="klein" onClick={() => setGeschafft(0)}>Weiter</Knopf>
           )}
           <Knopf art="klein voll" symbol="blitz" onClick={() => gehe("/abrufen/alle")}>Groß abrufen</Knopf>
         </div>
@@ -256,8 +283,16 @@ function Lernsnack() {
       : eingabe.trim() ? "Du: " + eingabe + (stimmtGenau ? " · stimmt genau" : "")
         : "Du entscheidest, ob es zählt";
 
+  /* Übereinander: ein großes Feld; nebeneinander: eine Zeile. Enter deckt auf. */
+  const feldEigenschaften = {
+    ref: feld, className: "feld", value: eingabe, placeholder: "Antwort tippen …",
+    onChange: (e) => setze({ eingabe: e.target.value }),
+    onKeyDown: (e) => { if (e.key === "Enter") { e.preventDefault(); aufdecken(); } },
+  };
+
   return (
-    <div className="kachel abruf-einstieg auf-start tippbar" onClick={tippen}>
+    <div className={"kachel abruf-einstieg auf-start tippbar" + (untereinander ? " snack-hoch" : "")}
+      onClick={tippen}>
       <div className="reihe unten-8" style={{ gap: 8 }}>
         <Sinnbild name="blitz" ton="blau" />
         <span className={"dehnen klein eine-zeile " + (stimmtGenau && phase === "aufgedeckt" ? "gruen-text" : "matt")}>
@@ -296,7 +331,7 @@ function Lernsnack() {
           <div className="snack-wahl">
             {STUFEN.map(([wert, name, symbol, farbe]) => (
               <button key={wert} type="button" className="antwort"
-                onClick={() => { setKonfidenz(wert); setPhase("tippen"); }}>
+                onClick={() => setze({ konfidenz: wert, phase: "tippen" })}>
                 <Symbol name={symbol} groesse={17} style={{ color: farbe }} />
                 <span>{name}</span>
               </button>
@@ -305,9 +340,7 @@ function Lernsnack() {
         )}
         {phase === "tippen" && (
           <div className="abruf-einstieg-antwort">
-            <input ref={feld} className="feld" value={eingabe} placeholder="Antwort tippen …"
-              onChange={(e) => setEingabe(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); aufdecken(); } }} />
+            {untereinander ? <textarea {...feldEigenschaften} rows={2} /> : <input {...feldEigenschaften} />}
             <Knopf art="voll" onClick={aufdecken}>Aufdecken</Knopf>
           </div>
         )}

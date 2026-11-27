@@ -51,3 +51,34 @@ export function wachsend(weiter) {
   }));
   lauf.finished.finally(() => { clearTimeout(ab); wurzel.classList.remove("im-uebergang"); });
 }
+
+/*
+ * Was beim Wechsel vom Lernsnack ins große Abrufen mitgeht (27.11.2026).
+ *
+ * Vorher begann die Karte dort von vorn: Wer seine Antwort getippt und
+ * aufgedeckt hatte und dann auf die Frage tippte, stand wieder bei der
+ * Einschätzung, die Antwort war weg (vom Nutzer gemeldet). Jetzt übergibt
+ * der Snack seinen Stand — Einschätzung, Eingabe, ob aufgedeckt, und die
+ * Uhren —, und das Abrufen macht genau dort weiter.
+ *
+ * Neben dem Modul statt in der Adresse: Die getippte Antwort gehört nicht
+ * in den Verlauf. Sie gilt nur für diese Karte und nur zwei Minuten.
+ */
+const UEBERGABE_GILT = 120000;
+const uebergabe = { schluessel: null, zeit: 0 };
+
+export function uebergeben(stand) {
+  Object.assign(uebergabe, stand, { zeit: Date.now() });
+}
+
+/** Der übergebene Stand für diese Karte, oder null. Mehrfach lesbar (Fallstrick 75). */
+export function uebernehmen(schluessel) {
+  if (!schluessel || uebergabe.schluessel !== schluessel) return null;
+  if (Date.now() - uebergabe.zeit > UEBERGABE_GILT) return null;
+  return { ...uebergabe };
+}
+
+/** Die Karte ist bewertet — der Stand gilt nicht mehr. */
+export function uebergabeErledigt(schluessel) {
+  if (uebergabe.schluessel === schluessel) uebergabe.zeit = 0;
+}

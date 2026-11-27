@@ -557,6 +557,20 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     übereinander (die verdeckte Seite hält die Höhe), die Handlungszeile ist
     56 px hoch, was auch darin steht. Die getippte Antwort steht in der
     Kopfzeile, nicht im Blatt — dort ließe sie es beim Tippen wachsen.
+    **Der Stand einer Karte ist ein Ganzes** (`stand`: Phase, Einschätzung,
+    Eingabe, Uhren) und gilt nur für die Karte, deren Schlüssel er trägt —
+    abgeleitet, nicht nachgestellt. Er übersteht den Seitenwechsel (in `wahl`
+    neben der Komponente) und geht beim Tipp auf die Kachel ins große Abrufen
+    mit (`uebergeben`/`uebernehmen` in `ui/uebergang.js`, zwei Minuten
+    gültig, nur für `/abrufen/alle`). Vorher begann die Karte dort von vorn
+    und die getippte Antwort war weg (vom Nutzer gemeldet). Das Abrufen
+    übernimmt den Stand in einem Effekt **hinter** seinen beiden Uhr-Effekten,
+    damit er sie im selben Zug überschreibt; wiederholbar je Sitzung.
+    **Bewertungsknöpfe** (`bewertungKnoepfe`, Vorgabe „uebereinander“):
+    übereinander folgt dem Daumen. Im Snack wird die Handlungszeile dann
+    212 px hoch, und alle drei Zustände füllen sie (drei Einschätzungen
+    untereinander, großes Feld mit „Aufdecken“, vier Bewertungen) — sonst
+    spränge die Höhe wieder.
     Was davor galt:
     Einschätzung → kleines Antwortfeld; ein Tipp **irgendwo auf die Kachel**
     (außer auf Knöpfe, Feld und die Einschätzungsfrage) führt nach
