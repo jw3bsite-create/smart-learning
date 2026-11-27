@@ -1,44 +1,37 @@
 /*
- * Eine Karte wächst auf den ganzen Bildschirm, dahinter wechselt die Seite.
+ * Von der Startseite ins Abrufen: Aus der kleinen Frage wird die große.
  *
- * Früher wurde die Karte selbst größer gezogen (Lage und Maße) — dabei setzte
- * der Browser in jedem Bild die Seite neu, und am Ende sprang sie hart um.
- * Das hat gehakt (27.11.2026). Jetzt liegt eine Kopie in einer eigenen
- * Schicht: Ihr Ausschnitt öffnet sich, die neue Seite entsteht verdeckt, dann
- * blendet die Schicht aus.
+ * Zwei Anläufe davor: Erst wuchs die Kachel selbst (Lage und Maße) — der
+ * Browser setzte dabei in jedem Bild die ganze Seite neu, es hakte sichtbar.
+ * Dann eine Kopie in einer eigenen Schicht, deren Ausschnitt aufging: flüssig,
+ * aber dazwischen lag ein dunkler, leerer Augenblick (Nutzer, 27.11.2026).
+ *
+ * Jetzt macht es der Browser selbst. `startViewTransition` fotografiert die
+ * Seite vorher und nachher und bewegt die Stücke, die beidseits denselben
+ * `view-transition-name` tragen, ineinander (hier `abruf-karte`: die Kachel
+ * der Startseite und der Frageblock im Abrufen, siehe stil.css). Nichts wird
+ * dabei leer, und die Bewegung läuft außerhalb des Seitenaufbaus.
+ *
+ * Kennt der Browser das nicht oder sind Bewegungen abgestellt, geht es ohne
+ * Umschweife weiter — ein Übergang ist nie die Sache selbst.
  */
 
-const WACHSEN = 320;   // ms
-const BLENDEN = 220;
+/** Sollen Bewegungen laufen? „Ruhige Oberfläche“ setzt `--wechsel` auf 0. */
+function bewegt() {
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return false;
+  const w = getComputedStyle(document.documentElement).getPropertyValue("--wechsel");
+  return parseFloat(w) > 0;
+}
 
-export function wachsend(el, weiter) {
-  const ruhig = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-  if (!el?.animate || ruhig) { weiter(); return; }
-  const r = el.getBoundingClientRect();
-  const rund = getComputedStyle(el).borderTopLeftRadius;
-
-  const schicht = document.createElement("div");
-  schicht.className = "wachs-schicht";
-  schicht.setAttribute("aria-hidden", "true");
-  const kopie = el.cloneNode(true);
-  Object.assign(kopie.style, { top: r.top + "px", left: r.left + "px", width: r.width + "px", height: r.height + "px" });
-  schicht.appendChild(kopie);
-  document.body.appendChild(schicht);
-
-  const breite = schicht.clientWidth, hoehe = schicht.clientHeight;
-  const aus = "inset(" + r.top + "px " + (breite - r.right) + "px " + (hoehe - r.bottom) + "px "
-    + r.left + "px round " + rund + ")";
-  schicht.animate([{ clipPath: aus }, { clipPath: "inset(0px 0px 0px 0px round 0px)" }],
-    { duration: WACHSEN, easing: "cubic-bezier(.32, .72, 0, 1)", fill: "both" });
-  kopie.animate([{ opacity: 1 }, { opacity: 0 }], { duration: WACHSEN * 0.7, easing: "ease-out", fill: "both" });
-
-  /* Mit Uhr statt `finished`: Die Schicht muss auch dann verschwinden, wenn
-     der Browser die Bewegung anhält (App im Hintergrund). */
-  setTimeout(() => {
+export function wachsend(weiter) {
+  if (typeof document.startViewTransition !== "function" || !bewegt()) { weiter(); return; }
+  document.startViewTransition(() => new Promise((fertig) => {
+    /* Der neue Zustand wird fotografiert, sobald dieses Versprechen eingelöst
+       ist — also erst, wenn die neue Seite wirklich steht. Zwei Bilder
+       Vorlauf, und eine Notbremse, falls der Wegwechsel ausbleibt. */
+    const steht = () => requestAnimationFrame(() => requestAnimationFrame(fertig));
+    window.addEventListener("hashchange", steht, { once: true });
+    setTimeout(fertig, 400);
     weiter();
-    setTimeout(() => {
-      schicht.animate([{ opacity: 1 }, { opacity: 0 }], { duration: BLENDEN, easing: "ease-in-out", fill: "both" });
-      setTimeout(() => schicht.remove(), BLENDEN);
-    }, 60);
-  }, WACHSEN);
+  }));
 }

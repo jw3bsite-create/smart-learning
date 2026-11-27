@@ -860,7 +860,7 @@ export default function Abrufen({
       </>}>
 
       {/* ------------------------------ Frage ------------------------------ */}
-      <div className="frage-block" style={{ position: "relative" }}>
+      <div className="frage-block abruf-frage" style={{ position: "relative" }}>
         <div className="frage-kopf">
         <div className="klein blass dehnen">
           {/* Beim Verschachteln bleibt die Herkunft verdeckt, bis geantwortet

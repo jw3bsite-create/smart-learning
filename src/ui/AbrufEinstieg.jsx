@@ -41,7 +41,6 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
   /* Startseite: schon gesehene Karten dieser Runde und die aufgedeckte Einschätzung. */
   const [gesehen, setGesehen] = useState(() => new Set());
   const [konfidenz, setKonfidenz] = useState(null);
-  const kachel = useRef(null);
   const unterwegs = useRef(false);
 
   const sitzung = useMemo(() => {
@@ -80,21 +79,22 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
   const seiten = aufgabe ? seitenFuer(aufgabe.karte, aufgabe.richtung) : null;
   const insAbrufen = (konfidenz = null) =>
     gehe(weg + "/start/" + encodeURIComponent(aufgabe.schluessel) + (konfidenz ? "/" + konfidenz : ""));
-  /* Die Karte wächst auf den ganzen Bildschirm, dann das Abrufen. */
+  /* Aus der kleinen Frage wird die große (ui/uebergang.js). */
   const wachsen = (k = konfidenz) => {
     if (unterwegs.current) return;
     unterwegs.current = true;
-    wachsend(kachel.current, () => insAbrufen(k));
+    wachsend(() => insAbrufen(k));
   };
-  /* Auf der Startseite führt die ganze Karte ins Abrufen — nur die Frage nach
-     der Einschätzung nicht, und Knöpfe tun, was auf ihnen steht. */
+  /* Auf der Startseite führt die ganze Kachel ins Abrufen; wo genau man
+     hintippt, spielt keine Rolle (Nutzer, 27.11.2026). Nur Knöpfe und das
+     Feld tun weiter, was auf ihnen steht. */
   const tippen = (e) => {
-    if (!aufgabe || e.target.closest("button, input, a, .konfidenz-gitter, .einschaetzung-frage")) return;
+    if (!aufgabe || e.target.closest("button, input, a")) return;
     wachsen();
   };
 
   return (
-    <div ref={kachel} className={"kachel abruf-einstieg" + (startseite ? " auf-start tippbar" : "")}
+    <div className={"kachel abruf-einstieg" + (startseite ? " auf-start tippbar" : "")}
       onClick={startseite ? tippen : undefined}>
       <div className="reihe unten-8" style={{ gap: 8 }}>
         <Sinnbild name="blitz" ton="blau" />
@@ -128,7 +128,7 @@ export default function AbrufEinstieg({ setId = null, derStapel = null, auswahlF
             </div>
           ) : (
             <>
-              <p className="matt klein einschaetzung-frage" style={{ textAlign: "center", margin: "4px 0 10px" }}>
+              <p className="matt klein" style={{ textAlign: "center", margin: "4px 0 10px" }}>
                 Wie sicher bist du dir?
               </p>
               <div className="gitter konfidenz-gitter">

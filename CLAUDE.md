@@ -553,11 +553,20 @@ Die Einstellung `datenFassung` sagt, welche Umstellungen aus
     `/abrufen/alle/start/<karte:richtung>[/<k>]` — normales, verbuchtes
     Abrufen. `startseiteModus: "karteikarten"` zeigt stattdessen
     `KartenVorschau` (anstehende Karten, `reihenfolgeBehalten`).
-    Der Übergang liegt in `ui/uebergang.js` (`wachsend`): Eine **Kopie** der
-    Kachel in einer eigenen Schicht, deren `clip-path` aufgeht — die Kachel
-    selbst in Lage und Maßen zu bewegen ließ den Browser die ganze Seite in
-    jedem Bild neu setzen und hakte sichtbar. Uhr statt `finished`, sonst
-    bleibt die Schicht liegen, wenn der Browser die Bewegung anhält.
+    Der Übergang liegt in `ui/uebergang.js` (`wachsend`) und gehört dem
+    Browser: `startViewTransition`, und beide Seiten tragen denselben
+    `view-transition-name: abruf-karte` (die Kachel der Startseite, der
+    Frageblock im Abrufen — darum dort die eigene Klasse `abruf-frage`, denn
+    `.frage-block` steht in mehreren Modi, zum Teil zweimal auf einer Seite,
+    und ein Name darf nie doppelt vorkommen). Das Versprechen der Rückruf-
+    funktion wird erst eingelöst, wenn die neue Seite steht (hashchange, dann
+    zwei Bilder, Notbremse nach 400 ms) — sonst fotografiert der Browser den
+    alten Zustand zweimal. Zwei Anläufe davor scheiterten: die Kachel selbst
+    in Lage und Maßen zu bewegen ließ den Browser jedes Bild neu setzen und
+    hakte; eine Kopie mit aufgehendem `clip-path` lief flüssig, ließ aber
+    dazwischen einen dunklen, leeren Augenblick. Kann der Browser keine
+    View Transitions oder ist `--wechsel` 0 („Ruhige Oberfläche“), geht es
+    ohne Bewegung weiter; `.mitte` blendet ohnehin weich ein.
 84. **Ausstehende Leistungen** (`notenfach.ausstehend = { anzahl, sorte }`,
     `fachBestfall`, `ausstehendVon`): verschenkt = 15 − Bestfall. Im
     Ziel-Balken liegen die Schichten übereinander, jede für sich ganz rund

@@ -1647,9 +1647,9 @@ html.zieht { cursor: grabbing; }
   transition: border-color var(--wechsel); }
 .zuletzt-kachel:hover { border-color: var(--akzent); }
 .zuletzt-name { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
-/* Startseite: Frage antippbar, Lösung gleich darunter. */
-.abruf-einstieg-frage.tippbar { cursor: pointer; border-radius: calc(var(--rund) * 0.7); }
-.abruf-einstieg-frage.tippbar:hover { background: var(--grund-3); }
+/* Startseite: Die ganze Kachel führt ins Abrufen; die Frage hebt sich dabei
+   nicht eigens hervor — sonst sähe es aus, als käme es darauf an, wohin man
+   tippt (Nutzer, 27.11.2026). */
 .abruf-einstieg-loesung { margin-top: 6px; padding: 12px 14px; border-radius: calc(var(--rund) * 0.7);
   background: var(--grund-3); animation: vorschau-rein calc(var(--wechsel) * 2) ease-out; }
 .abruf-einstieg-loesung .antwort-text { font-family: var(--schrift-karten); font-size: 18px; line-height: 1.4; }
@@ -1673,11 +1673,23 @@ html.zieht { cursor: grabbing; }
 
 /* Startseite: kleines Antwortfeld; ein Tipp irgendwo auf die Karte führt ins Abrufen. */
 .abruf-einstieg.auf-start.tippbar { cursor: pointer; }
-/* Der Übergang dorthin (ui/uebergang.js): eine Schicht über allem, die aus der
-   Karte auf den Bildschirm wächst. Nur Ausschnitt und Deckkraft bewegen sich,
-   die Seite darunter wird dabei nicht neu gesetzt. */
-.wachs-schicht { position: fixed; inset: 0; z-index: 200; background: var(--grund); will-change: clip-path, opacity; }
-.wachs-schicht > .kachel { position: absolute; margin: 0; box-sizing: border-box; }
+/*
+ * Der Übergang dorthin (ui/uebergang.js): Die kleine Kachel und die große
+ * Frage tragen denselben Namen — der Browser bewegt die eine in die andere,
+ * statt dass etwas wächst und dazwischen Leere steht.
+ */
+.abruf-einstieg.auf-start { view-transition-name: abruf-karte; }
+.frage-block.abruf-frage { view-transition-name: abruf-karte; }
+::view-transition-group(abruf-karte) { animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(.32, .72, 0, 1); }
+/* Das Alte geht rasch, das Neue kommt in Ruhe: Sonst stünde die Frage einen
+   Augenblick lang doppelt da. */
+::view-transition-old(abruf-karte) { animation-duration: 120ms; animation-timing-function: ease-in; }
+::view-transition-new(abruf-karte) { animation-duration: 240ms; animation-timing-function: ease-out; }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 200ms; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
 .abruf-einstieg-antwort { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
 .abruf-einstieg-antwort .feld { flex: 1; min-width: 0; cursor: text; }
 /* Startseite: „Heute“ in einer schmalen Zeile. */
